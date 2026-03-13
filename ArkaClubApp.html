@@ -722,6 +722,140 @@
       }
 
       /* ====================================================================
+        BOOK POSTS / READING ROOM
+        ==================================================================== */
+      .reading-room-section {
+        margin-top: 24px;
+        border-top: 2px solid #2c3e50;
+        padding-top: 20px;
+        text-align: left;
+      }
+      .reading-room-title {
+        margin: 0 0 16px;
+        color: #2c3e50;
+        font-weight: 800;
+        font-size: 1rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        text-align: left;
+      }
+      .post-composer {
+        background: #f8f9fa;
+        border: 1px solid #ecf0f1;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 16px;
+      }
+      .post-type-select {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.9rem;
+        background: white;
+        color: #2c3e50;
+        margin: 0 0 10px;
+        box-sizing: border-box;
+      }
+      .post-textarea {
+        width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        font-family: inherit;
+        font-size: 0.9rem;
+        resize: none;
+        min-height: 80px;
+        box-sizing: border-box;
+        color: #2c3e50;
+        background: white;
+        margin: 0;
+        display: block;
+      }
+      .post-textarea:focus {
+        border-color: #A984BA;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(169,132,186,0.1);
+      }
+      .post-submit-btn {
+        background: #A984BA;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 0.85rem;
+        cursor: pointer;
+        float: right;
+        margin-top: 8px;
+        width: auto;
+        transition: background 0.2s;
+      }
+      .post-submit-btn:hover { background: #8e44ad; }
+      .post-filter-strip {
+        display: flex;
+        overflow-x: auto;
+        gap: 8px;
+        padding-bottom: 4px;
+        margin-bottom: 14px;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .post-filter-strip::-webkit-scrollbar { display: none; }
+      .post-filter-chip {
+        background: #ecf0f1;
+        color: #2c3e50;
+        padding: 5px 14px;
+        border-radius: 16px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        white-space: nowrap;
+        cursor: pointer;
+        border: 1px solid #bdc3c7;
+        transition: all 0.2s;
+        flex-shrink: 0;
+        width: auto;
+      }
+      .post-filter-chip.active {
+        background: #2c3e50;
+        color: white;
+        border-color: #2c3e50;
+      }
+      .post-card {
+        display: flex;
+        gap: 12px;
+        padding: 14px 0;
+        border-bottom: 1px solid #f4f4f4;
+      }
+      .post-card:last-child { border-bottom: none; }
+      .post-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        padding: 3px 8px;
+        border-radius: 10px;
+        margin-bottom: 7px;
+      }
+      .post-like-btn {
+        background: none;
+        border: none;
+        color: #7f8c8d;
+        font-size: 0.8rem;
+        cursor: pointer;
+        padding: 4px 0;
+        width: auto;
+        font-weight: bold;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.2s;
+      }
+      .post-like-btn.liked { color: #e74c3c; }
+
+      /* ====================================================================
          HELP CENTER STYLING (Notion Vibe)
          ==================================================================== */
       .help-search-box {
@@ -793,6 +927,13 @@
       .help-table th, .help-table td { border: 1px solid #ecf0f1; padding: 10px; text-align: left; }
       .help-table th { background-color: #f8f9fa; color: #2c3e50; font-weight: bold; }
       .help-table tr:nth-child(even) { background-color: #fcfcfc; }
+
+      #detailPostsContainer,
+      #detailPostsContainer *,
+      #detailReviewsContainer,
+      #detailReviewsContainer * {
+        text-align: left !important;
+      }
 
     </style>
   </head>
@@ -1377,6 +1518,10 @@
           
           <div id="detailShelvesContainer">
             </div>
+
+          <div id="detailPostsContainer" style="text-align:left !important;"></div>
+
+          <div id="detailReviewsContainer" style="text-align:left !important;"></div>
         </div>
       </div>
 
@@ -1460,11 +1605,18 @@
       let globalActivityTypeDB = [];
       let globalActivityLogDB = [];
       let globalPageLogDB = [];
+      let globalBookPostsDB = [];
       let isAppDataLoaded = false;
       let lastViewBeforeDetails = 'library'; // Remembers how we got to a book detail view
       let currentFullShelfBooks = []; // Holds the books for the currently viewed full shelf so search is instant
       let myYearlyChartInstance = null;   //Only for Me Tab of the user
       let myCumulativeChartInstance = null;  //Only for Me Tab of the user
+      let likedBookPostsThisSession = new Set();
+      const BOOKPOST_TYPE_CONFIG = {
+        "General Note":  { emoji: "📌", bgColor: "#ecf0f1", textColor: "#34495e" },
+        "Quote I Loved": { emoji: "🏷️",  bgColor: "#fffcf5", textColor: "#b7770d" },
+        "Fan Cast":      { emoji: "🎬", bgColor: "#eae8f7", textColor: "#534AB7" }
+      };
       
       /* ====================================================================
          📚 ARKA HELP CENTER & KNOWLEDGE BASE (EDIT ARTICLES HERE)
@@ -2806,27 +2958,28 @@
         // --- COMMUNITY ACTIVITY ---
         document.getElementById('detailActivityLoading').style.display = 'none';
         let totalRatingSum = 0, ratingCount = 0, reviewCount = 0;
-        let activityHtml = "";
-        
-        let groups = { "Reading": [], "Finished": [], "To Read": [] };
+
+        // Now includes memberId + imageURL for avatars and profile navigation
+        let groups = { "Reading": [], "Finished": [], "To Read": [], "Did Not Finish": [] };
 
         let bookShelves = globalShelvesDB.filter(s => s.bookId === bookId);
 
         bookShelves.forEach(shelf => {
           let member = globalMembersDB.find(m => m.id === shelf.memberId);
           let displayName = member ? member.displayName : "Unknown Reader";
+          let imageURL = member ? (member.imageURL || "") : "";
 
           if (shelf.rating > 0) { totalRatingSum += shelf.rating; ratingCount++; }
-          if (shelf.review.trim() !== "") { reviewCount++; }
+          if ((shelf.review || "").trim() !== "") { reviewCount++; }
 
-          if (groups[shelf.status]) {
-            // NEW: We are now pushing the raw timestamp into the array so we can format it
+          if (groups[shelf.status] !== undefined) {
             groups[shelf.status].push({ 
-              name: displayName, 
-              rating: shelf.rating, 
-              review: shelf.review, 
+              memberId: shelf.memberId,
+              name: displayName,
+              imageURL: imageURL,
               pages: shelf.pagesRead,
-              date: shelf.lastModifiedOn 
+              date: shelf.lastModifiedOn,
+              dateFinished: shelf.dateFinished
             });
           }
         });
@@ -2835,57 +2988,189 @@
         document.getElementById('detailTotalRatings').innerText = ratingCount;
         document.getElementById('detailTotalReviews').innerText = reviewCount;
 
-        // NEW: Helper function to format the timestamp localized to the user's device
-        function formatReviewDate(rawDate) {
-            const d = parseGoogleDate(rawDate);
+        // Helper: formats a date as dd-MMM (current year) or dd-MMM-yyyy (past year)
+        function formatShelfDate(dateStr) {
+          if (!dateStr || dateStr === "null" || dateStr.trim() === "") return "";
+          try {
+            const d = parseGoogleDate(dateStr);
+            const now = new Date();
             const day = String(d.getDate()).padStart(2, '0');
             const month = d.toLocaleString('en-GB', { month: 'short' });
-            const year = d.getFullYear();
-            const hours = String(d.getHours()).padStart(2, '0');
-            const mins = String(d.getMinutes()).padStart(2, '0');
-            return `${day}-${month}-${year} at ${hours}:${mins}`;
+            return d.getFullYear() === now.getFullYear()
+              ? `${day}-${month}`
+              : `${day}-${month}-${d.getFullYear()}`;
+          } catch(e) { return ""; }
         }
 
-        if (groups["Reading"].length > 0) {
-          activityHtml += `<div class="shelf-group"><h4>📖 Currently Reading</h4>`;
-          groups["Reading"].forEach(u => {
-            let dateStr = formatReviewDate(u.date);
-            activityHtml += `<div class="review-card" style="border-left-color: #3498db;">
-              <strong>${u.name}</strong> <span style="color: #7f8c8d; font-size: 0.85rem;">(Page ${u.pages})</span>
-              <div style="font-size: 0.75rem; color: #95a5a6; margin-top: 2px;">Updated: ${dateStr}</div>
-            </div>`;
-          });
-          activityHtml += `</div>`;
-        }
-        
-        if (groups["Finished"].length > 0) {
-          activityHtml += `<div class="shelf-group"><h4>🏆 Finished It</h4>`;
-          groups["Finished"].forEach(u => {
-            let stars = "⭐".repeat(u.rating) || "Unrated";
-            let dateStr = formatReviewDate(u.date);
-            
-            // NEW: 'white-space: pre-wrap;' makes the browser respect the user's line breaks!
-            let reviewText = u.review ? `<div style="margin-top: 8px; color: #34495e; font-style: italic; white-space: pre-wrap; line-height: 1.4;">"${u.review}"</div>` : "";
-            
-            activityHtml += `<div class="review-card" style="border-left-color: #e67e22;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <strong>${u.name}</strong>
-                <span style="font-size: 0.85rem;">${stars}</span>
+        const statusConfig = [
+          { key: "Reading",        label: "📖 Reading",        accentColor: "#3498db" },
+          { key: "Finished",       label: "✅ Finished",        accentColor: "#27ae60" },
+          { key: "To Read",        label: "📌 To Read",         accentColor: "#95a5a6" },
+          { key: "Did Not Finish", label: "🛑 Did Not Finish",  accentColor: "#e74c3c" }
+        ];
+
+        let activityHtml = "";
+        let hasAny = false;
+
+        statusConfig.forEach(cfg => {
+          const members = groups[cfg.key];
+          if (!members || members.length === 0) return;
+          hasAny = true;
+
+          activityHtml += `
+            <div style="margin-bottom: 22px;">
+              <div style="font-weight: 800; font-size: 0.9rem; color: #2c3e50; margin-bottom: 10px;
+                          display: flex; align-items: center; gap: 6px; 
+                          border-bottom: 2px solid #ecf0f1; padding-bottom: 6px;">
+                ${cfg.label}
+                <span style="font-size: 0.8rem; color: #7f8c8d; font-weight: normal;">(${members.length})</span>
               </div>
-              <div style="font-size: 0.75rem; color: #95a5a6; margin-top: 2px;">${dateStr}</div>
-              ${reviewText}
-            </div>`;
-          });
-          activityHtml += `</div>`;
-        }
-        
-        if (groups["To Read"].length > 0) {
-          activityHtml += `<div class="shelf-group"><h4>📌 To Read</h4><div class="review-card" style="border-left-color: #95a5a6;">${groups["To Read"].map(u => u.name).join(", ")}</div></div>`;
-        }
+              <div style="display: flex; overflow-x: auto; gap: 8px; padding: 4px 2px 8px;
+                          -ms-overflow-style: none; scrollbar-width: none;">
+          `;
 
-        if (activityHtml === "") activityHtml = `<p style="color: #7f8c8d; text-align: center; margin-top: 20px;">Nobody has shelved this yet. Be the first!</p>`;
+          members.forEach(u => {
+            const initLetter = u.name ? u.name.charAt(0).toUpperCase() : "?";
+
+            // Avatar: matches home feed pattern — img with initial fallback
+            const avatarHtml = u.imageURL
+              ? `<img src="${u.imageURL}"
+                   style="width:50px;height:50px;border-radius:50%;object-fit:cover;
+                          border:2px solid #ecf0f1;flex-shrink:0;display:block;"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                 <div style="display:none;width:50px;height:50px;border-radius:50%;
+                             background-color:#ecf0f1;flex-shrink:0;
+                             align-items:center;justify-content:center;
+                             font-size:1.2rem;color:#7f8c8d;">${initLetter}</div>`
+              : `<div style="width:50px;height:50px;border-radius:50%;
+                            background-color:#ecf0f1;flex-shrink:0;display:flex;
+                            align-items:center;justify-content:center;
+                            font-size:1.2rem;color:#7f8c8d;">${initLetter}</div>`;
+
+            // Sub-text: Reading → page number, Finished → finish date, others → time ago
+            let subText = "";
+            if (cfg.key === "Reading") {
+              subText = u.pages > 0 
+                ? `p.${u.pages}` 
+                : getSmartTimeAgo(parseGoogleDate(u.date));
+            } else if (cfg.key === "Finished") {
+              subText = formatShelfDate(u.dateFinished) || getSmartTimeAgo(parseGoogleDate(u.date));
+            } else {
+              subText = getSmartTimeAgo(parseGoogleDate(u.date));
+            }
+
+            const clickAttr = u.memberId ? `onclick="showMemberProfile('${u.memberId}')"` : "";
+
+            activityHtml += `
+              <div ${clickAttr}
+                style="flex:0 0 72px;display:flex;flex-direction:column;align-items:center;
+                       cursor:pointer;padding:8px 4px;border-radius:10px;text-align:center;
+                       transition:background 0.15s;"
+                onmouseover="this.style.background='#f4f7f6'"
+                onmouseout="this.style.background='transparent'">
+                ${avatarHtml}
+                <div style="font-size:0.72rem;font-weight:bold;color:#2c3e50;margin-top:6px;
+                            width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  ${u.name}
+                </div>
+                <div style="font-size:0.65rem;color:#95a5a6;margin-top:2px;">${subText}</div>
+              </div>
+            `;
+          });
+
+          activityHtml += `</div></div>`;
+        });
+
+        if (!hasAny) {
+          activityHtml = `<p style="color:#7f8c8d;text-align:center;margin-top:20px;">Nobody has shelved this yet. Be the first!</p>`;
+        }
         
         document.getElementById('detailShelvesContainer').innerHTML = activityHtml;
+
+        // Fetch and render Book Posts (async — shows loading state immediately)
+        renderBookPosts(bookId);
+
+        // --- RATINGS & REVIEWS FEED ---
+        const reviewableShelves = globalShelvesDB
+          .filter(s => s.bookId === bookId && (s.rating > 0 || (s.review || "").trim() !== ""))
+          .sort((a, b) => parseGoogleDate(b.lastModifiedOn) - parseGoogleDate(a.lastModifiedOn));
+
+        let reviewsHtml = "";
+
+        if (reviewableShelves.length > 0) {
+          reviewsHtml += `
+            <div style="margin-top: 28px; border-top: 2px solid #ecf0f1; padding-top: 20px; text-align: left;">
+              <h3 style="margin: 0 0 16px 0; color: #2c3e50; font-size: 1rem; text-align: left;">
+                ⭐ Ratings & Reviews
+              </h3>
+          `;
+
+          reviewableShelves.forEach(shelf => {
+            const member = globalMembersDB.find(m => m.id === shelf.memberId);
+            if (!member) return;
+
+            const initLetter = member.displayName ? member.displayName.charAt(0).toUpperCase() : "?";
+            const timeAgo = getSmartTimeAgo(parseGoogleDate(shelf.lastModifiedOn));
+
+            const avatarHtml = member.imageURL
+              ? `<img src="${member.imageURL}"
+                   style="width:40px;height:40px;border-radius:50%;object-fit:cover;
+                          border:2px solid #ecf0f1;flex-shrink:0;"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                 <div style="display:none;width:40px;height:40px;border-radius:50%;
+                             background:#ecf0f1;flex-shrink:0;align-items:center;
+                             justify-content:center;font-size:1.1rem;color:#7f8c8d;">
+                   ${initLetter}
+                 </div>`
+              : `<div style="width:40px;height:40px;border-radius:50%;background:#ecf0f1;
+                             flex-shrink:0;display:flex;align-items:center;
+                             justify-content:center;font-size:1.1rem;color:#7f8c8d;">
+                   ${initLetter}
+                 </div>`;
+
+            const starsHtml = shelf.rating > 0
+              ? `<div style="font-size:0.9rem;margin-bottom:6px;letter-spacing:1px;">
+                   ${"⭐".repeat(shelf.rating)}
+                 </div>`
+              : "";
+
+            const reviewText = (shelf.review || "").trim();
+            const reviewHtml = reviewText
+              ? `<div style="font-size:0.9rem;color:#34495e;font-style:italic;
+                             white-space:pre-wrap;line-height:1.5;
+                             border-left:3px solid #f1c40f;padding-left:10px;">
+                   "${reviewText}"
+                 </div>`
+              : "";
+
+            reviewsHtml += `
+              <div style="display:flex;gap:12px;margin-bottom:18px;padding-bottom:18px;
+                          border-bottom:1px solid #f4f4f4;">
+
+                <div onclick="showMemberProfile('${member.id}')" style="cursor:pointer;flex-shrink:0;">
+                  ${avatarHtml}
+                </div>
+
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+                    <span onclick="showMemberProfile('${member.id}')"
+                          style="font-weight:bold;font-size:0.9rem;color:#2c3e50;cursor:pointer;">
+                      ${member.displayName}
+                    </span>
+                    <span style="font-size:0.75rem;color:#95a5a6;">${timeAgo}</span>
+                  </div>
+                  ${starsHtml}
+                  ${reviewHtml}
+                </div>
+
+              </div>
+            `;
+          });
+
+          reviewsHtml += `</div>`;
+        }
+
+        document.getElementById('detailReviewsContainer').innerHTML = reviewsHtml;
       }
 
       /**
@@ -4621,6 +4906,319 @@
           .saveUserFeedback(feedbackData);
       }
 
+
+/**
+       * Fetches posts for a book from the backend, then renders the Reading Room.
+       */
+      function renderBookPosts(bookId) {
+        const container = document.getElementById('detailPostsContainer');
+        if (!container) return;
+
+        container.innerHTML = `
+          <div class="reading-room-section">
+            <h3 class="reading-room-title" style="text-align:left;">💬 The Reading Room</h3>
+            <p style="text-align:left;color:#7f8c8d;font-style:italic;padding:20px 0;">
+              Loading discussions...
+            </p>
+          </div>
+        `;
+
+        google.script.run
+          .withSuccessHandler(function(posts) {
+            globalBookPostsDB = posts || [];
+            renderReadingRoomUI(bookId);
+          })
+          .withFailureHandler(function() {
+            container.innerHTML = `
+              <div class="reading-room-section">
+                <h3 class="reading-room-title" style="text-align:left;">💬 The Reading Room</h3>
+                <p style="text-align:left;color:#e74c3c;padding:20px 0;">
+                  Could not load discussions.
+                </p>
+              </div>
+            `;
+          })
+          .getBookPosts(bookId);
+      }
+
+      /**
+       * Renders the full Reading Room UI: composer + filter chips + post feed.
+       * Called after posts are loaded into globalBookPostsDB.
+       */
+      function renderReadingRoomUI(bookId) {
+        const container = document.getElementById('detailPostsContainer');
+        if (!container) return;
+
+        // Always show all three type chips regardless of post count
+        let filterChipsHtml = `
+          <button class="post-filter-chip active"
+                  onclick="filterAndRenderPosts('${bookId}', 'All', this)">
+            All (${globalBookPostsDB.length})
+          </button>
+        `;
+        Object.entries(BOOKPOST_TYPE_CONFIG).forEach(([type, cfg]) => {
+          const count = globalBookPostsDB.filter(p => p.postType === type).length;
+          filterChipsHtml += `
+            <button class="post-filter-chip"
+                    onclick="filterAndRenderPosts('${bookId}', '${type}', this)">
+              ${cfg.emoji} ${type} (${count})
+            </button>
+          `;
+        });
+
+        const optionsHtml = Object.entries(BOOKPOST_TYPE_CONFIG)
+          .map(([type, cfg]) => `<option value="${type}">${cfg.emoji} ${type}</option>`)
+          .join('');
+
+        container.innerHTML = `
+          <div class="reading-room-section">
+            <h3 class="reading-room-title" style="text-align:left;">💬 The Reading Room</h3>
+
+            <div class="post-composer">
+              <select id="postTypeSelect_${bookId}" class="post-type-select">
+                ${optionsHtml}
+              </select>
+              <textarea id="postContent_${bookId}" class="post-textarea"
+                        placeholder="Drop your thoughts, cast picks, favourite quotes..."></textarea>
+              <div style="overflow:hidden;">
+                <button class="post-submit-btn" id="postSubmitBtn_${bookId}"
+                        onclick="submitBookPost('${bookId}')">POST</button>
+              </div>
+            </div>
+
+            <div class="post-filter-strip" id="postFilterStrip_${bookId}">
+              ${filterChipsHtml}
+            </div>
+
+            <div id="postFeedContainer_${bookId}">
+              ${buildPostFeedHtml(globalBookPostsDB, true)}
+            </div>
+          </div>
+        `;
+      }
+
+      /**
+       * Builds the HTML string for a list of post cards.
+       * @param {Array} postsArray - Posts to render
+       * @param {boolean} isGrouped - If true, group by category with headers
+       */
+      function buildPostFeedHtml(postsArray, isGrouped = false) {
+        if (!postsArray || postsArray.length === 0) {
+          return `
+            <p style="text-align:center;color:#7f8c8d;font-style:italic;padding:20px 0;">
+              No posts yet. Be the first to share your thoughts!
+            </p>
+          `;
+        }
+
+        function esc(str) {
+          return (str || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+
+        function renderSinglePost(post) {
+          const member = globalMembersDB.find(m => m.id === post.memberId);
+          if (!member) return '';
+
+          const initLetter = member.displayName ? member.displayName.charAt(0).toUpperCase() : "?";
+          const timeAgo = getSmartTimeAgo(parseGoogleDate(post.timestamp));
+          const typeCfg = BOOKPOST_TYPE_CONFIG[post.postType] || { emoji: "💬", bgColor: "#ecf0f1", textColor: "#34495e" };
+          const isLiked = likedBookPostsThisSession.has(post.postId);
+          const likeCount = post.likeCount || 0;
+
+          const avatarHtml = member.imageURL
+            ? `<img src="${member.imageURL}"
+                 style="width:40px;height:40px;border-radius:50%;object-fit:cover;
+                        border:2px solid #ecf0f1;flex-shrink:0;display:block;"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+               <div style="display:none;width:40px;height:40px;border-radius:50%;
+                           background:#ecf0f1;flex-shrink:0;align-items:center;
+                           justify-content:center;font-size:1.1rem;color:#7f8c8d;">
+                 ${initLetter}
+               </div>`
+            : `<div style="width:40px;height:40px;border-radius:50%;background:#ecf0f1;
+                           flex-shrink:0;display:flex;align-items:center;
+                           justify-content:center;font-size:1.1rem;color:#7f8c8d;">
+                 ${initLetter}
+               </div>`;
+
+          return `
+            <div class="post-card" id="postCard_${post.postId}">
+              <div onclick="showMemberProfile('${member.id}')" style="cursor:pointer;flex-shrink:0;">
+                ${avatarHtml}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+                  <span onclick="showMemberProfile('${member.id}')"
+                        style="font-weight:bold;font-size:0.9rem;color:#2c3e50;cursor:pointer;">
+                    ${esc(member.displayName)}
+                  </span>
+                  <span style="font-size:0.75rem;color:#95a5a6;">${timeAgo}</span>
+                </div>
+                <div class="post-type-badge"
+                     style="background:${typeCfg.bgColor};color:${typeCfg.textColor};">
+                  ${typeCfg.emoji} ${esc(post.postType)}
+                </div>
+                <div id="postContent_display_${post.postId}">
+                  <div style="font-size:0.9rem;color:#34495e;line-height:1.5;
+                              white-space:pre-wrap;word-break:break-word;">
+                    ${esc(post.content)}
+                  </div>
+                </div>
+                <div id="postActions_${post.postId}" style="margin-top:8px;display:flex;align-items:center;">
+                  <button class="post-like-btn ${isLiked ? 'liked' : ''}"
+                          id="likeBtn_${post.postId}"
+                          onclick="handlePostLike('${post.postId}')">
+                    ${isLiked ? '❤️' : '🤍'} ${likeCount}
+                  </button>
+                  ${post.memberId === currentUser ? `
+                    <button onclick="openEditPost('${post.postId}')"
+                      style="background:none;border:none;color:#7f8c8d;font-size:0.8rem;
+                             cursor:pointer;padding:4px 0 4px 12px;width:auto;font-weight:bold;">
+                      ✏️ Edit
+                    </button>
+                    <button onclick="handleDeletePost('${post.postId}')"
+                      style="background:none;border:none;color:#e74c3c;font-size:0.8rem;
+                             cursor:pointer;padding:4px 0 4px 8px;width:auto;font-weight:bold;">
+                      🗑️ Delete
+                    </button>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        // FLAT MODE — used when a specific type chip is active
+        if (!isGrouped) {
+          return postsArray.map(post => renderSinglePost(post)).join('');
+        }
+
+        // GROUPED MODE — used for "All", renders one section per type in fixed order
+        let html = '';
+        let hasAnyGroup = false;
+
+        Object.entries(BOOKPOST_TYPE_CONFIG).forEach(([type, cfg]) => {
+          const typePosts = postsArray.filter(p => p.postType === type);
+          if (typePosts.length === 0) return;
+          hasAnyGroup = true;
+
+          html += `
+            <div style="margin-bottom: 20px;">
+              <div style="font-size: 0.78rem; font-weight: bold; text-transform: uppercase;
+                          letter-spacing: 0.5px; color: #7f8c8d;
+                          padding: 6px 0 8px; margin-bottom: 2px;
+                          border-bottom: 1px solid #ecf0f1;">
+                ${cfg.emoji} ${type} <span style="font-weight:normal;">(${typePosts.length})</span>
+              </div>
+              ${typePosts.map(post => renderSinglePost(post)).join('')}
+            </div>
+          `;
+        });
+
+        return hasAnyGroup ? html : `
+          <p style="text-align:center;color:#7f8c8d;font-style:italic;padding:20px 0;">
+            No posts yet. Be the first to share your thoughts!
+          </p>
+        `;
+      }
+
+      /**
+       * Filters globalBookPostsDB client-side and re-renders just the feed.
+       * No backend call needed.
+       */
+      function filterAndRenderPosts(bookId, filter, chipElement) {
+        const strip = document.getElementById(`postFilterStrip_${bookId}`);
+        if (strip) {
+          strip.querySelectorAll('.post-filter-chip').forEach(c => c.classList.remove('active'));
+        }
+        if (chipElement) chipElement.classList.add('active');
+
+        const isAll = filter === 'All';
+        const filtered = isAll
+          ? globalBookPostsDB
+          : globalBookPostsDB.filter(p => p.postType === filter);
+
+        const feedContainer = document.getElementById(`postFeedContainer_${bookId}`);
+        // Grouped only when showing All; flat when a specific type is selected
+        if (feedContainer) feedContainer.innerHTML = buildPostFeedHtml(filtered, isAll);
+      }
+
+      /**
+       * Validates, submits a new post to the backend, and prepends to local cache.
+       */
+      function submitBookPost(bookId) {
+        const btn = document.getElementById(`postSubmitBtn_${bookId}`);
+        const typeSelect = document.getElementById(`postTypeSelect_${bookId}`);
+        const contentArea = document.getElementById(`postContent_${bookId}`);
+
+        const content = (contentArea ? contentArea.value : "").trim();
+        if (!content || content.length < 3) {
+          showToast("Write something first! ✍️");
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = "Posting...";
+
+        const postData = {
+          bookId: bookId,
+          memberId: currentUser,
+          postType: typeSelect ? typeSelect.value : "General Note",
+          content: content
+        };
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.disabled = false;
+            btn.innerText = "POST";
+
+            if (res.status === "error") {
+              showToast(res.message || "Failed to post.");
+              return;
+            }
+
+            if (contentArea) contentArea.value = "";
+            globalBookPostsDB.unshift(res.newPost); // Prepend so newest is first
+            renderReadingRoomUI(bookId);             // Rebuild UI to update counts
+            showToast("Posted! 🎉");
+          })
+          .withFailureHandler(function() {
+            btn.disabled = false;
+            btn.innerText = "POST";
+            showToast("Something went wrong. Try again.");
+          })
+          .saveBookPost(postData);
+      }
+
+      /**
+       * Handles the like button. Optimistic update — no waiting for backend.
+       * One like per post per session only.
+       */
+      function handlePostLike(postId) {
+        if (likedBookPostsThisSession.has(postId)) return; // Already liked this session
+        likedBookPostsThisSession.add(postId);
+
+        // Update local cache
+        const postIdx = globalBookPostsDB.findIndex(p => p.postId === postId);
+        if (postIdx > -1) {
+          globalBookPostsDB[postIdx].likeCount = (globalBookPostsDB[postIdx].likeCount || 0) + 1;
+        }
+
+        // Update just the button — no full re-render needed
+        const btn = document.getElementById(`likeBtn_${postId}`);
+        if (btn) {
+          const newCount = postIdx > -1 ? globalBookPostsDB[postIdx].likeCount : 1;
+          btn.innerHTML = `❤️ ${newCount}`;
+          btn.classList.add('liked');
+        }
+
+        // Fire and forget — we don't need to wait for this
+        google.script.run.incrementPostLike(postId);
+      }
+
       /**
        * Renders the 52-week reading activity heatmap and calculates current-year stats.
        * This is strictly personal data and only runs for the logged-in currentUser.
@@ -4922,6 +5520,172 @@
         const mid = Math.floor(arr.length / 2);
         if (arr.length % 2 === 0) return (arr[mid - 1] + arr[mid]) / 2;
         return arr[mid];
+      }
+
+      /**
+       * Swaps the post card body into inline edit mode.
+       */
+      function openEditPost(postId) {
+        const post = globalBookPostsDB.find(p => p.postId === postId);
+        if (!post) return;
+
+        const contentDiv = document.getElementById(`postContent_display_${postId}`);
+        const actionsDiv = document.getElementById(`postActions_${postId}`);
+        if (!contentDiv || !actionsDiv) return;
+
+        // Swap content area to editable textarea
+        contentDiv.innerHTML = `
+          <textarea id="postEditArea_${postId}"
+            style="width:100%;border:1px solid #A984BA;border-radius:8px;padding:8px;
+                   font-family:inherit;font-size:0.9rem;resize:none;min-height:80px;
+                   box-sizing:border-box;color:#2c3e50;margin:0;display:block;"
+          >${post.content}</textarea>
+        `;
+
+        // Swap actions row to Save/Cancel
+        actionsDiv.innerHTML = `
+          <button onclick="submitEditPost('${postId}')"
+            style="background:#A984BA;color:white;border:none;padding:5px 14px;
+                   border-radius:8px;font-size:0.8rem;font-weight:bold;cursor:pointer;
+                   width:auto;margin-right:8px;">
+            Save
+          </button>
+          <button onclick="cancelEditPost('${postId}')"
+            style="background:#ecf0f1;color:#2c3e50;border:none;padding:5px 14px;
+                   border-radius:8px;font-size:0.8rem;font-weight:bold;cursor:pointer;
+                   width:auto;">
+            Cancel
+          </button>
+        `;
+      }
+
+      /**
+       * Cancels edit mode and restores original content.
+       */
+      function cancelEditPost(postId) {
+        const post = globalBookPostsDB.find(p => p.postId === postId);
+        if (!post) return;
+
+        const contentDiv = document.getElementById(`postContent_display_${postId}`);
+        const actionsDiv = document.getElementById(`postActions_${postId}`);
+        if (!contentDiv || !actionsDiv) return;
+
+        // Restore content
+        contentDiv.innerHTML = `
+          <div style="font-size:0.9rem;color:#34495e;line-height:1.5;
+                      white-space:pre-wrap;word-break:break-word;">
+            ${post.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+          </div>
+        `;
+
+        // Restore actions
+        restorePostActions(postId, actionsDiv);
+      }
+
+      /**
+       * Submits the edited content to the backend.
+       */
+      function submitEditPost(postId) {
+        const textarea = document.getElementById(`postEditArea_${postId}`);
+        if (!textarea) return;
+
+        const newContent = textarea.value.trim();
+        if (!newContent || newContent.length < 3) {
+          showToast("Post is too short!");
+          return;
+        }
+
+        textarea.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === "error") {
+              showToast(res.message || "Failed to save.");
+              textarea.disabled = false;
+              return;
+            }
+
+            // Update local cache
+            const postIdx = globalBookPostsDB.findIndex(p => p.postId === postId);
+            if (postIdx > -1) globalBookPostsDB[postIdx].content = res.updatedContent;
+
+            const contentDiv = document.getElementById(`postContent_display_${postId}`);
+            const actionsDiv = document.getElementById(`postActions_${postId}`);
+            if (!contentDiv || !actionsDiv) return;
+
+            // Restore with updated content
+            contentDiv.innerHTML = `
+              <div style="font-size:0.9rem;color:#34495e;line-height:1.5;
+                          white-space:pre-wrap;word-break:break-word;">
+                ${res.updatedContent.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+              </div>
+            `;
+            restorePostActions(postId, actionsDiv);
+            showToast("Post updated! ✏️");
+          })
+          .withFailureHandler(function() {
+            showToast("Something went wrong. Try again.");
+            textarea.disabled = false;
+          })
+          .editBookPost({ postId: postId, newContent: newContent });
+      }
+
+      /**
+       * Helper: rebuilds the like + edit action row.
+       */
+      function restorePostActions(postId, actionsDiv) {
+        const post = globalBookPostsDB.find(p => p.postId === postId);
+        if (!post || !actionsDiv) return;
+
+        const isLiked = likedBookPostsThisSession.has(postId);
+        const likeCount = post.likeCount || 0;
+        const isOwner = post.memberId === currentUser;
+
+        actionsDiv.innerHTML = `
+          <button class="post-like-btn ${isLiked ? 'liked' : ''}"
+                  id="likeBtn_${postId}"
+                  onclick="handlePostLike('${postId}')">
+            ${isLiked ? '❤️' : '🤍'} ${likeCount}
+          </button>
+          ${isOwner ? `
+            <button onclick="openEditPost('${postId}')"
+              style="background:none;border:none;color:#7f8c8d;font-size:0.8rem;
+                     cursor:pointer;padding:4px 0 4px 12px;width:auto;font-weight:bold;">
+              ✏️ Edit
+            </button>
+            <button onclick="handleDeletePost('${postId}')"
+              style="background:none;border:none;color:#e74c3c;font-size:0.8rem;
+                     cursor:pointer;padding:4px 0 4px 8px;width:auto;font-weight:bold;">
+              🗑️ Delete
+            </button>` : ''}
+        `;
+      }
+
+      /**
+       * Confirms then soft-deletes a post.
+       * Removes from local cache and fades the card out of the DOM instantly.
+       */
+      function handleDeletePost(postId) {
+        if (!confirm("Delete this post? This cannot be undone.")) return;
+
+        // Remove from local cache immediately
+        const postIdx = globalBookPostsDB.findIndex(p => p.postId === postId);
+        if (postIdx > -1) globalBookPostsDB.splice(postIdx, 1);
+
+        // Fade the card out of the DOM
+        const card = document.getElementById(`postCard_${postId}`);
+        if (card) {
+          card.style.transition = "opacity 0.3s";
+          card.style.opacity = "0";
+          setTimeout(() => card.remove(), 300);
+        }
+
+        // Fire and forget — no need to wait
+        google.script.run
+          .withFailureHandler(function() {
+            showToast("Could not delete. Please try again.");
+          })
+          .deleteBookPost(postId);
       }
 
     </script>
