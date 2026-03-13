@@ -1280,3 +1280,181 @@ function saveUserFeedback(data) {
     return { status: "error", message: e.toString() };
   }
 }
+
+/**
+ * Fetches all Active posts for a specific book, sorted newest first.
+ * @param {string} bookId - The ARKA_BOOK_X to fetch posts for.
+ * @returns {Array} Array of post objects.
+ */
+function getBookPosts(bookId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("BookPostDB");
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  let posts = [];
+
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    if (data[i][1].toString() !== bookId) continue;
+    if (data[i][6].toString() !== "Active") continue;
+
+    posts.push({
+      postId:    data[i][0].toString(),
+      bookId:    data[i][1].toString(),
+      memberId:  data[i][2].toString(),
+      timestamp: data[i][3].toString(),
+      postType:  data[i][4].toString(),
+      content:   data[i][5].toString(),
+      status:    data[i][6].toString(),
+      likeCount: Number(data[i][7]) || 0
+    });
+  }
+
+  // Rows are appended in order — reversing gives newest first without sorting
+  posts.reverse();
+  return posts;
+}
+
+/**
+ * Saves a new post to BookPostDB.
+ * @param {Object} postData - {bookId, postType, content}
+ * @returns {Object} {status, newPost}
+ */
+function saveBookPost(postData) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("BookPostDB");
+  if (!sheet) return { status: "error", message: "BookPostDB sheet not found." };
+
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: "error", message: "Unauthorized." };
+
+  const content = (postData.content || "").trim();
+  if (!content || content.length < 3) {
+    return { status: "error", message: "Post content is too short." };
+  }
+
+  // Generate sequential ID
+  const data = sheet.getDataRange().getValues();
+  let newNum = 1;
+  if (data.length > 1) {
+    const lastId = data[data.length - 1][0].toString();
+    const lastNum = parseInt(lastId.split('_')[2]);
+    if (!isNaN(lastNum)) newNum = lastNum + 1;
+  }
+  const postId = "ARKA_BOOKPOST_" + newNum;
+  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss Z");
+
+  sheet.appendRow([
+    postId,
+    postData.bookId,
+    currentMemberId,
+    timestamp,
+    postData.postType || "General Note",
+    content,
+    "Active",
+    0
+  ]);
+
+  let newActivity = null;
+  try {
+    newActivity = logActivity(currentMemberId, "ARKA_ACTTYPE_BOOKPOST", 1, postId);
+  } catch(e) {}
+
+  return {
+    status: "success",
+    newActivity: newActivity,
+    newPost: {
+      postId:    postId,
+      bookId:    postData.bookId,
+      memberId:  currentMemberId,
+      timestamp: timestamp,
+      postType:  postData.postType || "General Note",
+      content:   content,
+      status:    "Active",
+      likeCount: 0
+    }
+  };
+}
+
+/**
+ * Increments the LikeCount for a specific post by 1.
+ * Fire-and-forget — frontend does not wait for this response.
+ * @param {string} postId - The ARKA_BOOKPOST_X to like.
+ */
+function incrementPostLike(postId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("BookPostDB");
+  if (!sheet) return;
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === postId.toString()) {
+      const current = Number(data[i][7]) || 0;
+      sheet.getRange(i + 1, 8).setValue(current + 1);
+      return;
+    }
+  }
+}
+
+/**
+ * Edits the content of an existing book post.
+ * Only the original author can edit their own post.
+ * @param {Object} postData - {postId, newContent}
+ */
+function editBookPost(postData) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("BookPostDB");
+  if (!sheet) return { status: "error", message: "BookPostDB not found." };
+
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: "error", message: "Unauthorized." };
+
+  const newContent = (postData.newContent || "").trim();
+  if (!newContent || newContent.length < 3) {
+    return { status: "error", message: "Post content is too short." };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString() !== postData.postId.toString()) continue;
+
+    // Security check — only the author can edit
+    if (data[i][2].toString() !== currentMemberId) {
+      return { status: "error", message: "You can only edit your own posts." };
+    }
+
+    sheet.getRange(i + 1, 6).setValue(newContent); // Col F: Content
+    return { status: "success", updatedContent: newContent };
+  }
+
+  return { status: "error", message: "Post not found." };
+}
+
+/**
+ * Soft-deletes a book post by setting its Status to "Deleted".
+ * Only the original author can delete their own post.
+ * @param {string} postId - The ARKA_BOOKPOST_X to delete.
+ */
+function deleteBookPost(postId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("BookPostDB");
+  if (!sheet) return { status: "error", message: "BookPostDB not found." };
+
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: "error", message: "Unauthorized." };
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString() !== postId.toString()) continue;
+
+    if (data[i][2].toString() !== currentMemberId) {
+      return { status: "error", message: "You can only delete your own posts." };
+    }
+
+    sheet.getRange(i + 1, 7).setValue("Deleted"); // Col G: Status
+    return { status: "success" };
+  }
+
+  return { status: "error", message: "Post not found." };
+}
