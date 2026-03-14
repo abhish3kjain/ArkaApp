@@ -111,3 +111,53 @@ E	PostType	Category: General Note, Quote I Loved, Fan Cast
 F	Content	The actual text content of the post (preserves line breaks)
 G	Status	Active or Deleted
 H	LikeCount	Numeric sum of likes received
+
+
+BadgeAwardDB columns:		
+Column	Header	Description
+A	AwardID	ARKA_AWARD_1
+B	BadgeID	ARKA_BADGE_1
+C	MemberID	ARKA_MEMBER_5
+D	AwardedBy	ARKA_MEMBER_1
+E	AwardedDate	dd-mmm-yyyy
+F	Status	Active / Revoked
+G	Notes	Optional admin note
+
+
+
+Activity Types :
+
+ActivityTypeID	ActivityType	ActivityDescription	ActivityIntroDate	ActivityClubPoints	LogDescriptionFormat
+ARKA_ACTTYP_YEAR_BADGE_WIN	Yearly Badge Winner	Records when a member is awarded a Winner Badge for completing a yearly reading challenge.	22-Feb-2026	5000	BadgeID or ChallengeName
+ARKA_ACTTYP_YEAR_BADGE_FINISH	Yearly Badge Finisher	Records when a member is awarded a Finisher Badge for a yearly challenge.	22-Feb-2026	1500	BadgeID or ChallengeName
+ARKA_ACTTYP_YEAR_BADGE_CHALLENGE	Yearly Badge Challenger	Logs a member's registration or participation in a new yearly reading challenge	22-Feb-2026	300	BadgeID or ChallengeName
+ARKA_ACTTYP_WHATSAPP	WhatsApp Engagement	When a member shares message or content on WhatsApp.	22-Feb-2026	5	WhatsApp Message
+ARKA_ACTTYP_MEETING	Attended Club Meetup	Records a member's attendance at an official club meeting or call.	22-Feb-2026	300	MeetingID or Date
+ARKA_ACTTYP_HOST	Hosted Club Meetup	Records when a member hosts or leads a club meeting or call.	22-Feb-2026	0	MeetingID or Date
+ARKA_ACTTYP_BOOKADDED	Added Book to Library	Logs the addition of a new book record to the central Arka Library database.	22-Feb-2026	150	BookID
+ARKA_ACTTYP_BOOKSHELVED	Added to Shelf	Records when a member adds a book to their personal reading shelf.	25-Feb-2026	50	ShelfRecordID
+ARKA_ACTTYP_BOOKREAD	Finished Reading	Indicates a member has finished reading a book and updated their shelf status to 'Finished'.	22-Feb-2026	300	ShelfRecordID
+ARKA_ACTTYP_BOOKUPDATE	Fixed Book Details	Logs when a member updates the metadata (e.g., cover, page count) of an existing book in the library.	25-Feb-2026	100	BookID
+ARKA_ACTTYP_SHELFUPDATE	Updated Shelf	Records a general update to a member's personal shelf record	25-Feb-2026	30	ShelfRecordID
+ARKA_ACTTYP_PAGEREAD	Logged Pages	Logs an update to a member's daily page reading progress.	22-Feb-2026	4	delta Pages, ShelfRecordID if linked to book
+ARKA_ACTTYP_BOOKRATING	Rated a Book	Records when a member submits or updates a star rating for a book.	22-Feb-2026	50	ShelfRecordID
+ARKA_ACTTYP_BOOKREVIEW	Reviewed a Book	Records when a member submits or updates a written review for a book.	22-Feb-2026	150	ShelfRecordID
+SYS_ACTTYP_CLUBPOINTS_UPDATE	System: Update Points	System log indicating a background synchronization of total Club Points to the Member database.	22-Feb-2026	0	<delta> points synced to profile.
+SYS_ACTTYP_CLUBPOINTS_ADD	System: Add Points	System log indicating a manual or automated addition of bonus Club Points to a member's account.	22-Feb-2026	0	<delta> points, reason text
+SYS_ACTTYP_BADGEAWARD	System: Award Badge	System log recording the automated assignment of a badge to a member's profile.	22-Feb-2026	0	BadgeID
+ARKA_ACTTYP_PROFILEUPDATE	Updated Profile	Logs when a member updates their personal profile information.	22-Feb-2026	30	Profile Content? - to be implemented in code
+ARKA_ACTTYP_PROFILENEW	Joined the Club	Records the creation of a new member profile in the application.	22-Feb-2026	1	
+ARKA_ACTTYP_MEMBERLEVELUP	Leveled Up!	Logs when a member accumulates enough points to advance to the next user level.	28-Feb-2026	0	Previous Level: [Old] | New Level: [New]
+ARKA_ACTTYP_BOOKTOREAD	Shelved: To Read	Records when a member updates a book's status to 'To Read' on their shelf.	1-Mar-2026	10	ShelfRecordID
+ARKA_ACTTYP_BOOKDNF	Shelved: DNF	Records when a member updates a book's status to 'Did Not Finish' (DNF) on their shelf.	2-Mar-2026	10	ShelfRecordID
+ARKA_ACTTYP_BOOKREADING	Shelved: Reading	Records when a member updates a book's status to 'Reading' on their shelf.	3-Mar-2026	30	ShelfRecordID
+ARKA_ACTTYP_FEEDBACK	Sent Feedback	Logs the submission of a bug report or feature request by a member.	6-Mar-2026	150	Bug/Feature in <App Area>
+SYS_ACTTYP_TOTALPAGES_UPDATE	System: Sync Pages	System log indicating a background synchronization of a member's total pages read.	7-Mar-2026	0	<delta> pages synced to profile.
+SYS_ACTTYP_TOTALBOOKS_UPDATE	System: Sync Books	System log indicating a background synchronization of a member's total books finished.	7-Mar-2026	0	<delta> books synced to profile.
+SYS_ACTTYP_PAGEREAD	Page Read added by System 	A mechanism to add pages and award points. The details of activity should contain the reason of the update done via system. Club points are directly awarded in the log and not calculated here. Hence the multiplier is 0.	7-Mar-2026	0	Reason Text, Points Awarded
+ARKA_ACTTYP_MILESTONE_PAGES	Page Milestone	Records when a member surpasses a predefined milestone for total pages read.	7-Mar-2026	0	
+ARKA_ACTTYP_MILESTONE_BOOKS	Book Milestone	Records when a member surpasses a predefined milestone for total books finished.	7-Mar-2026	0	
+SYS_ACTTYP_CLUBPOINTS_CORRECTION	System corrected points	Points are corrected for multiple activities awarded with points	12-Mar-2026	0	Reason Text, ActivityID for which point is offseted.
+ARKA_ACTTYPE_BOOKPOST	Post Discussion on a book	Records when a member adds to disucssion on a book	13-Mar-2026	20	BookPostID
+ARKA_ACTTYP_BADGEAWARD	Badge Awarded to a Member	Records when a badge is awarded to a member.	14-Mar-2026	1	AwardID
+ARKA_ACTTYP_BADGEREVOKE	Badge Revoked from a Member	Records when a badge is revoked from a member.	14-Mar-2026	-1	AwardID
