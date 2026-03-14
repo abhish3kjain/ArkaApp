@@ -1070,17 +1070,32 @@
       <div id="membersView" class="view-section">
         
         <div class="card" id="membersListContainer">
-          <h3 style="margin-top: 0; margin-bottom: 10px; color: #2c3e50;"><span id="memberCountText">0 Members</span></h3>
-          <hr style="border: 0; border-top: 1px solid #ecf0f1; margin-bottom: 15px;">
-          
-          <input type="text" id="memberSearch" placeholder="Search by name, country, or genre..." onkeyup="filterMembers()" style="margin-bottom: 20px;">
-          
-          <div id="membersLoading" style="text-align: center; color: #7f8c8d; padding: 20px;">
-            Loading readers...
+  
+          <!-- Sub-Tab Navigation: Directory / Rankings -->
+          <div class="library-tabs" style="margin-bottom: 15px;">
+            <div class="lib-tab active" id="tabMembersDirectory" onclick="switchMembersTab('directory')">Directory</div>
+            <div class="lib-tab" id="tabMembersRankings" onclick="switchMembersTab('rankings')">🏆 Rankings</div>
           </div>
-          
-          <div id="membersGrid" style="display: flex; flex-direction: column; gap: 10px;">
+  
+          <!-- Directory Sub-View (original content, now wrapped for show/hide) -->
+          <div id="membersDirectoryContent">
+            <h3 style="margin-top: 0; margin-bottom: 10px; color: #2c3e50;"><span id="memberCountText">0 Members</span></h3>
+            <hr style="border: 0; border-top: 1px solid #ecf0f1; margin-bottom: 15px;">
+  
+            <input type="text" id="memberSearch" placeholder="Search by name, country, or genre..."
+                  onkeyup="filterMembers()" style="margin-bottom: 20px;">
+  
+            <div id="membersLoading" style="text-align: center; color: #7f8c8d; padding: 20px;">
+              Loading readers...
             </div>
+  
+            <div id="membersGrid" style="display: flex; flex-direction: column; gap: 10px;">
+            </div>
+          </div>
+  
+          <!-- Rankings Sub-View (populated dynamically by renderLeaderboard) -->
+          <div id="leaderboardContainer" style="display: none;"></div>
+  
         </div>
 
         <div id="otherMemberProfileView" class="card" style="display: none;">
@@ -1119,6 +1134,8 @@
                 <i class="fab fa-goodreads" style="color: #e9e5cd;"></i> Goodreads
               </a>
           </div>
+
+          <div id="otherBadgeStripContainer"></div>
 
           <div id="otherMemberDashboardContainer" style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
             <p style="text-align: center; color: #7f8c8d; font-style: italic;">Loading shelves...</p>
@@ -1172,7 +1189,9 @@
                 <i class="fab fa-goodreads" style="color: #e9e5cd;"></i> Goodreads
               </a>
           </div>
-          
+
+          <div id="meBadgeStripContainer"></div>
+
           <button onclick="toggleEditMode(true)" style="margin-top: 20px;">✏️ Edit Profile</button>
         </div>
 
@@ -1242,15 +1261,9 @@
               <div>Books Finished: <strong id="statsTotalBooks" style="color: #333;">0</strong></div>
             </div>
 
+            <div id="meStreakContainer" style="display: none; margin-bottom: 14px;"></div>
             <div id="heatmapGrid" class="heatmap-grid"></div>
             <div style="text-align: right; font-size: 10px; color: #999; margin-top: 5px;">Week 1 to 52</div>
-
-            <div id="cumulativeStatsContainer" style="display: none; margin-top: 30px; border-top: 1px solid #ecf0f1; padding-top: 15px;">
-              <h4 style="color: #34495e; font-size: 0.95rem; margin-top: 0; margin-bottom: 10px;">Current Year vs. Past Pace</h4>
-              <div style="position: relative; width: 100%; height: 200px;">
-                <canvas id="cumulativeLineChart"></canvas>
-              </div>
-            </div>
           </div>
 
           <div id="meInsightCarousel" style="display:none; margin-bottom: 20px;">
@@ -1262,6 +1275,22 @@
               onscroll="updateCarouselDots()">
 
               <div class="carousel-card" id="carouselCard_0">
+                <div class="reading-room-title" style="margin-bottom:15px;">👻 Outpacing my Ghost</div>
+                <div id="cumulativeStatsContainer" style="display: none;">
+                  <div style="position: relative; width: 100%; height: 200px;">
+                    <canvas id="cumulativeLineChart"></canvas>
+                  </div>
+                  <p style="font-size:0.75rem;color:#95a5a6;text-align:center;margin-top:8px;">
+                    Weekly cumulative pages — you vs your past self
+                  </p>
+                </div>
+                <p id="ghostPaceEmptyMsg" style="display:none; color:#7f8c8d; font-style:italic;
+                   font-size:0.85rem; text-align:center; margin-top:40px;">
+                  Log pages across multiple years to race your ghost!
+                </p>
+              </div>
+ 
+              <div class="carousel-card" id="carouselCard_1">
                 <div class="reading-room-title" style="margin-bottom:15px;">💓 My Reading Pulse</div>
                 <div id="readingPulseContainer" style="position:relative;width:100%;height:220px;">
                   <canvas id="readingPulseChart"></canvas>
@@ -1270,8 +1299,8 @@
                   Weekly pages logged — each line is one year
                 </p>
               </div>
-
-              <div class="carousel-card" id="carouselCard_1">
+ 
+              <div class="carousel-card" id="carouselCard_2">
                 <div class="reading-room-title" style="margin-bottom:15px;">📖 My Genre DNA</div>
                 <div id="genreWordCloud"
                   style="position:relative; width:100%; height:220px;
@@ -1285,8 +1314,8 @@
                   Based on your finished books
                 </p>
               </div>
-
-              <div class="carousel-card" id="carouselCard_2">
+ 
+              <div class="carousel-card" id="carouselCard_3">
                 <div class="reading-room-title" style="margin-bottom:15px;">📅 Over The Years</div>
                 <div id="yearlyStatsContainer">
                   <div style="position:relative; width:100%; height:220px;">
@@ -1301,6 +1330,15 @@
               style="display:flex; justify-content:center; gap:8px; margin-top:12px;">
             </div>
 
+          </div>
+
+          <div id="meBadgeSectionContainer"></div>
+
+          <div style="margin: 28px 5px 0; display: flex; align-items: center; gap: 10px;">
+            <div style="flex: 1; height: 2px; background: linear-gradient(to right, #2c3e50, transparent);"></div>
+            <span style="font-size: 0.7rem; font-weight: bold; color: #7f8c8d; text-transform: uppercase;
+                        letter-spacing: 1px; white-space: nowrap;">My Shelves</span>
+            <div style="flex: 1; height: 2px; background: linear-gradient(to left, #2c3e50, transparent);"></div>
           </div>
 
           <div id="meDashboardContainer">
@@ -1334,6 +1372,13 @@
         <h3 style="margin-top: 0; color: #2c3e50;">Information</h3>
         <p id="infoModalText" style="color: #34495e; line-height: 1.5; margin-bottom: 20px;"></p>
         <button onclick="closeInfoBox()" style="width: 100%; background-color: #34495e;">Got it</button>
+      </div>
+    </div>
+
+    <div id="badgeDetailModal" class="drawer-overlay" onclick="closeBadgeDetailSheet()">
+      <div class="bottom-drawer" id="badgeDetailDrawer"
+           style="max-height: 65vh; overflow-y: auto;"
+           onclick="event.stopPropagation()">
       </div>
     </div>
 
@@ -1610,6 +1655,18 @@
         </div>
       </div>
 
+      <div id="badgesView" class="view-section" style="display: none;">
+        <div class="card">
+          <button class="btn-back" onclick="switchTab('home')" style="margin-bottom: 15px;">⬅ Back to Home</button>
+          <h2 style="margin-top: 0; margin-bottom: 20px; color: #2c3e50;">Arka Badges</h2>
+          <div id="badgesGalleryContent">
+            <p style="text-align: center; color: #7f8c8d; font-style: italic; padding: 40px 0;">
+              Loading badges...
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div id="bookBingoView" class="view-section" style="display: none;">
         <div class="card" style="height: 75vh; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
           
@@ -1629,6 +1686,7 @@
       <div class="drawer-item" onclick="openMyProfile()">👤 My Profile</div>
       <div class="drawer-item" onclick="openTenPagesChallenge()">🎯 10 Pages A Day Challenge</div>
       <div class="drawer-item" onclick="openBookBingo()">🎲 Book Bingo</div>
+      <div class="drawer-item" onclick="openBadgeGallery()">🏅 Badges</div>
       <div class="drawer-item" onclick="openFeedbackModal()">🐞 Report Bug / Suggestion</div>
       <div class="drawer-item" onclick="openHelpCenter()">ℹ️ Help Center</div>
 
@@ -1666,6 +1724,12 @@
       let currentAppVersion = "v0"; 
       let activeEmail = "";  
       let currentUser = ""; 
+      /**
+       * Member IDs with administrative privileges.
+       * Must be kept in sync with ADMIN_MEMBER_IDS_BACKEND in the .gs file.
+       * @type {string[]}
+      */
+      const ADMIN_MEMBER_IDS = ['ARKA_MEMBER_1', 'ARKA_MEMBER_20'];
 
       /**
        * --- Global App State (The Big Gulp) ---
@@ -1679,6 +1743,8 @@
       let globalActivityLogDB = [];
       let globalPageLogDB = [];
       let globalBookPostsDB = [];
+      let globalBadgesDB    = [];
+      let globalBadgeAwardsDB = [];
       let isAppDataLoaded = false;
       let lastViewBeforeDetails = 'library'; // Remembers how we got to a book detail view
       let currentFullShelfBooks = []; // Holds the books for the currently viewed full shelf so search is instant
@@ -1692,8 +1758,10 @@
       let booksMap    = new Map(); // key: bookId        → book object
       let shelvesMap  = new Map(); // key: shelfId       → shelf object
       let actTypeMap  = new Map(); // key: activityTypeID → activityType object
+      let badgesMap = new Map();
       let myShelfIndexByBook = new Map(); // key: bookId → array of my shelf records
       let globalActivityPointsMap = {}; // Flattened view of actTypeMap for backend serialisation
+      let memberBadgeIndex = new Map();
 
       const BOOKPOST_TYPE_CONFIG = {
         "General Note":  { emoji: "📌", bgColor: "#ecf0f1", textColor: "#34495e" },
@@ -1900,6 +1968,179 @@
               </tbody>
             </table>
             <p><em>Note: If you have more suggestions for Arka Points Actions, share your feedback.</em></p>
+          `
+        },
+        {
+          id: "help-reader-levels",
+          category: "Points & Badges",
+          title: "Arka Reader Level Guide",
+          tags: "level, rank, tier, page turner, bookworm, scholar, bibliophile, scribe, sage, luminary, maven, virtuoso, oracle, points, climb, upgrade, progress, how many points",
+          snippet: "Every tier, every level, and exactly how many points you need to reach it.",
+          content: `
+            <p>Your Reader Level is your badge of honour in Arka. As you earn <strong>☀️ Club Points</strong>, you automatically climb through <strong>10 tiers</strong>, each with <strong>10 sub-levels</strong> (I through X) — 100 levels in total.</p>
+        
+            <p>Levels update automatically — no action needed from you. Every time points are added to your profile, the app recalculates your rank and displays it on your profile and member card.</p>
+        
+            <blockquote style="border-left:4px solid #f1c40f; background:#fffcf5; padding:15px; margin:20px 0; border-radius:0 8px 8px 0; color:#34495e;">
+              <strong>💡 How points work:</strong> See the <em>How to Earn Arka Points</em> guide in this same section for the full breakdown of point-earning actions. The quick version: read books, write reviews, add books to the library, give ratings, and participate in club events.
+            </blockquote>
+        
+            <h3>The 10 Tiers at a Glance</h3>
+            <p>Each tier spans 10 sub-levels. The table below shows the <strong>entry point</strong> (minimum ☀️ to enter Tier I) and the <strong>exit point</strong> (☀️ needed to leave Tier X and enter the next tier).</p>
+        
+            <table class="help-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Tier</th>
+                  <th>Sub-levels</th>
+                  <th>Enter at</th>
+                  <th>Clear at</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>1</td><td>📄 Page Turner</td><td>I – X</td><td>1 ☀️</td><td>3,000 ☀️</td></tr>
+                <tr><td>2</td><td>📖 Bookworm</td><td>I – X</td><td>3,001 ☀️</td><td>14,000 ☀️</td></tr>
+                <tr><td>3</td><td>🎓 Scholar</td><td>I – X</td><td>14,001 ☀️</td><td>39,000 ☀️</td></tr>
+                <tr><td>4</td><td>📚 Bibliophile</td><td>I – X</td><td>39,001 ☀️</td><td>84,000 ☀️</td></tr>
+                <tr><td>5</td><td>✍️ Scribe</td><td>I – X</td><td>84,001 ☀️</td><td>155,000 ☀️</td></tr>
+                <tr><td>6</td><td>🌿 Sage</td><td>I – X</td><td>155,001 ☀️</td><td>258,000 ☀️</td></tr>
+                <tr><td>7</td><td>✨ Luminary</td><td>I – X</td><td>258,001 ☀️</td><td>399,000 ☀️</td></tr>
+                <tr><td>8</td><td>🏛️ Maven</td><td>I – X</td><td>399,001 ☀️</td><td>584,000 ☀️</td></tr>
+                <tr><td>9</td><td>🎼 Virtuoso</td><td>I – X</td><td>584,001 ☀️</td><td>819,000 ☀️</td></tr>
+                <tr><td>10</td><td>🔮 Oracle</td><td>I – X</td><td>819,001 ☀️</td><td>1,110,000 ☀️</td></tr>
+              </tbody>
+            </table>
+        
+            <h3>All 100 Levels</h3>
+            <p>Find your current level below and see exactly how many points are needed to reach the next one.</p>
+        
+            <div style="overflow-x:auto;">
+              <table class="help-table" style="font-size:0.82rem;">
+                <thead>
+                  <tr>
+                    <th style="width:44px;">#</th>
+                    <th>Level Name</th>
+                    <th style="text-align:right;">Max ☀️ for this level</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="background:#fffef0;"><td>1</td><td>Page Turner I</td><td style="text-align:right;">111</td></tr>
+                  <tr><td>2</td><td>Page Turner II</td><td style="text-align:right;">248</td></tr>
+                  <tr style="background:#fffef0;"><td>3</td><td>Page Turner III</td><td style="text-align:right;">417</td></tr>
+                  <tr><td>4</td><td>Page Turner IV</td><td style="text-align:right;">624</td></tr>
+                  <tr style="background:#fffef0;"><td>5</td><td>Page Turner V</td><td style="text-align:right;">875</td></tr>
+                  <tr><td>6</td><td>Page Turner VI</td><td style="text-align:right;">1,176</td></tr>
+                  <tr style="background:#fffef0;"><td>7</td><td>Page Turner VII</td><td style="text-align:right;">1,533</td></tr>
+                  <tr><td>8</td><td>Page Turner VIII</td><td style="text-align:right;">1,952</td></tr>
+                  <tr style="background:#fffef0;"><td>9</td><td>Page Turner IX</td><td style="text-align:right;">2,439</td></tr>
+                  <tr><td><strong>10</strong></td><td><strong>Page Turner X</strong></td><td style="text-align:right;"><strong>3,000</strong></td></tr>
+        
+                  <tr style="background:#f0f9f4;"><td>11</td><td>Bookworm I</td><td style="text-align:right;">3,641</td></tr>
+                  <tr><td>12</td><td>Bookworm II</td><td style="text-align:right;">4,368</td></tr>
+                  <tr style="background:#f0f9f4;"><td>13</td><td>Bookworm III</td><td style="text-align:right;">5,187</td></tr>
+                  <tr><td>14</td><td>Bookworm IV</td><td style="text-align:right;">6,104</td></tr>
+                  <tr style="background:#f0f9f4;"><td>15</td><td>Bookworm V</td><td style="text-align:right;">7,125</td></tr>
+                  <tr><td>16</td><td>Bookworm VI</td><td style="text-align:right;">8,256</td></tr>
+                  <tr style="background:#f0f9f4;"><td>17</td><td>Bookworm VII</td><td style="text-align:right;">9,503</td></tr>
+                  <tr><td>18</td><td>Bookworm VIII</td><td style="text-align:right;">10,872</td></tr>
+                  <tr style="background:#f0f9f4;"><td>19</td><td>Bookworm IX</td><td style="text-align:right;">12,369</td></tr>
+                  <tr><td><strong>20</strong></td><td><strong>Bookworm X</strong></td><td style="text-align:right;"><strong>14,000</strong></td></tr>
+        
+                  <tr style="background:#f0f4ff;"><td>21</td><td>Scholar I</td><td style="text-align:right;">15,771</td></tr>
+                  <tr><td>22</td><td>Scholar II</td><td style="text-align:right;">17,688</td></tr>
+                  <tr style="background:#f0f4ff;"><td>23</td><td>Scholar III</td><td style="text-align:right;">19,757</td></tr>
+                  <tr><td>24</td><td>Scholar IV</td><td style="text-align:right;">21,984</td></tr>
+                  <tr style="background:#f0f4ff;"><td>25</td><td>Scholar V</td><td style="text-align:right;">24,375</td></tr>
+                  <tr><td>26</td><td>Scholar VI</td><td style="text-align:right;">26,936</td></tr>
+                  <tr style="background:#f0f4ff;"><td>27</td><td>Scholar VII</td><td style="text-align:right;">29,673</td></tr>
+                  <tr><td>28</td><td>Scholar VIII</td><td style="text-align:right;">32,592</td></tr>
+                  <tr style="background:#f0f4ff;"><td>29</td><td>Scholar IX</td><td style="text-align:right;">35,699</td></tr>
+                  <tr><td><strong>30</strong></td><td><strong>Scholar X</strong></td><td style="text-align:right;"><strong>39,000</strong></td></tr>
+        
+                  <tr style="background:#fef5e7;"><td>31</td><td>Bibliophile I</td><td style="text-align:right;">42,501</td></tr>
+                  <tr><td>32</td><td>Bibliophile II</td><td style="text-align:right;">46,208</td></tr>
+                  <tr style="background:#fef5e7;"><td>33</td><td>Bibliophile III</td><td style="text-align:right;">50,127</td></tr>
+                  <tr><td>34</td><td>Bibliophile IV</td><td style="text-align:right;">54,264</td></tr>
+                  <tr style="background:#fef5e7;"><td>35</td><td>Bibliophile V</td><td style="text-align:right;">58,625</td></tr>
+                  <tr><td>36</td><td>Bibliophile VI</td><td style="text-align:right;">63,216</td></tr>
+                  <tr style="background:#fef5e7;"><td>37</td><td>Bibliophile VII</td><td style="text-align:right;">68,043</td></tr>
+                  <tr><td>38</td><td>Bibliophile VIII</td><td style="text-align:right;">73,112</td></tr>
+                  <tr style="background:#fef5e7;"><td>39</td><td>Bibliophile IX</td><td style="text-align:right;">78,429</td></tr>
+                  <tr><td><strong>40</strong></td><td><strong>Bibliophile X</strong></td><td style="text-align:right;"><strong>84,000</strong></td></tr>
+        
+                  <tr style="background:#fdf0f8;"><td>41</td><td>Scribe I</td><td style="text-align:right;">89,831</td></tr>
+                  <tr><td>42</td><td>Scribe II</td><td style="text-align:right;">95,928</td></tr>
+                  <tr style="background:#fdf0f8;"><td>43</td><td>Scribe III</td><td style="text-align:right;">102,297</td></tr>
+                  <tr><td>44</td><td>Scribe IV</td><td style="text-align:right;">108,944</td></tr>
+                  <tr style="background:#fdf0f8;"><td>45</td><td>Scribe V</td><td style="text-align:right;">115,875</td></tr>
+                  <tr><td>46</td><td>Scribe VI</td><td style="text-align:right;">123,096</td></tr>
+                  <tr style="background:#fdf0f8;"><td>47</td><td>Scribe VII</td><td style="text-align:right;">130,613</td></tr>
+                  <tr><td>48</td><td>Scribe VIII</td><td style="text-align:right;">138,432</td></tr>
+                  <tr style="background:#fdf0f8;"><td>49</td><td>Scribe IX</td><td style="text-align:right;">146,559</td></tr>
+                  <tr><td><strong>50</strong></td><td><strong>Scribe X</strong></td><td style="text-align:right;"><strong>155,000</strong></td></tr>
+        
+                  <tr style="background:#f0fdf4;"><td>51</td><td>Sage I</td><td style="text-align:right;">163,761</td></tr>
+                  <tr><td>52</td><td>Sage II</td><td style="text-align:right;">172,848</td></tr>
+                  <tr style="background:#f0fdf4;"><td>53</td><td>Sage III</td><td style="text-align:right;">182,267</td></tr>
+                  <tr><td>54</td><td>Sage IV</td><td style="text-align:right;">192,024</td></tr>
+                  <tr style="background:#f0fdf4;"><td>55</td><td>Sage V</td><td style="text-align:right;">202,125</td></tr>
+                  <tr><td>56</td><td>Sage VI</td><td style="text-align:right;">212,576</td></tr>
+                  <tr style="background:#f0fdf4;"><td>57</td><td>Sage VII</td><td style="text-align:right;">223,383</td></tr>
+                  <tr><td>58</td><td>Sage VIII</td><td style="text-align:right;">234,552</td></tr>
+                  <tr style="background:#f0fdf4;"><td>59</td><td>Sage IX</td><td style="text-align:right;">246,089</td></tr>
+                  <tr><td><strong>60</strong></td><td><strong>Sage X</strong></td><td style="text-align:right;"><strong>258,000</strong></td></tr>
+        
+                  <tr style="background:#f5f0ff;"><td>61</td><td>Luminary I</td><td style="text-align:right;">270,291</td></tr>
+                  <tr><td>62</td><td>Luminary II</td><td style="text-align:right;">282,968</td></tr>
+                  <tr style="background:#f5f0ff;"><td>63</td><td>Luminary III</td><td style="text-align:right;">296,037</td></tr>
+                  <tr><td>64</td><td>Luminary IV</td><td style="text-align:right;">309,504</td></tr>
+                  <tr style="background:#f5f0ff;"><td>65</td><td>Luminary V</td><td style="text-align:right;">323,375</td></tr>
+                  <tr><td>66</td><td>Luminary VI</td><td style="text-align:right;">337,656</td></tr>
+                  <tr style="background:#f5f0ff;"><td>67</td><td>Luminary VII</td><td style="text-align:right;">352,353</td></tr>
+                  <tr><td>68</td><td>Luminary VIII</td><td style="text-align:right;">367,472</td></tr>
+                  <tr style="background:#f5f0ff;"><td>69</td><td>Luminary IX</td><td style="text-align:right;">383,019</td></tr>
+                  <tr><td><strong>70</strong></td><td><strong>Luminary X</strong></td><td style="text-align:right;"><strong>399,000</strong></td></tr>
+        
+                  <tr style="background:#fffcf0;"><td>71</td><td>Maven I</td><td style="text-align:right;">415,421</td></tr>
+                  <tr><td>72</td><td>Maven II</td><td style="text-align:right;">432,288</td></tr>
+                  <tr style="background:#fffcf0;"><td>73</td><td>Maven III</td><td style="text-align:right;">449,607</td></tr>
+                  <tr><td>74</td><td>Maven IV</td><td style="text-align:right;">467,384</td></tr>
+                  <tr style="background:#fffcf0;"><td>75</td><td>Maven V</td><td style="text-align:right;">485,625</td></tr>
+                  <tr><td>76</td><td>Maven VI</td><td style="text-align:right;">504,336</td></tr>
+                  <tr style="background:#fffcf0;"><td>77</td><td>Maven VII</td><td style="text-align:right;">523,523</td></tr>
+                  <tr><td>78</td><td>Maven VIII</td><td style="text-align:right;">543,192</td></tr>
+                  <tr style="background:#fffcf0;"><td>79</td><td>Maven IX</td><td style="text-align:right;">563,349</td></tr>
+                  <tr><td><strong>80</strong></td><td><strong>Maven X</strong></td><td style="text-align:right;"><strong>584,000</strong></td></tr>
+        
+                  <tr style="background:#f0f8ff;"><td>81</td><td>Virtuoso I</td><td style="text-align:right;">605,151</td></tr>
+                  <tr><td>82</td><td>Virtuoso II</td><td style="text-align:right;">626,808</td></tr>
+                  <tr style="background:#f0f8ff;"><td>83</td><td>Virtuoso III</td><td style="text-align:right;">648,977</td></tr>
+                  <tr><td>84</td><td>Virtuoso IV</td><td style="text-align:right;">671,664</td></tr>
+                  <tr style="background:#f0f8ff;"><td>85</td><td>Virtuoso V</td><td style="text-align:right;">694,875</td></tr>
+                  <tr><td>86</td><td>Virtuoso VI</td><td style="text-align:right;">718,616</td></tr>
+                  <tr style="background:#f0f8ff;"><td>87</td><td>Virtuoso VII</td><td style="text-align:right;">742,893</td></tr>
+                  <tr><td>88</td><td>Virtuoso VIII</td><td style="text-align:right;">767,712</td></tr>
+                  <tr style="background:#f0f8ff;"><td>89</td><td>Virtuoso IX</td><td style="text-align:right;">793,079</td></tr>
+                  <tr><td><strong>90</strong></td><td><strong>Virtuoso X</strong></td><td style="text-align:right;"><strong>819,000</strong></td></tr>
+        
+                  <tr style="background:#fff0f5;"><td>91</td><td>Oracle I</td><td style="text-align:right;">845,481</td></tr>
+                  <tr><td>92</td><td>Oracle II</td><td style="text-align:right;">872,528</td></tr>
+                  <tr style="background:#fff0f5;"><td>93</td><td>Oracle III</td><td style="text-align:right;">900,147</td></tr>
+                  <tr><td>94</td><td>Oracle IV</td><td style="text-align:right;">928,344</td></tr>
+                  <tr style="background:#fff0f5;"><td>95</td><td>Oracle V</td><td style="text-align:right;">957,125</td></tr>
+                  <tr><td>96</td><td>Oracle VI</td><td style="text-align:right;">986,496</td></tr>
+                  <tr style="background:#fff0f5;"><td>97</td><td>Oracle VII</td><td style="text-align:right;">1,016,463</td></tr>
+                  <tr><td>98</td><td>Oracle VIII</td><td style="text-align:right;">1,047,032</td></tr>
+                  <tr style="background:#fff0f5;"><td>99</td><td>Oracle IX</td><td style="text-align:right;">1,078,209</td></tr>
+                  <tr style="background:#2c3e50;"><td style="color:white;"><strong>100</strong></td><td style="color:#f1c40f;"><strong>Oracle X</strong></td><td style="text-align:right; color:#f1c40f;"><strong>1,110,000</strong></td></tr>
+                </tbody>
+              </table>
+            </div>
+        
+            <blockquote style="border-left:4px solid #A984BA; background:#f9f5fc; padding:15px; margin:20px 0; border-radius:0 8px 8px 0; color:#34495e;">
+              <strong>💡 Reading the table:</strong> The <em>Max ☀️</em> column shows the highest point total that still keeps you at that level. The moment you exceed it, you automatically advance to the next level. So if you have 250 points you are at Page Turner II, and you need to reach 417 to advance to Page Turner III.
+            </blockquote>
           `
         }
       ];
@@ -2112,6 +2353,21 @@
               booksMap    = new Map(globalBooksDB.map(b   => [b.id,             b]));
               shelvesMap  = new Map(globalShelvesDB.map(s  => [s.shelfId,       s]));
               actTypeMap  = new Map(globalActivityTypeDB.map(a => [a.activityTypeID, a]));
+              globalBadgesDB      = masterData.badgesDB      || [];
+              globalBadgeAwardsDB = masterData.badgeAwardsDB || [];
+ 
+              // Build O(1) badge lookup map
+              badgesMap = new Map(globalBadgesDB.map(b => [b.id, b]));
+ 
+              // Build per-member badge index (Active awards only)
+              memberBadgeIndex = new Map();
+              globalBadgeAwardsDB.forEach(award => {
+                if (award.status !== 'Active') return;
+                if (!memberBadgeIndex.has(award.memberId)) {
+                  memberBadgeIndex.set(award.memberId, []);
+                }
+                memberBadgeIndex.get(award.memberId).push(award);
+              });
               globalActivityPointsMap = Object.fromEntries(
                 [...actTypeMap.entries()].map(([id, obj]) => [id, obj.activityClubPoints || 0])
               );
@@ -2135,6 +2391,7 @@
               if (document.getElementById('meView').style.display === "block") {
                   renderUserShelves(currentUser, 'meDashboardContainer');
                   renderHomeFeed(currentUser, 'meActivityFeed');
+                  renderBadgeStrip(currentUser, 'meBadgeSectionContainer', true);
               }
               populateMePage(response.memberID);
               renderHeatmap(currentUser);
@@ -2237,6 +2494,7 @@
         } else {
             meNameDisplay.style.display = "none";
         }
+        renderBadgeStrip(memberID, 'meBadgeStripContainer');
       }
 
       /**
@@ -2259,6 +2517,7 @@
         document.getElementById('myProfileView').style.display = 'none';
         document.getElementById('fullShelfView').style.display = 'none';
         document.getElementById('helpView').style.display = 'none';
+        document.getElementById('badgesView').style.display = 'none';
 
         // 3. Force reset all nested sub-views so we don't get overlapping cards
         document.getElementById('libAddBookWorkspace').style.display = 'none';
@@ -2283,10 +2542,11 @@
 
         // 7. Route-specific resets (Ensures the parent containers show their default state)
         if (tabName === 'me') {
-          document.getElementById('profileDisplay').style.display = "block"; 
+          document.getElementById('profileDisplay').style.display = "block";
           if (isAppDataLoaded) {
-             renderUserShelves(currentUser, 'meDashboardContainer');
-             renderHomeFeed(currentUser, 'meActivityFeed'); // <-- ADD THIS
+            renderUserShelves(currentUser, 'meDashboardContainer');
+            renderHomeFeed(currentUser, 'meActivityFeed');
+            renderBadgeStrip(currentUser, 'meBadgeSectionContainer', true);
           }
         }
 
@@ -2298,6 +2558,15 @@
         if (tabName === 'members') {
           document.getElementById('membersListContainer').style.display = 'block';
           loadMembersDirectory();
+          // If the Rankings sub-tab is currently visible, refresh it with the latest data
+          const leaderboardEl = document.getElementById('leaderboardContainer');
+          if (leaderboardEl && leaderboardEl.style.display !== 'none' && isAppDataLoaded) {
+            renderLeaderboard(currentLeaderboardCategory);
+          }
+        }
+
+        if (tabName === 'badges') {
+          if (isAppDataLoaded) renderBadgeGallery();
         }
 
         if (tabName === 'home') {
@@ -2611,6 +2880,7 @@
 
         renderUserShelves(memberId, 'otherMemberDashboardContainer');
         renderHomeFeed(memberId, 'otherActivityFeed');
+        renderBadgeStrip(memberId, 'otherBadgeStripContainer');
       }
 
       function closeMemberProfile() {
@@ -2628,6 +2898,1334 @@
           );
         });
         renderMembers(filtered);
+      }
+
+      // ─── Badge Gallery ────────────────────────────────────────────────────────────
+ 
+      /**
+       * Opens the Badges view from the More drawer.
+       */
+      function openBadgeGallery() {
+        toggleDrawer(false);
+        switchTab('badges');
+      }
+      
+      /**
+       * Master render function for the Badge Gallery view.
+       * Shows earned/unearned split for the current user, plus the admin panel
+       * for members in ADMIN_MEMBER_IDS.
+       */
+      function renderBadgeGallery() {
+        const container = document.getElementById('badgesGalleryContent');
+        if (!container) return;
+      
+        if (!isAppDataLoaded) {
+          container.innerHTML = '<p style="text-align:center; color:#7f8c8d; font-style:italic; padding:40px 0;">Loading...</p>';
+          return;
+        }
+      
+        const isAdmin       = ADMIN_MEMBER_IDS.includes(currentUser);
+        const earnedAwards  = memberBadgeIndex.get(currentUser) || [];
+        const earnedBadgeIds = new Set(earnedAwards.map(a => a.badgeId));
+        const totalBadges   = globalBadgesDB.length;
+      
+        // ── Summary bar ──────────────────────────────────────────────────────────
+        let summaryHtml = '';
+        if (totalBadges > 0) {
+          const isComplete = earnedAwards.length === totalBadges;
+          summaryHtml = `
+            <div style="display:flex; justify-content:space-between; align-items:center;
+                        padding:12px 16px; background:#f8f9fa; border-radius:10px;
+                        border:1px solid #ecf0f1; margin-bottom:24px;">
+              <div>
+                <div style="font-size:1.15rem; font-weight:bold; color:#2c3e50;">
+                  ${earnedAwards.length} <span style="font-size:0.8rem; color:#7f8c8d; font-weight:normal;">/ ${totalBadges}</span>
+                </div>
+                <div style="font-size:0.72rem; color:#7f8c8d; text-transform:uppercase;
+                            letter-spacing:0.5px; margin-top:2px;">Badges earned</div>
+              </div>
+              ${isComplete ? '<div style="font-size:0.88rem; color:#27ae60; font-weight:bold;">🏆 Complete set!</div>' : ''}
+            </div>
+          `;
+        }
+      
+        // ── Earned section ───────────────────────────────────────────────────────
+        let earnedHtml = `<h4 style="color:#2c3e50; margin-bottom:14px;">Your Badges</h4>`;
+      
+        if (earnedAwards.length > 0) {
+          earnedHtml += `<div style="display:flex; flex-wrap:wrap; gap:16px; margin-bottom:28px;">`;
+          earnedAwards.forEach(award => {
+            const badge = badgesMap.get(award.badgeId);
+            if (badge) earnedHtml += buildGalleryBadgeCardHtml(badge, false, award);
+          });
+          earnedHtml += `</div>`;
+        } else {
+          earnedHtml += `
+            <p style="color:#95a5a6; font-style:italic; font-size:0.9rem; margin-bottom:28px;">
+              No badges earned yet. Keep reading and participating in the club!
+            </p>
+          `;
+        }
+      
+        // ── Not yet earned section ───────────────────────────────────────────────
+        const unearnedBadges = globalBadgesDB.filter(b => !earnedBadgeIds.has(b.id));
+        let unearnedHtml = '';
+        if (unearnedBadges.length > 0) {
+          unearnedHtml = `
+            <div style="border-top:1px solid #ecf0f1; padding-top:20px; margin-bottom:28px;">
+              <h4 style="color:#7f8c8d; margin-bottom:14px;">Not Yet Earned</h4>
+              <div style="display:flex; flex-wrap:wrap; gap:16px;">
+                ${unearnedBadges.map(b => buildGalleryBadgeCardHtml(b, true, null)).join('')}
+              </div>
+            </div>
+          `;
+        }
+      
+        // ── Empty state (no badges in the system yet) ────────────────────────────
+        if (totalBadges === 0 && !isAdmin) {
+          container.innerHTML = `
+            <div style="text-align:center; padding:50px 20px;">
+              <div style="font-size:3rem; margin-bottom:12px;">🏅</div>
+              <div style="font-weight:bold; color:#2c3e50; margin-bottom:6px;">No badges yet</div>
+              <div style="font-size:0.85rem; color:#7f8c8d;">
+                Badges are awarded by club admins for special achievements.<br>Stay tuned!
+              </div>
+            </div>
+          `;
+          return;
+        }
+      
+        // ── Admin panel ──────────────────────────────────────────────────────────
+        const adminHtml = isAdmin ? buildAdminBadgePanelHtml() : '';
+      
+        container.innerHTML = summaryHtml + earnedHtml + unearnedHtml + adminHtml;
+      }
+      
+      
+      /**
+       * Builds a single badge card for the gallery grid.
+       * Earned cards are full-colour; unearned cards are dim with a dashed ring.
+       *
+       * @param   {Object}      badge     - Badge object from badgesMap
+       * @param   {boolean}     isLocked  - True = unearned, render dim
+       * @param   {Object|null} award     - Award record if earned, otherwise null
+       * @returns {string} HTML string
+       */
+      function buildGalleryBadgeCardHtml(badge, isLocked, award) {
+        const size        = 64;
+        const opacity     = isLocked ? '0.38' : '1';
+        const borderStyle = isLocked ? '3px dashed #bdc3c7' : '3px solid #A984BA';
+      
+        // Swap Drive thumbnail sz parameter for gallery size
+        const imgSrc = badge.imgUrl ? badge.imgUrl.replace('sz=w400', 'sz=w100') : '';
+      
+        const imgHtml = imgSrc
+          ? `<img src="${imgSrc}"
+                  style="width:${size}px; height:${size}px; border-radius:50%; object-fit:cover;
+                        border:${borderStyle}; margin-bottom:8px; display:block;"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div style="display:none; width:${size}px; height:${size}px; border-radius:50%;
+                        background:#f0e8f5; border:${borderStyle}; align-items:center;
+                        justify-content:center; font-size:1.8rem; margin-bottom:8px;">🏅</div>`
+          : `<div style="width:${size}px; height:${size}px; border-radius:50%; background:#f0e8f5;
+                        border:${borderStyle}; display:flex; align-items:center;
+                        justify-content:center; font-size:1.8rem; margin-bottom:8px;">🏅</div>`;
+      
+        const awardDateHtml = award
+          ? `<div style="font-size:0.68rem; color:#e67e22; margin-top:2px;">${award.awardedDate}</div>`
+          : '';
+      
+        return `
+          <div style="display:flex; flex-direction:column; align-items:center; cursor:pointer;
+                      opacity:${opacity}; width:90px; text-align:center;"
+              onclick="openBadgeDetailSheet('${badge.id}')">
+            ${imgHtml}
+            <div style="font-size:0.82rem; font-weight:500; color:#2c3e50; line-height:1.2;
+                        display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+                        overflow:hidden; width:100%;">
+              ${badge.caption}
+            </div>
+            ${awardDateHtml}
+          </div>
+        `;
+      }
+      
+      
+      // ─── Badge Strip (Profile Pages) ─────────────────────────────────────────────
+      
+      /**
+       * Renders the compact badge strip shown on profile cards and the Me Tab.
+       *
+       * @param {string}  memberId      - The member whose badges to display
+       * @param {string}  containerId   - The HTML element ID to render into
+       * @param {boolean} [showSeeAll]  - If true, renders a header with "See all →" link
+       */
+      function renderBadgeStrip(memberId, containerId, showSeeAll = false) {
+        const container = document.getElementById(containerId);
+        if (!container || !isAppDataLoaded) return;
+      
+        const earnedAwards   = memberBadgeIndex.get(memberId) || [];
+        const earnedBadgeIds = new Set(earnedAwards.map(a => a.badgeId));
+        const isOwnProfile   = memberId === currentUser;
+        const STRIP_VISIBLE  = 5; // Max circles before the "+N" overflow button
+      
+        // Nothing to show — no badges in the system and no earned awards
+        if (globalBadgesDB.length === 0 && earnedAwards.length === 0) {
+          container.innerHTML = '';
+          return;
+        }
+      
+        // ── Build earned circles ─────────────────────────────────────────────────
+        let earnedHtml  = '';
+        let earnedCount = 0;
+      
+        earnedAwards.forEach(award => {
+          const badge = badgesMap.get(award.badgeId);
+          if (!badge) return;
+          earnedCount++;
+          if (earnedCount <= STRIP_VISIBLE) {
+            earnedHtml += buildBadgeCircleHtml(badge, false, 48);
+          }
+        });
+      
+        // Overflow button — tapping opens the full gallery
+        if (earnedCount > STRIP_VISIBLE) {
+          earnedHtml += `
+            <div style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;"
+                onclick="openBadgeGallery()">
+              <div style="width:48px; height:48px; border-radius:50%; background:#ecf0f1;
+                          border:2px solid #bdc3c7; display:flex; align-items:center;
+                          justify-content:center; font-size:0.88rem; font-weight:500;
+                          color:#7f8c8d;">
+                +${earnedCount - STRIP_VISIBLE}
+              </div>
+              <div style="font-size:0.58rem; color:#95a5a6;">more</div>
+            </div>
+          `;
+        }
+      
+        // ── Build unearned circles (own profile only) ────────────────────────────
+        let unearnedHtml = '';
+        if (isOwnProfile) {
+          globalBadgesDB.forEach(badge => {
+            if (!earnedBadgeIds.has(badge.id)) {
+              unearnedHtml += buildBadgeCircleHtml(badge, true, 40);
+            }
+          });
+        }
+      
+        // Nothing to render
+        if (!earnedHtml && !unearnedHtml) {
+          container.innerHTML = '';
+          return;
+        }
+      
+        const earnedCountLabel = earnedCount > 0
+          ? `<span style="font-size:0.78rem; color:#7f8c8d; font-weight:normal; margin-left:4px;">
+              ${earnedCount} earned
+            </span>`
+          : '';
+      
+        container.innerHTML = `
+          <div style="margin-top: 24px; padding-top: 18px; border-top: 2px solid #2c3e50;">
+            ${showSeeAll
+              ? `<div style="display:flex; justify-content:space-between; align-items:center;
+                            margin-bottom:12px;">
+                  <h4 style="margin:0;">🏅 My Badges ${earnedCountLabel}</h4>
+                  <div onclick="openBadgeGallery()"
+                        style="font-size:0.78rem; color:#A984BA; font-weight:500; cursor:pointer;
+                              background:#f5f0ff; padding:4px 10px; border-radius:12px;">
+                    See all →
+                  </div>
+                </div>`
+              : `<h4 style="margin: 0 0 12px 0;">Badges ${earnedCountLabel}</h4>`
+            }
+            <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:${unearnedHtml ? '12px' : '0'};">
+              ${earnedHtml || '<p style="font-size:0.85rem; color:#95a5a6; font-style:italic; margin:0;">No badges earned yet.</p>'}
+            </div>
+            ${unearnedHtml ? `
+              <div style="font-size:0.68rem; color:#bdc3c7; font-weight:500; text-transform:uppercase;
+                          letter-spacing:0.5px; margin-bottom:8px;">Not yet earned</div>
+              <div style="display:flex; flex-wrap:wrap; gap:12px;">
+                ${unearnedHtml}
+              </div>` : ''}
+          </div>
+        `;
+      }
+      
+      
+      /**
+       * Builds a single circular badge avatar for the compact profile strip.
+       *
+       * @param   {Object}  badge    - Badge object from badgesMap
+       * @param   {boolean} isLocked - True = dim, dashed border
+       * @param   {number}  sizePx   - Circle diameter in pixels (48 for earned, 40 for locked)
+       * @returns {string} HTML string
+       */
+      function buildBadgeCircleHtml(badge, isLocked, sizePx) {
+        const opacity     = isLocked ? '0.35' : '1';
+        const borderStyle = isLocked ? `2px dashed #bdc3c7` : `2px solid #A984BA`;
+      
+        // Request an appropriately small thumbnail so the strip stays fast
+        const imgSrc = badge.imgUrl ? badge.imgUrl.replace('sz=w400', 'sz=w80') : '';
+      
+        const imgHtml = imgSrc
+          ? `<img src="${imgSrc}"
+                  style="width:${sizePx}px; height:${sizePx}px; border-radius:50%;
+                        object-fit:cover; border:${borderStyle}; display:block;"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div style="display:none; width:${sizePx}px; height:${sizePx}px; border-radius:50%;
+                        background:#f0e8f5; border:${borderStyle}; align-items:center;
+                        justify-content:center; font-size:${Math.floor(sizePx * 0.38)}px;">🏅</div>`
+          : `<div style="width:${sizePx}px; height:${sizePx}px; border-radius:50%;
+                        background:#f0e8f5; border:${borderStyle}; display:flex; align-items:center;
+                        justify-content:center; font-size:${Math.floor(sizePx * 0.38)}px;">🏅</div>`;
+      
+        return `
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;
+                      cursor:pointer; opacity:${opacity};"
+              onclick="openBadgeDetailSheet('${badge.id}')">
+            ${imgHtml}
+            <div style="font-size:0.58rem; color:#34495e; text-align:center;
+                        max-width:${sizePx + 8}px; line-height:1.2;
+                        display:-webkit-box; -webkit-line-clamp:2;
+                        -webkit-box-orient:vertical; overflow:hidden;">
+              ${badge.caption}
+            </div>
+          </div>
+        `;
+      }
+      
+      
+      // ─── Badge Detail Bottom Sheet ────────────────────────────────────────────────
+      
+      /**
+       * Opens the badge detail bottom sheet for a specific badge.
+       * Shows the badge image, description, who holds it, and when
+       * the current user earned it (if they did).
+       *
+       * @param {string} badgeId - ARKA_BADGE_X to display
+       */
+      function openBadgeDetailSheet(badgeId) {
+        const badge = badgesMap.get(badgeId);
+        if (!badge) return;
+      
+        // All active holders of this badge
+        const allHolderAwards = globalBadgeAwardsDB.filter(
+          a => a.badgeId === badgeId && a.status === 'Active'
+        );
+        const holderCount = allHolderAwards.length;
+      
+        // Did the current user earn this badge?
+        const myAward = allHolderAwards.find(a => a.memberId === currentUser);
+      
+        // "Awarded by · date" line — only shown to the recipient
+        let awardedByHtml = '';
+        if (myAward) {
+          const awarder     = membersMap.get(myAward.awardedBy);
+          const awarderName = awarder ? awarder.displayName : 'Club Admin';
+          awardedByHtml = `
+            <div style="font-size:0.78rem; color:#e67e22; font-weight:500; margin:4px 0 8px;">
+              Awarded by ${awarderName} · ${myAward.awardedDate}
+            </div>
+          `;
+        }
+      
+        // Badge image — request a slightly larger size for the detail view
+        const imgSrc = badge.imgUrl ? badge.imgUrl.replace('sz=w400', 'sz=w120') : '';
+        const imgHtml = imgSrc
+          ? `<img src="${imgSrc}"
+                  id="badgeDetailImg"
+                  style="width:72px; height:72px; border-radius:50%; object-fit:cover;
+                        border:3px solid #A984BA; flex-shrink:0; cursor:zoom-in;
+                        transition:all 0.25s ease;"
+                  onclick="toggleBadgeImageZoom(this, '${badge.imgUrl.replace('sz=w400', 'sz=w300')}')"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div style="display:none; width:72px; height:72px; border-radius:50%;
+                        background:#f0e8f5; border:3px solid #A984BA; align-items:center;
+                        justify-content:center; font-size:2.2rem; flex-shrink:0;">🏅</div>`
+          : `<div style="width:72px; height:72px; border-radius:50%; background:#f0e8f5;
+                        border:3px solid #A984BA; display:flex; align-items:center;
+                        justify-content:center; font-size:2.2rem; flex-shrink:0;">🏅</div>`;
+      
+        // Compact holder avatar strip (max 6 shown)
+        let holdersHtml = '';
+        if (holderCount > 0) {
+          const holderAvatarsHtml = allHolderAwards.slice(0, 6).map(a => {
+            const m = membersMap.get(a.memberId);
+            if (!m) return '';
+            const initLetter = m.displayName ? m.displayName.charAt(0).toUpperCase() : '?';
+            const avatarStyle = `width:32px; height:32px; border-radius:50%; border:2px solid white;
+                                margin-right:-6px; cursor:pointer; flex-shrink:0;`;
+            return m.imageURL
+              ? `<img src="${m.imageURL}" style="${avatarStyle} object-fit:cover;"
+                      onclick="closeBadgeDetailSheet(); showMemberProfile('${m.id}')"
+                      title="${m.displayName}">`
+              : `<div style="${avatarStyle} background:#ecf0f1; display:flex; align-items:center;
+                              justify-content:center; font-size:0.72rem; font-weight:500; color:#7f8c8d;"
+                      onclick="closeBadgeDetailSheet(); showMemberProfile('${m.id}')"
+                      title="${m.displayName}">
+                  ${initLetter}
+                </div>`;
+          }).join('');
+      
+          holdersHtml = `
+            <div style="background:#f8f9fa; border-radius:8px; padding:10px 12px; margin-top:16px;">
+              <div style="font-size:0.68rem; color:#7f8c8d; font-weight:500; text-transform:uppercase;
+                          letter-spacing:0.5px; margin-bottom:8px;">
+                Held by ${holderCount} member${holderCount !== 1 ? 's' : ''}
+              </div>
+              <div style="display:flex; align-items:center; padding-left:6px; flex-wrap:wrap; gap:2px;">
+                ${holderAvatarsHtml}
+                ${holderCount > 6
+                  ? `<div style="font-size:0.72rem; color:#7f8c8d; margin-left:14px;">
+                      +${holderCount - 6} more
+                    </div>`
+                  : ''}
+              </div>
+            </div>
+          `;
+        }
+      
+        const drawer = document.getElementById('badgeDetailDrawer');
+        drawer.innerHTML = `
+          <div style="width:36px; height:4px; background:#ecf0f1; border-radius:2px;
+                      margin:0 auto 16px;"></div>
+          <div style="display:flex; gap:14px; align-items:flex-start;">
+            ${imgHtml}
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:1.05rem; font-weight:bold; color:#2c3e50; margin-bottom:2px;">
+                ${badge.caption}
+              </div>
+              ${awardedByHtml}
+              <div style="font-size:0.88rem; color:#34495e; line-height:1.5;">
+                ${badge.description}
+              </div>
+            </div>
+          </div>
+          ${holdersHtml}
+          <div style="margin-top:16px; text-align:center;">
+            <button onclick="closeBadgeDetailSheet(); openBadgeGallery();"
+                    class="btn-secondary" style="width:auto; padding:8px 20px; font-size:0.85rem;">
+              See All Badges
+            </button>
+          </div>
+        `;
+      
+        document.getElementById('badgeDetailModal').style.display = 'block';
+        setTimeout(() => drawer.classList.add('open'), 10);
+      }
+      
+      
+      /**
+       * Closes the badge detail bottom sheet with the standard slide-down animation.
+       */
+      function closeBadgeDetailSheet() {
+        const drawer = document.getElementById('badgeDetailDrawer');
+        if (drawer) drawer.classList.remove('open');
+        setTimeout(() => {
+          const modal = document.getElementById('badgeDetailModal');
+          if (modal) modal.style.display = 'none';
+        }, 300);
+      }
+
+      /**
+       * Toggles the badge image between small circle (72px) and enlarged square (200px).
+       * Swaps to a higher-res thumbnail URL when expanding so the image stays crisp.
+       * Clicking again collapses it back to the original size and shape.
+       *
+       * @param {HTMLElement} imgEl   - The clicked image element
+       * @param {string}      largeUrl - Higher-res thumbnail URL for the expanded state
+       */
+      function toggleBadgeImageZoom(imgEl, largeUrl) {
+        const isExpanded = imgEl.dataset.expanded === 'true';
+
+        if (isExpanded) {
+          // Collapse back to circle
+          imgEl.src                  = imgEl.dataset.smallUrl;
+          imgEl.style.width          = '72px';
+          imgEl.style.height         = '72px';
+          imgEl.style.borderRadius   = '50%';
+          imgEl.style.cursor         = 'zoom-in';
+          imgEl.dataset.expanded     = 'false';
+        } else {
+          // Store the small URL so we can restore it on collapse
+          imgEl.dataset.smallUrl     = imgEl.src;
+          imgEl.src                  = largeUrl;
+          imgEl.style.width          = '200px';
+          imgEl.style.height         = '200px';
+          imgEl.style.borderRadius   = '12px';
+          imgEl.style.cursor         = 'zoom-out';
+          imgEl.dataset.expanded     = 'true';
+        }
+      }
+      
+      
+      // ─── Admin Panel Builder ──────────────────────────────────────────────────────
+      
+      /**
+       * Builds the admin-only HTML panel appended below the badge gallery.
+       * Includes: create badge form, award badge form, active awards list with revoke.
+       *
+       * @returns {string} HTML string
+       */
+      function buildAdminBadgePanelHtml() {
+        // Dropdown options for the award form
+        const badgeOptions = [...globalBadgesDB]
+        .sort((a, b) => a.caption.localeCompare(b.caption))
+        .map(b => `<option value="${b.id}">${b.caption}</option>`)
+        .join('');
+      
+        const memberOptions = [...globalMembersDB]
+        .sort((a, b) => a.displayName.localeCompare(b.displayName))
+        .map(m => `<option value="${m.id}">${m.displayName}</option>`)
+        .join('');
+      
+        // Active awards list (newest first)
+        const activeAwards   = globalBadgeAwardsDB.filter(a => a.status === 'Active');
+        const awardsListHtml = activeAwards.length === 0
+          ? '<p style="font-size:0.82rem; color:#95a5a6; font-style:italic; margin:0;">No active awards yet.</p>'
+          : activeAwards.slice().reverse().map(award => {
+              const badge  = badgesMap.get(award.badgeId);
+              const member = membersMap.get(award.memberId);
+              if (!badge || !member) return '';
+              return `
+                <div style="display:flex; align-items:center; padding:8px 0;
+                            border-bottom:0.5px solid #f0f0f0; gap:10px;">
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:0.85rem; font-weight:500; color:#2c3e50;
+                                white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      ${member.displayName}
+                    </div>
+                    <div style="font-size:0.72rem; color:#7f8c8d;">
+                      ${badge.caption} · ${award.awardedDate}
+                    </div>
+                  </div>
+                  <button onclick="submitRevokeAward('${award.awardId}')"
+                          style="background:none; border:1px solid #e74c3c; color:#e74c3c;
+                                padding:4px 10px; border-radius:6px; font-size:0.72rem;
+                                width:auto; font-weight:500; cursor:pointer;">
+                    Revoke
+                  </button>
+                </div>
+              `;
+            }).join('');
+      
+        return `
+          <div style="border-top:2px solid #e67e22; padding-top:22px; margin-top:8px;">
+      
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:18px;">
+              <div style="width:10px; height:10px; border-radius:50%; background:#e67e22;"></div>
+              <span style="font-size:0.68rem; color:#e67e22; font-weight:bold;
+                          text-transform:uppercase; letter-spacing:0.5px;">Admin Panel</span>
+            </div>
+      
+            <!-- Create Badge ─────────────────────────────────────────────────── -->
+            <div style="background:#fff8f0; border:1px solid #f0c070; border-radius:10px;
+                        padding:16px; margin-bottom:16px;">
+              <div style="font-size:0.88rem; font-weight:bold; color:#854F0B; margin-bottom:14px;">
+                Create New Badge
+              </div>
+      
+              <label class="form-label">Badge Caption</label>
+              <input type="text" id="adminBadgeCaption" placeholder="e.g. First Read">
+      
+              <label class="form-label">Badge Description</label>
+              <textarea id="adminBadgeDesc" rows="2"
+                        placeholder="What achievement does this badge represent?"></textarea>
+      
+              <label class="form-label">Club Points Awarded</label>
+              <input type="number" id="adminBadgePoints" placeholder="e.g. 500" min="0"
+                    style="margin-bottom:16px;">
+              <label class="form-label">Badge Image (square crop, min 400×400 px)</label>
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+                <img id="adminBadgePreview"
+                    style="width:56px; height:56px; border-radius:50%; object-fit:cover;
+                            border:2px solid #A984BA; display:none; flex-shrink:0;">
+                <div id="adminBadgePreviewFallback"
+                    style="width:56px; height:56px; border-radius:50%; background:#f0e8f5;
+                            border:2px dashed #A984BA; display:flex; align-items:center;
+                            justify-content:center; font-size:1.4rem; flex-shrink:0;">🏅</div>
+                <input type="file" id="adminBadgeImageInput" accept="image/*"
+                      onchange="handleAdminBadgeImageSelection(event)"
+                      style="margin:0; flex:1;">
+              </div>
+              <input type="hidden" id="adminBadgeImageBase64">
+      
+              <button onclick="submitNewBadge()" id="createBadgeBtn"
+                      style="background:#e67e22; color:white; border:none; padding:10px 20px;
+                            border-radius:6px; font-size:0.9rem; font-weight:bold;
+                            cursor:pointer; width:100%;">
+                Create Badge
+              </button>
+            </div>
+      
+            <!-- Award Badge ──────────────────────────────────────────────────── -->
+            <div style="background:#eaf2f8; border:1px solid #B5D4F4; border-radius:10px;
+                        padding:16px; margin-bottom:16px;">
+              <div style="font-size:0.88rem; font-weight:bold; color:#0C447C; margin-bottom:14px;">
+                Award Badge to Member
+              </div>
+      
+              <label class="form-label">Badge</label>
+              <select id="adminAwardBadgeSelect"
+                      style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px;
+                            font-family:inherit; margin-bottom:16px; box-sizing:border-box;">
+                <option value="">Select a badge...</option>
+                ${badgeOptions}
+              </select>
+      
+              <label class="form-label">Member</label>
+              <select id="adminAwardMemberSelect"
+                      style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px;
+                            font-family:inherit; margin-bottom:16px; box-sizing:border-box;">
+                <option value="">Select a member...</option>
+                ${memberOptions}
+              </select>
+      
+              <label class="form-label">Notes (Optional)</label>
+              <input type="text" id="adminAwardNotes" placeholder="Why are you awarding this badge?">
+      
+              <button onclick="submitAwardBadge()" id="awardBadgeBtn"
+                      style="background:#185FA5; color:white; border:none; padding:10px 20px;
+                            border-radius:6px; font-size:0.9rem; font-weight:bold;
+                            cursor:pointer; width:100%;">
+                Award Badge
+              </button>
+            </div>
+      
+            <!-- Active Awards List ───────────────────────────────────────────── -->
+            <div style="background:white; border:1px solid #ecf0f1; border-radius:10px; padding:16px;">
+              <div style="font-size:0.88rem; font-weight:bold; color:#2c3e50; margin-bottom:12px;">
+                All Active Awards
+              </div>
+              ${awardsListHtml}
+            </div>
+      
+          </div>
+        `;
+      }
+      
+      
+      // ─── Admin Action Handlers ────────────────────────────────────────────────────
+      
+      /**
+       * Handles the badge image file selection for the admin create-badge form.
+       * Center-crops and resizes the image to a 400×400 square before encoding as base64.
+       * This ensures badge circles always look crisp regardless of the original aspect ratio.
+       *
+       * @param {Event} event - The file input change event
+       */
+      function handleAdminBadgeImageSelection(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+      
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas  = document.createElement('canvas');
+            const TARGET  = 400; // Fixed output size in pixels
+            canvas.width  = TARGET;
+            canvas.height = TARGET;
+            const ctx     = canvas.getContext('2d');
+      
+            // Center-crop: use the smaller dimension as the crop square
+            const minDim  = Math.min(img.width, img.height);
+            const cropX   = (img.width  - minDim) / 2;
+            const cropY   = (img.height - minDim) / 2;
+            ctx.drawImage(img, cropX, cropY, minDim, minDim, 0, 0, TARGET, TARGET);
+      
+            const base64Str = canvas.toDataURL('image/jpeg', 0.9);
+      
+            document.getElementById('adminBadgeImageBase64').value = base64Str;
+            document.getElementById('adminBadgePreview').src = base64Str;
+            document.getElementById('adminBadgePreview').style.display = 'block';
+            document.getElementById('adminBadgePreviewFallback').style.display = 'none';
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+      
+      
+      /**
+       * Validates the create-badge form and sends it to the backend.
+       * On success, updates local state and re-renders the gallery immediately.
+       */
+      function submitNewBadge() {
+        const caption     = (document.getElementById('adminBadgeCaption').value || '').trim();
+        const desc        = (document.getElementById('adminBadgeDesc').value    || '').trim();
+        const imgB64      = document.getElementById('adminBadgeImageBase64').value;
+        const badgePoints = Number(document.getElementById('adminBadgePoints').value) || 0;
+      
+        if (!caption)  { showToast('Badge caption is required.');  return; }
+        if (!desc)     { showToast('Please add a description.');   return; }
+        if (!imgB64)   { showToast('Please upload a badge image.'); return; }
+      
+        const btn = document.getElementById('createBadgeBtn');
+        btn.disabled  = true;
+        btn.innerText = 'Creating...';
+      
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.disabled  = false;
+            btn.innerText = 'Create Badge';
+      
+            if (res.status === 'error') { alert(res.message); return; }
+      
+            // Sync local state so the gallery re-renders without a page reload
+            globalBadgesDB.push(res.newBadge);
+            badgesMap.set(res.newBadge.id, res.newBadge);
+      
+            // Reset the form
+            document.getElementById('adminBadgeCaption').value     = '';
+            document.getElementById('adminBadgeDesc').value        = '';
+            document.getElementById('adminBadgePoints').value      = '';
+            document.getElementById('adminBadgeImageBase64').value = '';
+            document.getElementById('adminBadgeImageInput').value  = '';
+            document.getElementById('adminBadgePreview').style.display         = 'none';
+            document.getElementById('adminBadgePreviewFallback').style.display = 'flex';
+      
+            showToast('Badge created! 🏅');
+            renderBadgeGallery();
+          })
+          .withFailureHandler(function(err) {
+            btn.disabled  = false;
+            btn.innerText = 'Create Badge';
+            alert('Failed to create badge. Please try again.');
+          })
+          .addNewBadge({ caption, description: desc, imageBase64: imgB64, badgePoints });
+      }
+      
+      
+      /**
+       * Validates the award-badge form and sends it to the backend.
+       * On success, syncs memberBadgeIndex and re-renders the gallery immediately.
+       */
+      function submitAwardBadge() {
+        const badgeId  = document.getElementById('adminAwardBadgeSelect').value;
+        const memberId = document.getElementById('adminAwardMemberSelect').value;
+        const notes    = (document.getElementById('adminAwardNotes').value || '').trim();
+      
+        if (!badgeId)  { showToast('Please select a badge.');  return; }
+        if (!memberId) { showToast('Please select a member.'); return; }
+      
+        const recipientName = membersMap.get(memberId)
+          ? membersMap.get(memberId).displayName
+          : 'this member';
+      
+        if (!confirm(`Award "${badgesMap.get(badgeId).caption}" to ${recipientName}?`)) return;
+      
+        const btn = document.getElementById('awardBadgeBtn');
+        btn.disabled  = true;
+        btn.innerText = 'Awarding...';
+      
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.disabled  = false;
+            btn.innerText = 'Award Badge';
+      
+            if (res.status === 'error') { alert(res.message); return; }
+      
+            // Sync globalBadgeAwardsDB
+            globalBadgeAwardsDB.push(res.newAward);
+      
+            // Sync memberBadgeIndex
+            if (!memberBadgeIndex.has(memberId)) memberBadgeIndex.set(memberId, []);
+            memberBadgeIndex.get(memberId).push(res.newAward);
+      
+            // Clear notes field only (keep badge + member selection for bulk-awarding ease)
+            document.getElementById('adminAwardNotes').value = '';
+      
+            showToast(`Badge awarded to ${recipientName}! 🎖️`);
+            renderBadgeGallery();
+          })
+          .withFailureHandler(function() {
+            btn.disabled  = false;
+            btn.innerText = 'Award Badge';
+            alert('Failed to award badge. Please try again.');
+          })
+          .awardBadgeToMember({ badgeId, memberId, notes });
+      }
+      
+      
+      /**
+       * Revokes an existing award after admin confirmation.
+       * Syncs local state immediately so the gallery reflects the change without reload.
+       *
+       * @param {string} awardId - ARKA_AWARD_X to revoke
+       */
+      function submitRevokeAward(awardId) {
+        const award  = globalBadgeAwardsDB.find(a => a.awardId === awardId);
+        const member = award ? membersMap.get(award.memberId) : null;
+        const badge  = award ? badgesMap.get(award.badgeId)  : null;
+      
+        const confirmMsg = member && badge
+          ? `Revoke "${badge.caption}" from ${member.displayName}? This cannot be undone from the app.`
+          : 'Revoke this badge award? This cannot be undone from the app.';
+      
+        if (!confirm(confirmMsg)) return;
+      
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') { alert(res.message); return; }
+      
+            // Mark as revoked in globalBadgeAwardsDB
+            const awardIdx = globalBadgeAwardsDB.findIndex(a => a.awardId === awardId);
+            if (awardIdx > -1) {
+              globalBadgeAwardsDB[awardIdx].status = 'Revoked';
+      
+              // Remove from memberBadgeIndex
+              const revokedAward  = globalBadgeAwardsDB[awardIdx];
+              const memberAwards  = memberBadgeIndex.get(revokedAward.memberId) || [];
+              memberBadgeIndex.set(
+                revokedAward.memberId,
+                memberAwards.filter(a => a.awardId !== awardId)
+              );
+            }
+      
+            showToast('Badge revoked.');
+            renderBadgeGallery();
+          })
+          .withFailureHandler(function() {
+            alert('Failed to revoke badge. Please try again.');
+          })
+          .revokeBadgeAward(awardId);
+      }
+
+      /** Tracks which leaderboard category chip the user last selected. */
+      let currentLeaderboardCategory = 'points';
+      
+      
+      // ─── Category Configuration ──────────────────────────────────────────────────
+      
+      /**
+       * @typedef  {Object} LeaderboardCategoryConfig
+       * @property {string} key         - Internal key used by calculateLeaderboardScores()
+       * @property {string} label       - Display label shown on the chip strip
+       * @property {string} unit        - Short unit appended to each numeric score (e.g. "pts")
+       * @property {string} description - Subtitle displayed below the chip strip
+       * @property {string} emptyMsg    - Shown in the empty-state card when 0 members qualify
+       */
+      
+      /** @type {LeaderboardCategoryConfig[]} — ORDER HERE CONTROLS CHIP ORDER IN THE UI */
+      const LEADERBOARD_CATEGORIES = [
+        {
+          key: 'points',
+          label: '☀️ Points',
+          unit: 'pts',
+          description: 'All-time Arka points',
+          emptyMsg: 'Start using the app to earn points!'
+        },
+        {
+          key: 'pages',
+          label: '📖 Pages',
+          unit: 'pages',
+          description: 'Pages read this year',
+          emptyMsg: 'No pages logged this year yet.'
+        },
+        {
+          key: 'books',
+          label: '🏆 Books',
+          unit: 'books',
+          description: 'Total books finished (all time)',
+          emptyMsg: 'No books finished yet.'
+        },
+        {
+          key: 'reviews',
+          label: '✍️ Reviews',
+          unit: 'reviews',
+          description: 'Reviews written (all time)',
+          emptyMsg: 'No reviews written yet.'
+        },
+        {
+          key: 'genres',
+          label: '🌍 Genres',
+          unit: 'genres',
+          description: 'Unique genres explored across finished books',
+          emptyMsg: 'Finish some books to unlock genre stats!'
+        },
+        {
+          key: 'library',
+          label: '📚 Added',
+          unit: 'books',
+          description: 'Books contributed to the Arka Library',
+          emptyMsg: 'No books added to the library yet.'
+        }
+      ];
+      
+      
+      // ─── Sub-Tab Toggle ───────────────────────────────────────────────────────────
+      
+      /**
+       * Toggles the Members tab between the Directory sub-view and the Rankings sub-view.
+       * Rankings data is computed purely from the already-loaded local state — no backend call.
+       *
+       * @param {string} subTab - 'directory' | 'rankings'
+       */
+      function switchMembersTab(subTab) {
+        const dirTab      = document.getElementById('tabMembersDirectory');
+        const rankTab     = document.getElementById('tabMembersRankings');
+        const dirContent  = document.getElementById('membersDirectoryContent');
+        const rankContent = document.getElementById('leaderboardContainer');
+      
+        const isDirectory = subTab === 'directory';
+      
+        dirTab.classList.toggle('active', isDirectory);
+        rankTab.classList.toggle('active', !isDirectory);
+        dirContent.style.display  = isDirectory  ? 'block' : 'none';
+        rankContent.style.display = !isDirectory ? 'block' : 'none';
+      
+        if (!isDirectory && isAppDataLoaded) {
+          renderLeaderboard(currentLeaderboardCategory);
+        }
+      }
+      
+      
+      // ─── Score Calculator ─────────────────────────────────────────────────────────
+      
+      /**
+       * Iterates the appropriate local DB(s) and computes a score for every member
+       * who has a score > 0 for the given category.
+       *
+       * Members with score = 0 are intentionally EXCLUDED from the returned Map.
+       * The render layer handles the special case of showing the currentUser's
+       * pinned row even when their score is 0.
+       *
+       * @param  {string}           category - One of the keys in LEADERBOARD_CATEGORIES
+       * @returns {Map<string, number>}       memberId → positive integer score
+       */
+      function calculateLeaderboardScores(category) {
+        const scoreMap   = new Map(); // memberId → score
+        const activeYear = new Date().getFullYear();
+      
+        switch (category) {
+      
+          case 'points':
+            // Source: MemberDB column O (clubPoints) — already in globalMembersDB
+            globalMembersDB.forEach(member => {
+              const pts = Number(member.clubPoints) || 0;
+              if (pts > 0) scoreMap.set(member.id, pts);
+            });
+            break;
+      
+          case 'pages':
+            // Source: PageLogDB — sum pagesDelta for the current calendar year only
+            globalPageLogDB.forEach(log => {
+              const logYear = parseGoogleDate(log.timestamp).getFullYear();
+              if (logYear !== activeYear) return;
+              const pages = Number(log.pagesDelta) || 0;
+              if (pages <= 0) return;
+              scoreMap.set(log.memberId, (scoreMap.get(log.memberId) || 0) + pages);
+            });
+            break;
+      
+          case 'books':
+            // Source: MemberShelfDB — count every shelf record with status "Finished"
+            globalShelvesDB.forEach(shelf => {
+              if (shelf.status !== 'Finished') return;
+              scoreMap.set(shelf.memberId, (scoreMap.get(shelf.memberId) || 0) + 1);
+            });
+            break;
+      
+          case 'reviews':
+            // Source: MemberShelfDB — count each non-empty review field (any status)
+            globalShelvesDB.forEach(shelf => {
+              if (!(shelf.review || '').trim()) return;
+              scoreMap.set(shelf.memberId, (scoreMap.get(shelf.memberId) || 0) + 1);
+            });
+            break;
+      
+          case 'genres': {
+            // Source: MemberShelfDB + ArkaLibraryDB
+            // Unique genres across ALL finished books per member (case-insensitive dedup)
+            const memberGenreSets = new Map(); // memberId → Set<string>
+      
+            globalShelvesDB.forEach(shelf => {
+              if (shelf.status !== 'Finished') return;
+              const book = booksMap.get(shelf.bookId);
+              if (!book || !book.genre) return;
+      
+              if (!memberGenreSets.has(shelf.memberId)) {
+                memberGenreSets.set(shelf.memberId, new Set());
+              }
+              book.genre.split(',').forEach(g => {
+                const cleanedGenre = g.trim().toLowerCase();
+                if (cleanedGenre) memberGenreSets.get(shelf.memberId).add(cleanedGenre);
+              });
+            });
+      
+            memberGenreSets.forEach((genreSet, memberId) => {
+              if (genreSet.size > 0) scoreMap.set(memberId, genreSet.size);
+            });
+            break;
+          }
+      
+          case 'library':
+            // Source: ArkaLibraryDB — count books where addedByRaw matches a real member ID
+            globalBooksDB.forEach(book => {
+              const adderId = book.addedByRaw;
+              if (!adderId || !adderId.startsWith('ARKA_MEMBER_')) return;
+              scoreMap.set(adderId, (scoreMap.get(adderId) || 0) + 1);
+            });
+            break;
+        }
+      
+        return scoreMap;
+      }
+      
+      
+      // ─── Master Render ────────────────────────────────────────────────────────────
+      
+      /**
+       * Entry point for rendering the leaderboard.
+       * Calculates scores, builds the chip strip, podium, and ranked list,
+       * then injects everything into #leaderboardContainer in a single DOM write.
+       *
+       * @param {string} category - The LEADERBOARD_CATEGORIES key to display
+       */
+      function renderLeaderboard(category) {
+        currentLeaderboardCategory = category;
+      
+        const container = document.getElementById('leaderboardContainer');
+        if (!container) return;
+      
+        const cfg = LEADERBOARD_CATEGORIES.find(c => c.key === category);
+        if (!cfg) return;
+      
+        const scoreMap = calculateLeaderboardScores(category);
+      
+        // Build a sorted array of qualifying members (score > 0), highest score first
+        const rankedMembers = globalMembersDB
+          .filter(member => scoreMap.has(member.id))
+          .map(member => ({ member, score: scoreMap.get(member.id) }))
+          .sort((a, b) => b.score - a.score);
+      
+        // Build scrollable chip strip — active chip gets dark fill to match app style
+        const chipsHtml = LEADERBOARD_CATEGORIES.map(c => `
+          <div class="genre-chip"
+              style="${c.key === category ? 'background:#2c3e50;color:white;border-color:#2c3e50;' : ''}"
+              onclick="renderLeaderboard('${c.key}')">
+            ${c.label}
+          </div>
+        `).join('');
+      
+        container.innerHTML = `
+          <div style="padding-top: 5px;">
+            <div class="genre-chips-container" style="margin-bottom: 8px;">
+              ${chipsHtml}
+            </div>
+            <div style="font-size:0.78rem; color:#7f8c8d; text-align:center;
+                        margin-bottom: 18px; font-style:italic;">
+              ${cfg.description}
+            </div>
+            ${buildPodiumHtml(rankedMembers, cfg)}
+            ${buildRankedListHtml(rankedMembers, scoreMap, cfg)}
+          </div>
+        `;
+      }
+      
+      
+      // ─── Podium Builder ───────────────────────────────────────────────────────────
+      
+      /**
+       * Builds the podium HTML block, handling four distinct edge cases:
+       *   • 0 qualifiers → empty-state card
+       *   • 1 qualifier  → solo champion card (no columns)
+       *   • 2 qualifiers → standard podium with ghost 3rd slot
+       *   • 3+ qualifiers → full podium
+       *
+       * @param {Array<{member:Object, score:number}>} rankedMembers - score > 0, sorted desc
+       * @param {LeaderboardCategoryConfig} cfg
+       * @returns {string} HTML string
+       */
+      function buildPodiumHtml(rankedMembers, cfg) {
+      
+        // ── 0 qualifiers: empty state ─────────────────────────────────────────────
+        if (rankedMembers.length === 0) {
+          return `
+            <div style="text-align:center; padding:40px 20px; background:white;
+                        border-radius:12px; border:2px dashed #ecf0f1; margin-bottom:20px;">
+              <div style="font-size:2rem; margin-bottom:10px;">🏅</div>
+              <div style="font-weight:bold; color:#2c3e50; margin-bottom:6px;">No rankings yet</div>
+              <div style="font-size:0.85rem; color:#7f8c8d;">${cfg.emptyMsg}</div>
+            </div>
+          `;
+        }
+      
+        // ── 1 qualifier: solo champion card ──────────────────────────────────────
+        if (rankedMembers.length === 1) {
+          const { member, score } = rankedMembers[0];
+          const isMe = member.id === currentUser;
+      
+          return `
+            <div style="background:linear-gradient(180deg,#2c3e50,#34495e); border-radius:12px;
+                        padding:30px 20px; text-align:center; margin-bottom:20px;">
+              <div style="font-size:0.65rem; color:rgba(255,255,255,0.5); text-transform:uppercase;
+                          letter-spacing:1px; margin-bottom:20px;">${cfg.description}</div>
+              ${buildPodiumAvatar(member, 72, '#EF9F27')}
+              <div style="color:white; font-size:1.05rem; font-weight:bold; margin-bottom:4px;
+                          cursor:pointer;" onclick="showMemberProfile('${member.id}')">
+                ${member.displayName}
+                ${isMe ? '<span style="color:#A984BA; font-size:0.75rem; margin-left:4px;">(you)</span>' : ''}
+              </div>
+              <div style="color:#FAC775; font-size:0.95rem; font-weight:bold; margin-bottom:18px;">
+                ${score.toLocaleString()} ${cfg.unit}
+              </div>
+              <div style="display:inline-block; background:#FAC775; color:#633806;
+                          padding:6px 22px; border-radius:20px; font-size:0.8rem; font-weight:bold;">
+                🥇 Solo Champion
+              </div>
+            </div>
+          `;
+        }
+      
+        // ── 2 or 3+ qualifiers: standard podium ──────────────────────────────────
+        const firstPlace  = rankedMembers[0];
+        const secondPlace = rankedMembers[1];
+        const thirdPlace  = rankedMembers.length >= 3 ? rankedMembers[2] : null;
+      
+        /**
+         * Builds one podium column (2nd, 1st, or 3rd left-to-right).
+         * @param {Object|null} entry        - { member, score } or null for a ghost slot
+         * @param {number}      rankNum      - 1, 2, or 3
+         * @param {number}      avatarSize   - diameter in px
+         * @param {number}      barHeight    - height of the coloured block in px
+         * @param {string}      barBgColor   - fill colour of the block
+         * @param {string}      borderColor  - avatar ring colour
+         * @param {string}      nameFontSize - CSS font-size for the member's name
+         * @returns {string} HTML string
+         */
+        function buildPodiumColumn(entry, rankNum, avatarSize, barHeight, barBgColor, borderColor, nameFontSize) {
+          if (!entry) return buildGhostPodiumColumn(rankNum, barHeight);
+      
+          const isMe          = entry.member.id === currentUser;
+          const blockNumColor = rankNum === 1 ? '#633806' : rankNum === 2 ? '#2C2C2A' : '#4A1B0C';
+      
+          return `
+            <div style="display:flex; flex-direction:column; align-items:center; flex:1; cursor:pointer;"
+                onclick="showMemberProfile('${entry.member.id}')">
+              ${buildPodiumAvatar(entry.member, avatarSize, borderColor)}
+              <div style="font-size:${nameFontSize}; color:${rankNum === 1 ? 'white' : 'rgba(255,255,255,0.88)'};
+                          font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+                          max-width:${avatarSize + 24}px; text-align:center; margin-bottom:2px; line-height:1.3;">
+                ${entry.member.displayName}
+                ${isMe ? '<br><span style="color:#A984BA; font-size:0.62rem;">(you)</span>' : ''}
+              </div>
+              <div style="font-size:0.62rem; color:rgba(255,255,255,${rankNum === 1 ? '0.6' : '0.4'});
+                          margin-bottom:6px;">
+                ${entry.score.toLocaleString()} ${cfg.unit}
+              </div>
+              <div style="background:${barBgColor}; width:100%; height:${barHeight}px;
+                          border-radius:5px 5px 0 0; display:flex; align-items:center;
+                          justify-content:center;">
+                <span style="font-size:${Math.floor(barHeight * 0.38)}px; color:${blockNumColor};">
+                  ${rankNum}
+                </span>
+              </div>
+            </div>
+          `;
+        }
+      
+        return `
+          <div style="background:linear-gradient(180deg,#2c3e50,#34495e); border-radius:12px;
+                      padding:20px 16px 0; margin-bottom:20px;">
+            <div style="font-size:0.62rem; color:rgba(255,255,255,0.5); text-transform:uppercase;
+                        letter-spacing:1px; margin-bottom:16px; text-align:center;">
+              ${cfg.description}
+            </div>
+            <div style="display:flex; align-items:flex-end; justify-content:center; gap:8px;">
+              ${buildPodiumColumn(secondPlace, 2, 40, 45, '#B4B2A9', '#888780', '0.72rem')}
+              ${buildPodiumColumn(firstPlace,  1, 52, 68, '#FAC775', '#EF9F27', '0.80rem')}
+              ${buildPodiumColumn(thirdPlace,  3, 36, 30, '#F0997B', '#D85A30', '0.68rem')}
+            </div>
+          </div>
+        `;
+      }
+      
+      
+      /**
+       * Builds a round avatar for use inside the podium.
+       * Uses the member's Drive thumbnail if available, otherwise their initial letter.
+       *
+       * @param {Object} member
+       * @param {number} sizePx      - Diameter in pixels
+       * @param {string} borderColor - CSS hex colour for the avatar ring
+       * @returns {string} HTML string
+       */
+      function buildPodiumAvatar(member, sizePx, borderColor) {
+        const initLetter = member.displayName ? member.displayName.charAt(0).toUpperCase() : '?';
+      
+        // Map border/ring colour → matching fill and text colours (matching the medal palette)
+        const fillColorByBorder = { '#EF9F27': '#FAC775', '#888780': '#B4B2A9', '#D85A30': '#F0997B' };
+        const textColorByBorder = { '#EF9F27': '#412402', '#888780': '#2C2C2A', '#D85A30': '#4A1B0C' };
+        const fillColor = fillColorByBorder[borderColor] || '#ecf0f1';
+        const textColor = textColorByBorder[borderColor] || '#444';
+      
+        const sharedStyle = `width:${sizePx}px; height:${sizePx}px; border-radius:50%;
+                            border:2px solid ${borderColor}; margin:0 auto 6px; display:block;`;
+      
+        if (member.imageURL) {
+          return `<img src="${member.imageURL}" style="${sharedStyle} object-fit:cover;">`;
+        }
+      
+        return `
+          <div style="${sharedStyle} background:${fillColor}; display:flex; align-items:center;
+                      justify-content:center; font-size:${Math.floor(sizePx * 0.38)}px;
+                      font-weight:500; color:${textColor};">
+            ${initLetter}
+          </div>
+        `;
+      }
+      
+      
+      /**
+       * Builds the faded ghost placeholder column shown in the 3rd podium slot
+       * when fewer than 3 members qualify for a category.
+       *
+       * @param {number} rankNum   - Always 3 in current usage
+       * @param {number} barHeight - Height of the coloured block in px
+       * @returns {string} HTML string
+       */
+      function buildGhostPodiumColumn(rankNum, barHeight) {
+        return `
+          <div style="display:flex; flex-direction:column; align-items:center; flex:1; opacity:0.28;">
+            <div style="width:36px; height:36px; border-radius:50%;
+                        border:2px dashed rgba(255,255,255,0.35); margin:0 auto 6px;"></div>
+            <div style="font-size:0.68rem; color:rgba(255,255,255,0.35); margin-bottom:2px;">—</div>
+            <div style="font-size:0.62rem; color:rgba(255,255,255,0.2); margin-bottom:6px;">&nbsp;</div>
+            <div style="background:rgba(255,255,255,0.08); border:1px dashed rgba(255,255,255,0.2);
+                        width:100%; height:${barHeight}px; border-radius:5px 5px 0 0;
+                        display:flex; align-items:center; justify-content:center;">
+              <span style="font-size:${Math.floor(barHeight * 0.38)}px;
+                          color:rgba(255,255,255,0.3);">${rankNum}</span>
+            </div>
+          </div>
+        `;
+      }
+      
+      
+      // ─── Ranked List Builder ──────────────────────────────────────────────────────
+      
+      /**
+       * Builds the ranked list card for members in positions 4 and beyond.
+       *
+       * Edge cases handled:
+       *   • currentUser in top 3   → no pinned row (they're already in the podium)
+       *   • currentUser score > 0, rank ≥ 4 → shown in the list with purple "(you)" tint
+       *   • currentUser score = 0  → list shows normally + a pinned "Not ranked" row at the bottom
+       *   • No list members AND no pinned row needed → returns empty string (no card rendered)
+       *
+       * @param {Array<{member:Object, score:number}>} rankedMembers - Full sorted array (score > 0)
+       * @param {Map<string,number>}                   scoreMap      - Full score map for all members
+       * @param {LeaderboardCategoryConfig}            cfg
+       * @returns {string} HTML string
+       */
+      function buildRankedListHtml(rankedMembers, scoreMap, cfg) {
+        const listItems = rankedMembers.slice(3); // positions 4 and beyond
+      
+        const currentUserPositionIndex = rankedMembers.findIndex(r => r.member.id === currentUser);
+        const currentUserIsInPodium    = currentUserPositionIndex >= 0 && currentUserPositionIndex <= 2;
+        const currentUserScore         = scoreMap.get(currentUser) || 0;
+        const showPinnedYouRow         = !currentUserIsInPodium && currentUserScore === 0;
+      
+        // Nothing to render — no list items and no pinned row needed
+        if (listItems.length === 0 && !showPinnedYouRow) return '';
+      
+        // ── Rank rows (positions 4+) ────────────────────────────────────────────
+        const rankRowsHtml = listItems.map((item, idx) => {
+          const displayRank = idx + 4;
+          const isMe        = item.member.id === currentUser;
+          const initLetter  = item.member.displayName ? item.member.displayName.charAt(0).toUpperCase() : '?';
+          const levelName   = calculateUserLevel(item.member.clubPoints);
+      
+          const avatarHtml = item.member.imageURL
+            ? `<img src="${item.member.imageURL}"
+                    style="width:36px; height:36px; border-radius:50%; object-fit:cover;
+                          margin:0 10px 0 6px; flex-shrink:0;">`
+            : `<div style="width:36px; height:36px; border-radius:50%; background:#ecf0f1;
+                          display:flex; align-items:center; justify-content:center;
+                          font-size:0.9rem; color:#7f8c8d; margin:0 10px 0 6px; flex-shrink:0;">
+                ${initLetter}
+              </div>`;
+      
+          return `
+            <div style="display:flex; align-items:center; padding:10px 14px; cursor:pointer;
+                        border-bottom:0.5px solid #f0f0f0;
+                        ${isMe ? 'background:rgba(169,132,186,0.08);' : ''}"
+                onclick="showMemberProfile('${item.member.id}')">
+              <span style="font-size:0.82rem; font-weight:500; width:22px; flex-shrink:0;
+                          color:${isMe ? '#A984BA' : '#7f8c8d'};">
+                ${displayRank}
+              </span>
+              ${avatarHtml}
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:0.88rem; font-weight:500; color:#2c3e50;
+                            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                  ${item.member.displayName}
+                  ${isMe ? '<span style="color:#A984BA; font-size:0.72rem; margin-left:4px;">(you)</span>' : ''}
+                </div>
+                <div style="font-size:0.72rem; color:#95a5a6;">${levelName}</div>
+              </div>
+              <span style="font-size:0.88rem; font-weight:500; color:#2c3e50; flex-shrink:0;">
+                ${item.score.toLocaleString()}
+                <span style="font-size:0.68rem; color:#95a5a6;"> ${cfg.unit}</span>
+              </span>
+            </div>
+          `;
+        }).join('');
+      
+        // ── Pinned "you" row (score = 0, not in podium) ────────────────────────
+        let pinnedYouHtml = '';
+        if (showPinnedYouRow) {
+          const me = membersMap.get(currentUser);
+          if (me) {
+            const initLetter = me.displayName ? me.displayName.charAt(0).toUpperCase() : '?';
+            const levelName  = calculateUserLevel(me.clubPoints);
+      
+            const avatarHtml = me.imageURL
+              ? `<img src="${me.imageURL}"
+                      style="width:36px; height:36px; border-radius:50%; object-fit:cover;
+                            margin:0 10px 0 6px; flex-shrink:0;">`
+              : `<div style="width:36px; height:36px; border-radius:50%; background:#f0e8f5;
+                            display:flex; align-items:center; justify-content:center;
+                            font-size:0.9rem; color:#A984BA; margin:0 10px 0 6px; flex-shrink:0;">
+                  ${initLetter}
+                </div>`;
+      
+            pinnedYouHtml = `
+              <div style="display:flex; align-items:center; padding:10px 14px;
+                          background:rgba(169,132,186,0.08); border-top:1px dashed #dcd0e5;">
+                <span style="font-size:0.82rem; font-weight:500; color:#A984BA;
+                            width:22px; flex-shrink:0;">—</span>
+                ${avatarHtml}
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:0.88rem; font-weight:500; color:#2c3e50;">
+                    ${me.displayName}
+                    <span style="color:#A984BA; font-size:0.72rem; margin-left:4px;">(you)</span>
+                  </div>
+                  <div style="font-size:0.72rem; color:#95a5a6;">${levelName}</div>
+                </div>
+                <span style="font-size:0.82rem; color:#95a5a6; font-style:italic; flex-shrink:0;">
+                  Not ranked
+                </span>
+              </div>
+            `;
+          }
+        }
+      
+        return `
+          <div style="background:white; border-radius:12px; border:1px solid #ecf0f1;
+                      overflow:hidden; margin-bottom:20px;">
+            <div style="padding:10px 14px; background:#f8f9fa; border-bottom:0.5px solid #ecf0f1;">
+              <span style="font-size:0.7rem; color:#7f8c8d; font-weight:bold;
+                          text-transform:uppercase; letter-spacing:0.5px;">Full rankings</span>
+            </div>
+            ${rankRowsHtml}
+            ${pinnedYouHtml}
+          </div>
+        `;
       }
 
       /**
@@ -4907,7 +6505,8 @@
         }
         if (document.getElementById('myProfileView').style.display === 'block' || 
             document.getElementById('tenPagesADayView').style.display === 'block' || 
-            document.getElementById('bookBingoView').style.display === 'block') {
+            document.getElementById('bookBingoView').style.display === 'block'   ||
+            document.getElementById('badgesView').style.display === 'block') {
           switchTab('home');
           return;
         }
@@ -5017,7 +6616,7 @@
       }
 
 
-/**
+      /**
        * Fetches posts for a book from the backend, then renders the Reading Room.
        */
       function renderBookPosts(bookId) {
@@ -5412,6 +7011,9 @@
           grid.appendChild(square);
         }
 
+        // Render streak row above the heatmap
+        renderStreakRow(weeklyPages, userLogs);
+ 
         // 🔥 DRAW THE GRAPHS
         renderHistoricalGraphs(userLogs, memberId);
 
@@ -5566,7 +7168,6 @@
 
         if (!userLogs || userLogs.length === 0) {
           yearlyContainer.style.display = 'none';
-          cumulativeContainer.style.display = 'none';
           return;
         }
 
@@ -5686,13 +7287,15 @@
             let pastValuesForThisWeek = pastYears.map(y => cumulativeBuckets[y][w]);
             ghostLine.push(getMedian(pastValuesForThisWeek));
           }
-        } else if (currentYearLine.length > 0) {
-          cumulativeContainer.style.display = 'block';
-        } else {
-          cumulativeContainer.style.display = 'none';
         }
 
-        if (cumulativeContainer.style.display === 'block') {
+        const hasCumulativeData = (ghostLine.length > 0 || currentYearLine.length > 0);
+        const ghostPaceEmpty = document.getElementById('ghostPaceEmptyMsg');
+
+        if (hasCumulativeData) {
+          cumulativeContainer.style.display = 'block';
+          if (ghostPaceEmpty) ghostPaceEmpty.style.display = 'none';
+
           const ctxLine = document.getElementById('cumulativeLineChart').getContext('2d');
           const weekLabels = Array.from({length: 52}, (_, i) => `W${i + 1}`);
 
@@ -5736,7 +7339,11 @@
               }
             }
           });
-        }
+
+        } else {
+          cumulativeContainer.style.display = 'none';
+          if (ghostPaceEmpty) ghostPaceEmpty.style.display = 'block';
+        } 
       }
 
       /**
@@ -5892,6 +7499,127 @@
             }
           }
         });
+      }
+
+      /**
+       * Calculates and renders the current reading streak and all-time best streak
+       * into #meStreakContainer inside the reading stats card.
+       *
+       * A "week" counts as active if any pages were logged that week (> 0).
+       * Current streak: consecutive active weeks counting backwards from today.
+       * Best streak:    longest run of consecutive active weeks across all years.
+       *
+       * @param {Object} weeklyPagesCurrentYear - { weekNum: pageCount } for current year
+       * @param {Array}  allUserLogs            - Full PageLogDB array for this user
+       */
+      function renderStreakRow(weeklyPagesCurrentYear, allUserLogs) {
+        const container = document.getElementById('meStreakContainer');
+        if (!container) return;
+      
+        const currentWeekNum = getISOWeekNumber(new Date());
+        const activeYear     = new Date().getFullYear();
+      
+        // ── Current streak ───────────────────────────────────────────────────────
+        // Walk backwards from the current ISO week within this year's data.
+        // If the current week itself has no pages yet (they're mid-week), we
+        // allow the streak to start from last week without breaking.
+        let currentStreak = 0;
+        let checkWeek     = currentWeekNum;
+      
+        // Grace: if current week is empty, start counting from last week
+        if ((weeklyPagesCurrentYear[checkWeek] || 0) === 0 && checkWeek > 1) {
+          checkWeek--;
+        }
+      
+        while (checkWeek >= 1 && (weeklyPagesCurrentYear[checkWeek] || 0) > 0) {
+          currentStreak++;
+          checkWeek--;
+        }
+      
+        // ── Best streak (all years) ───────────────────────────────────────────────
+        // Rebuild weekly buckets for every year in the log, then find the
+        // longest consecutive run of active weeks across all of them.
+        let allYearBuckets = {}; // { "2024": [0,12,0,...], "2025": [...] }
+      
+        allUserLogs.forEach(log => {
+          const logDate = parseGoogleDate(log.timestamp);
+          const year    = logDate.getFullYear().toString();
+          const week    = getISOWeekNumber(logDate);
+          const pages   = Number(log.pagesDelta) || 0;
+          if (pages <= 0) return;
+      
+          if (!allYearBuckets[year]) allYearBuckets[year] = new Array(53).fill(0);
+          if (week >= 1 && week <= 52)  allYearBuckets[year][week] += pages;
+        });
+      
+        let bestStreak     = 0;
+        let bestStreakYear  = activeYear;
+        let currentRun     = 0;
+        let currentRunYear = activeYear;
+      
+        Object.keys(allYearBuckets).sort().forEach(year => {
+          const buckets = allYearBuckets[year];
+          for (let w = 1; w <= 52; w++) {
+            if (buckets[w] > 0) {
+              currentRun++;
+              currentRunYear = parseInt(year);
+              if (currentRun > bestStreak) {
+                bestStreak     = currentRun;
+                bestStreakYear  = currentRunYear;
+              }
+            } else {
+              currentRun = 0;
+            }
+          }
+        });
+      
+        // ── Render ────────────────────────────────────────────────────────────────
+        container.style.display = 'block';
+      
+        if (currentStreak === 0) {
+          container.innerHTML = `
+            <div style="background:#f8f9fa; border:1px solid #ecf0f1; border-radius:8px;
+                        padding:10px 14px; font-size:0.82rem; color:#95a5a6;
+                        font-style:italic; text-align:center;">
+              No active streak yet — log some pages to start one! 🔥
+            </div>
+          `;
+          return;
+        }
+      
+        const bestBadge = bestStreak > 0 && bestStreak !== currentStreak
+          ? `<div style="text-align:right;">
+              <div style="font-size:0.82rem; font-weight:500; color:#2c3e50;">
+                Best: ${bestStreak} wk${bestStreak !== 1 ? 's' : ''}
+              </div>
+              <div style="font-size:0.68rem; color:#95a5a6; margin-top:2px;">
+                in ${bestStreakYear}
+              </div>
+            </div>`
+          : (bestStreak === currentStreak
+              ? `<div style="font-size:0.75rem; color:#27ae60; font-weight:500;
+                            text-align:right;">🏆 Personal best!</div>`
+              : '');
+      
+        container.innerHTML = `
+          <div style="background:#fff8f0; border:1px solid #f0c070; border-radius:8px;
+                      padding:10px 14px; display:flex; align-items:center;
+                      justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="font-size:1.5rem; line-height:1; flex-shrink:0;">🔥</div>
+              <div>
+                <div style="font-size:1.2rem; font-weight:bold; color:#e67e22; line-height:1;">
+                  ${currentStreak} week${currentStreak !== 1 ? 's' : ''}
+                </div>
+                <div style="font-size:0.68rem; color:#854F0B; text-transform:uppercase;
+                            letter-spacing:0.5px; margin-top:2px;">
+                  Current streak
+                </div>
+              </div>
+            </div>
+            ${bestBadge}
+          </div>
+        `;
       }
 
       /**
