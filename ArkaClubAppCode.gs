@@ -84,7 +84,7 @@
  * @property {number} likeCount - Numeric sum of likes received (Col H)
  */
 
-const APP_VERSION = "v26";
+const APP_VERSION = "v28";
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -293,7 +293,7 @@ function updateMemberProfile(formData) {
 
   let newActivity = null;
   try { 
-    newActivity = logActivity(currentMemberId, "ARKA_ACTTYP_PROFILEUPDATE", 1); 
+    newActivity = logActivity(currentMemberId, "ARKA_ACTTYP_PROFILEUPDATE", 1, "", formData.activityPointsMap || {});
   } catch(e) {}
   
   return { status: "success", newActivity: newActivity, newImageURL: finalImageUrl }; 
@@ -308,34 +308,16 @@ function updateMemberProfile(formData) {
  * @param {string} description - Optional extra details (like a Book ID or Shelf ID).
  * @returns {Object} The compiled log object (useful for returning to the frontend).
  */
-function logActivity(memberId, activityTypeID, activityValue, description = "") {
+function logActivity(memberId, activityTypeID, activityValue, description = "", clientPointsMap = {}) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   
-  // A: Calculate Club Points earned for this action
-  const typeSheet = ss.getSheetByName("ActivityTypeDB");
-  const typeData = typeSheet.getDataRange().getValues();
-  let multiplier = 0;
-  
-  for (let i = 1; i < typeData.length; i++) {
-    if (typeData[i][0] === activityTypeID) { 
-      multiplier = Number(typeData[i][4]) || 0; 
-      break;
-    }
-  }
-  
+  const multiplier = getActivityMultiplier(activityTypeID, clientPointsMap, ss);
   const cpAwarded = activityValue * multiplier;
   
-  // B: Generate a sequential Activity ID
+  // B: Generate sequential ID — 1 cell read instead of full table read
   const logSheet = ss.getSheetByName(ACTIVITYLOG_SHEET);
-  const logData = logSheet.getDataRange().getValues();
-  let newActNum = 1;
-  
-  if (logData.length > 1) {
-    let lastIdString = logData[logData.length - 1][0]; 
-    let lastNum = parseInt(lastIdString.split('_')[2]);
-    if (!isNaN(lastNum)) newActNum = lastNum + 1;
-  }
-  const activityId = "ARKA_ACT_" + newActNum;
+  const nextActNum = getNextActivityNumber(logSheet); // <-- USES HELPER
+  const activityId = "ARKA_ACT_" + nextActNum;
   
   // C: Stamp and save
   const activityDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss Z");
@@ -373,7 +355,7 @@ function logActivity(memberId, activityTypeID, activityValue, description = "") 
  * @param {string} [description=""] - Optional extra details (used only if activityData is a string).
  * @returns {Array<Object>} An array of the compiled log objects that were written.
  */
-function logActivityBatch(memberId, activityData, activityValue = 1, description = "") {
+function logActivityBatch(memberId, activityData, activityValue = 1, description = "", clientPointsMap = {}) {
   const lock = LockService.getScriptLock();
   // Wait up to 5 seconds for other processes to finish writing
   if (!lock.tryLock(5000)) {
@@ -383,13 +365,6 @@ function logActivityBatch(memberId, activityData, activityValue = 1, description
 
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    
-    // 1. Load Activity Multipliers into a Dictionary for instant lookup (No looping!)
-    const typeData = ss.getSheetByName("ActivityTypeDB").getDataRange().getValues();
-    let multiplierMap = {};
-    for (let i = 1; i < typeData.length; i++) {
-      if (typeData[i][0]) multiplierMap[typeData[i][0]] = Number(typeData[i][4]) || 0;
-    }
 
     // 2. Normalize input to an array so we can always batch process
     let pendingLogs = [];
@@ -399,16 +374,10 @@ function logActivityBatch(memberId, activityData, activityValue = 1, description
       pendingLogs = [{ typeId: activityData, val: activityValue, desc: description }];
     }
 
-    // 3. Get current state of the Log DB to generate sequential IDs
+    // 3. Get starting ID — 1 cell read instead of full table read
     const logSheet = ss.getSheetByName(ACTIVITYLOG_SHEET);
-    const logData = logSheet.getDataRange().getValues();
-    let currentActNum = 1;
-    if (logData.length > 1) {
-      let lastIdString = logData[logData.length - 1][0]; 
-      let lastNum = parseInt(lastIdString.split('_')[2]);
-      if (!isNaN(lastNum)) currentActNum = lastNum;
-    }
-
+    let currentActNum = getNextActivityNumber(logSheet) - 1; // Subtract 1; loop increments it
+    
     const activityDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss Z");
     const rowsToWrite = [];
     const returnedLogs = [];
@@ -417,7 +386,8 @@ function logActivityBatch(memberId, activityData, activityValue = 1, description
     pendingLogs.forEach(log => {
       currentActNum++;
       let activityId = "ARKA_ACT_" + currentActNum;
-      let cpAwarded = (log.val || 1) * (multiplierMap[log.typeId] || 0);
+      const multiplier = getActivityMultiplier(log.typeId, clientPointsMap, ss);
+      const cpAwarded = (log.val || 1) * multiplier;
       
       rowsToWrite.push([
         activityId,
@@ -438,7 +408,8 @@ function logActivityBatch(memberId, activityData, activityValue = 1, description
 
     // 5. Fire one single write command to the database
     if (rowsToWrite.length > 0) {
-      logSheet.getRange(logData.length + 1, 1, rowsToWrite.length, rowsToWrite[0].length).setValues(rowsToWrite);
+      const appendStartRow = logSheet.getLastRow() + 1;
+      logSheet.getRange(appendStartRow, 1, rowsToWrite.length, rowsToWrite[0].length).setValues(rowsToWrite);
     }
 
     return returnedLogs;
@@ -590,7 +561,7 @@ function addBookToLibrary(bookData) {
   // LOG ACTIVITY
   let newActivity = null;
   try { 
-    newActivity = logActivity(currentMemberId, "ARKA_ACTTYP_BOOKADDED", 1, newBookId); 
+    newActivity = logActivity(currentMemberId, "ARKA_ACTTYP_BOOKADDED", 1, newBookId, bookData.activityPointsMap || {});
   } catch(e) {}
 
   return { 
@@ -786,7 +757,7 @@ function updateMemberShelf(shelfData) {
     // Process all accumulated activities in a single database operation
     let finalActivitiesLogged = [];
     if (newActivitiesQueue.length > 0) {
-      finalActivitiesLogged = logActivityBatch(currentMemberId, newActivitiesQueue);
+      finalActivitiesLogged = logActivityBatch(currentMemberId, newActivitiesQueue, 1, "", shelfData.activityPointsMap || {});
     }
 
     // COMPILE UI RESPONSE DATA
@@ -863,7 +834,7 @@ function updateLibraryBook(bookData) {
   // --- LOG THE ACTIVITY ---
   let newActivity = null;
   try { 
-    newActivity = logActivity(currentMemberId, "ARKA_ACTTYP_BOOKUPDATE", 1, bookData.bookId); 
+    newActivity = logActivity(currentMemberId, "ARKA_ACTTYP_BOOKUPDATE", 1, bookData.bookId, bookData.activityPointsMap || {});
   } catch(e) {}
   
   return { 
@@ -1100,20 +1071,32 @@ function getAppMasterData() {
 
   // 6. Fetch Activity Log DB
   const activityLogSheet = ss.getSheetByName("ActivityLogDB");
-  const activityLogData = activityLogSheet.getDataRange().getValues();
+  const activityLogTotalRows = activityLogSheet.getLastRow();
+  const ACTIVITY_LOG_FETCH_LIMIT = 300; // Tune this number up if feed feels sparse
+
+  // Calculate the starting row so we always grab the most recent N entries
+  const activityLogStartRow = Math.max(2, activityLogTotalRows - ACTIVITY_LOG_FETCH_LIMIT + 1);
+  const activityLogRowCount = activityLogTotalRows - activityLogStartRow + 1;
+
   let activityLogList = [];
-  for (let i = 1; i < activityLogData.length; i++) {
-    if (activityLogData[i][0]) {
-      
-      activityLogList.push({
-        activityID: activityLogData[i][0],
-        activityTypeID: activityLogData[i][1],
-        activityDate: activityLogData[i][2],
-        activityMemberID: activityLogData[i][3],
-        activityDesc: activityLogData[i][4] || "",
-        activitySource: activityLogData[i][5] || "",
-        activityCPAwarded: Number(activityLogData[i][6]) || 0
-      });
+  if (activityLogRowCount > 0) {
+    // getRange(row, col, numRows, numCols) — reads only the slice, not the whole sheet
+    const activityLogData = activityLogSheet.getRange(
+      activityLogStartRow, 1, activityLogRowCount, 7
+    ).getValues();
+    
+    for (let i = 0; i < activityLogData.length; i++) {
+      if (activityLogData[i][0]) {
+        activityLogList.push({
+          activityID:       activityLogData[i][0],
+          activityTypeID:   activityLogData[i][1],
+          activityDate:     activityLogData[i][2],
+          activityMemberID: activityLogData[i][3],
+          activityDesc:     activityLogData[i][4] || "",
+          activitySource:   activityLogData[i][5] || "",
+          activityCPAwarded: Number(activityLogData[i][6]) || 0
+        });
+      }
     }
   }
 
@@ -1184,19 +1167,25 @@ function getRandomQuote() {
  */
 function getLatestActivityLog() {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("ActivityLogDB");
-  const data = sheet.getDataRange().getValues();
-  let logList = [];
+  const SYNC_FETCH_LIMIT = 200; // Sync only needs recent entries
   
-  // Skip header row
-  for (let i = 1; i < data.length; i++) {
+  const totalRows = sheet.getLastRow();
+  if (totalRows < 2) return [];
+  
+  const startRow = Math.max(2, totalRows - SYNC_FETCH_LIMIT + 1);
+  const rowCount = totalRows - startRow + 1;
+  const data = sheet.getRange(startRow, 1, rowCount, 7).getValues();
+  
+  let logList = [];
+  for (let i = 0; i < data.length; i++) {
     if (data[i][0]) {
       logList.push({
-        activityID: data[i][0],
-        activityTypeID: data[i][1],
-        activityDate: data[i][2],
-        activityMemberID: data[i][3],
-        activityDesc: data[i][4] || "", // This holds the BookID
-        activitySource: data[i][5] || "",
+        activityID:        data[i][0],
+        activityTypeID:    data[i][1],
+        activityDate:      data[i][2],
+        activityMemberID:  data[i][3],
+        activityDesc:      data[i][4] || "",
+        activitySource:    data[i][5] || "",
         activityCPAwarded: Number(data[i][6]) || 0
       });
     }
@@ -1206,17 +1195,33 @@ function getLatestActivityLog() {
 
 /**
  * PRIVATE HELPER: Validates the active session and returns the Member ID.
- * This is the "Security Guard" that prevents ID spoofing.
+ * Uses CacheService so the sheet is only scanned once per 6-minute window,
+ * not on every individual write operation within a session.
+ * @returns {string|null} The ARKA_MEMBER_ID or null if not found.
  */
 function getVerifiedMemberId() {
   const email = Session.getActiveUser().getEmail().toLowerCase();
+  
+  // 1. Check the cache first — avoids a sheet scan on repeat calls
+  const cache = CacheService.getUserCache();
+  const CACHE_KEY = "verified_member_id_" + email.replace(/[^a-z0-9]/g, "_");
+  const cachedId = cache.get(CACHE_KEY);
+  
+  if (cachedId) {
+    return cachedId; // Cache hit — no sheet read needed
+  }
+  
+  // 2. Cache miss — do the full scan once
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(MEMBERS_SHEET);
   const data = sheet.getDataRange().getValues();
   
   for (let i = 1; i < data.length; i++) {
-    let storedEmails = data[i][1].toString().toLowerCase().split(',');
+    const storedEmails = data[i][1].toString().toLowerCase().split(',');
     if (storedEmails.map(e => e.trim()).includes(email)) {
-      return data[i][0]; // Return the ARKA_MEMBER_ID
+      const memberId = data[i][0];
+      // Store for 6 minutes (360 seconds) — Google session is longer, this is conservative
+      cache.put(CACHE_KEY, memberId, 360);
+      return memberId;
     }
   }
   return null;
@@ -1264,7 +1269,7 @@ function saveUserFeedback(data) {
     // LOG ACTIVITY
     let newActivity = null;
     try { 
-      newActivity = logActivity(data.memberId, "ARKA_ACTTYP_FEEDBACK", 1, `${data.category} in ${data.section}`); 
+      newActivity = logActivity(data.memberId, "ARKA_ACTTYP_FEEDBACK", 1, `${data.category} in ${data.section}`, data.activityPointsMap || {});
     } catch(e) {
       console.error("Activity log failed but feedback was saved: " + e.toString());
     };
@@ -1358,7 +1363,7 @@ function saveBookPost(postData) {
 
   let newActivity = null;
   try {
-    newActivity = logActivity(currentMemberId, "ARKA_ACTTYPE_BOOKPOST", 1, postId);
+    newActivity = logActivity(currentMemberId, "ARKA_ACTTYPE_BOOKPOST", 1, postId, postData.activityPointsMap || {});
   } catch(e) {}
 
   return {
@@ -1457,4 +1462,44 @@ function deleteBookPost(postId) {
   }
 
   return { status: "error", message: "Post not found." };
+}
+
+/**
+ * Helper: Gets the next sequential activity ID by reading only the last row's ID cell.
+ * Saves reading the entire ActivityLogDB just to find the highest number.
+ * @param {Sheet} logSheet - The ActivityLogDB sheet object.
+ * @returns {number} The next activity number to use.
+ */
+function getNextActivityNumber(logSheet) {
+  const lastRow = logSheet.getLastRow();
+  if (lastRow < 2) return 1; // Sheet is empty (only header)
+  
+  // Read just the single ID cell from the last row — not the whole table
+  const lastIdString = logSheet.getRange(lastRow, 1).getValue().toString();
+  const lastNum = parseInt(lastIdString.split('_')[2]);
+  return isNaN(lastNum) ? 1 : lastNum + 1;
+}
+
+/**
+ * PRIVATE HELPER: Returns the cp multiplier for a given activity type.
+ * Uses the client-provided map when available — no sheet read needed.
+ * Falls back to a live ActivityTypeDB read for internal callers like
+ * registerNewMember that have no frontend context to pass a map.
+ * @param {string} activityTypeID
+ * @param {Object} clientPointsMap - globalActivityPointsMap from frontend.
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Only used on fallback.
+ * @returns {number} The points multiplier value.
+ */
+function getActivityMultiplier(activityTypeID, clientPointsMap, ss) {
+  if (clientPointsMap && clientPointsMap[activityTypeID] !== undefined) {
+    return Number(clientPointsMap[activityTypeID]) || 0;
+  }
+  // Fallback: read the sheet (internal callers with no client map)
+  const typeData = ss.getSheetByName("ActivityTypeDB").getDataRange().getValues();
+  for (let i = 1; i < typeData.length; i++) {
+    if (typeData[i][0] === activityTypeID) {
+      return Number(typeData[i][4]) || 0;
+    }
+  }
+  return 0;
 }
