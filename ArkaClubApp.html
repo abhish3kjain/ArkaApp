@@ -1262,12 +1262,13 @@
               onscroll="updateCarouselDots()">
 
               <div class="carousel-card" id="carouselCard_0">
-                <div class="reading-room-title" style="margin-bottom:15px;">📅 Over The Years</div>
-                <div id="yearlyStatsContainer">
-                  <div style="position:relative; width:100%; height:220px;">
-                    <canvas id="yearlyBarChart"></canvas>
-                  </div>
+                <div class="reading-room-title" style="margin-bottom:15px;">💓 My Reading Pulse</div>
+                <div id="readingPulseContainer" style="position:relative;width:100%;height:220px;">
+                  <canvas id="readingPulseChart"></canvas>
                 </div>
+                <p style="font-size:0.75rem;color:#95a5a6;text-align:center;margin-top:8px;">
+                  Weekly pages logged — each line is one year
+                </p>
               </div>
 
               <div class="carousel-card" id="carouselCard_1">
@@ -1283,6 +1284,15 @@
                 <p style="font-size:0.75rem; color:#95a5a6; text-align:center; margin-top:10px;">
                   Based on your finished books
                 </p>
+              </div>
+
+              <div class="carousel-card" id="carouselCard_2">
+                <div class="reading-room-title" style="margin-bottom:15px;">📅 Over The Years</div>
+                <div id="yearlyStatsContainer">
+                  <div style="position:relative; width:100%; height:220px;">
+                    <canvas id="yearlyBarChart"></canvas>
+                  </div>
+                </div>
               </div>
 
             </div>
@@ -1675,6 +1685,16 @@
       let myYearlyChartInstance = null;   //Only for Me Tab of the user
       let myCumulativeChartInstance = null;  //Only for Me Tab of the user
       let likedBookPostsThisSession = new Set();
+
+      // --- O(1) LOOKUP MAPS (populated after Big Gulp loads) ---
+      // These replace all the expensive .find() calls inside render loops
+      let membersMap  = new Map(); // key: memberId      → member object
+      let booksMap    = new Map(); // key: bookId        → book object
+      let shelvesMap  = new Map(); // key: shelfId       → shelf object
+      let actTypeMap  = new Map(); // key: activityTypeID → activityType object
+      let myShelfIndexByBook = new Map(); // key: bookId → array of my shelf records
+      let globalActivityPointsMap = {}; // Flattened view of actTypeMap for backend serialisation
+
       const BOOKPOST_TYPE_CONFIG = {
         "General Note":  { emoji: "📌", bgColor: "#ecf0f1", textColor: "#34495e" },
         "Quote I Loved": { emoji: "🏷️",  bgColor: "#fffcf5", textColor: "#b7770d" },
@@ -2086,7 +2106,24 @@
 
               isAppDataLoaded = true;
               currentUser = response.memberID;
-              //console.log("Big Gulp Complete! All data loaded silently.");
+
+              // Build O(1) lookup maps — one-time cost, saves repeated .find() calls in every render
+              membersMap  = new Map(globalMembersDB.map(m  => [m.id,             m]));
+              booksMap    = new Map(globalBooksDB.map(b   => [b.id,             b]));
+              shelvesMap  = new Map(globalShelvesDB.map(s  => [s.shelfId,       s]));
+              actTypeMap  = new Map(globalActivityTypeDB.map(a => [a.activityTypeID, a]));
+              globalActivityPointsMap = Object.fromEntries(
+                [...actTypeMap.entries()].map(([id, obj]) => [id, obj.activityClubPoints || 0])
+              );
+
+              myShelfIndexByBook = new Map();
+              globalShelvesDB.forEach(s => {
+                if (s.memberId === currentUser) {
+                  if (!myShelfIndexByBook.has(s.bookId)) myShelfIndexByBook.set(s.bookId, []);
+                  myShelfIndexByBook.get(s.bookId).push(s);
+                }
+              });
+
               
               // If they are staring at the home feed, clear the loading text and draw the bubbles!
               if (document.getElementById('homeView').style.display === "block") {
@@ -2110,7 +2147,7 @@
        * Fills out the "My Profile" tab with the user's data.
        */
       function populateMePage(memberID) {
-        const member = globalMembersDB.find(m => m.id === memberID);
+        const member = membersMap.get(memberID);
         if (!member) return;
         currentUser = memberID;
 
@@ -2341,7 +2378,8 @@
           linkedin: linkedinInput,
           goodreads: goodreadsInput,
           favGenre: document.getElementById('editGenres').value,
-          readingGoal: document.getElementById('editReadingGoal').value
+          readingGoal: document.getElementById('editReadingGoal').value,
+          activityPointsMap: globalActivityPointsMap
         };
 
         // Call the backend
@@ -2527,7 +2565,7 @@
 
       // Swaps the member list for the clicked member's profile
       function showMemberProfile(memberId) {
-        const member = globalMembersDB.find(m => m.id === memberId);
+        const member = membersMap.get(memberId);
         if (!member) return;
 
         switchTab('members');
@@ -2642,7 +2680,7 @@
         
         // SAFELY GET TOTAL PAGES FROM DB
         const targetBookId = document.getElementById('shelfBookId').value;
-        const book = globalBooksDB.find(b => b.id === targetBookId);
+        const book = booksMap.get(targetBookId);
         const totalPages = book ? (Number(book.pages) || 0) : 0;
         
         const hasValidPages = totalPages > 0;
@@ -2693,7 +2731,7 @@
        * @param {string} specificShelfId - The exact DB row ID to edit (if applicable)
        */
       function openShelfModal(bookId, isEditMode = 'false', specificShelfId = '') {
-        const book = globalBooksDB.find(b => b.id === bookId);
+        const book = booksMap.get(bookId);
         if(!book) return;
 
         document.getElementById('shelfModal').style.display = 'flex';
@@ -2717,7 +2755,7 @@
 
         // If EDITING an existing record
         if (isEditMode === 'true' && specificShelfId) {
-          const record = globalShelvesDB.find(s => s.shelfId === specificShelfId);
+          const record = shelvesMap.get(specificShelfId);
           if (record) {
             prefillStatus = record.status;
             prefillPages = record.pagesRead;
@@ -2763,7 +2801,7 @@
 
         // Clean Fix: Look up the book directly from the local DB to get total pages
         const targetBookId = document.getElementById('shelfBookId').value;
-        const book = globalBooksDB.find(b => b.id === targetBookId);
+        const book = booksMap.get(targetBookId);
         const totalPages = book ? (Number(book.pages) || 0) : 0;
 
         const isEditMode = document.getElementById('shelfEditMode').value;
@@ -2779,7 +2817,8 @@
           review: document.getElementById('shelfReview').value.trim(),
           isEditMode: isEditMode,
           editRecordId: recordId,
-          manualDateFinished: document.getElementById('shelfDateFinished').value // YYYY-MM-DD from the picker
+          manualDateFinished: document.getElementById('shelfDateFinished').value, // YYYY-MM-DD from the picker
+          activityPointsMap: globalActivityPointsMap
         };
 
         google.script.run.withSuccessHandler(function(res) {
@@ -2801,6 +2840,13 @@
                 globalShelvesDB.push(res.updatedShelf); 
               }
             }
+
+            // Keep the book index in sync with the shelf change
+            const updatedBookId = res.updatedShelf.bookId;
+            myShelfIndexByBook.set(
+              updatedBookId,
+              globalShelvesDB.filter(s => s.memberId === currentUser && s.bookId === updatedBookId)
+            );
 
             if (res.newActivities && res.newActivities.length > 0) {
               res.newActivities.forEach(act => globalActivityLogDB.push(act));
@@ -2851,7 +2897,7 @@
        * Decides if the button should say "Add to Shelf" or "Update Shelf" based on data.
        */
       function getShelfButtonState(bookId) {
-        const userShelves = globalShelvesDB.filter(s => s.bookId === bookId && s.memberId === currentUser);
+        const userShelves = myShelfIndexByBook.get(bookId) || [];
         
         if (userShelves.length === 0) {
           return { 
@@ -2952,7 +2998,7 @@
         const backBtn = document.querySelector('#bookDetailView .btn-back');
         backBtn.innerHTML = '⬅ Back'
 
-        const book = globalBooksDB.find(b => b.id === bookId);
+        const book = booksMap.get(bookId);
         if (!book) return;
         currentViewedBook = book;
 
@@ -2961,7 +3007,7 @@
         document.getElementById('detailMeta').innerText = `${book.pages} pages | ${book.genre}`;
         document.getElementById('detailAddedDate').innerText = book.addedDate;
 
-        let adder = globalMembersDB.find(m => m.id === book.addedByRaw);
+        let adder = membersMap.get(book.addedByRaw);
         document.getElementById('detailAddedBy').innerText = adder ? adder.displayName : book.addedByRaw;
 
         // Cover setup
@@ -2988,7 +3034,7 @@
         // 1. Safely find the exact shelf record
         let targetShelfRecord = null;
         if (specificShelfId && specificShelfId !== 'undefined' && specificShelfId !== 'null') {
-           targetShelfRecord = globalShelvesDB.find(s => s.shelfId === specificShelfId);
+           targetShelfRecord = shelvesMap.get(specificShelfId)
         }
         if (!targetShelfRecord) {
            // Fallback: grab their own latest record for this book
@@ -3028,7 +3074,7 @@
         let bookShelves = globalShelvesDB.filter(s => s.bookId === bookId);
 
         bookShelves.forEach(shelf => {
-          let member = globalMembersDB.find(m => m.id === shelf.memberId);
+          let member = membersMap.get(shelf.memberId);
           let displayName = member ? member.displayName : "Unknown Reader";
           let imageURL = member ? (member.imageURL || "") : "";
 
@@ -3167,7 +3213,7 @@
           `;
 
           reviewableShelves.forEach(shelf => {
-            const member = globalMembersDB.find(m => m.id === shelf.memberId);
+            const member = membersMap.get(shelf.memberId);
             if (!member) return;
 
             const initLetter = member.displayName ? member.displayName.charAt(0).toUpperCase() : "?";
@@ -3424,9 +3470,9 @@
             
             // 1. Handle External App Usernames vs Real Profiles  [This if for external challange updates where members are NOT in MemberDB]
             let isExternalUser = !rawMemberId.startsWith("ARKA_MEMBER_");
-            let memberObj = isExternalUser ? 
-              { id: rawMemberId, displayName: rawMemberId, isExternal: true } : 
-              globalMembersDB.find(m => m.id === rawMemberId);
+            let memberObj = isExternalUser
+              ? { id: rawMemberId, displayName: rawMemberId, isExternal: true }
+              : membersMap.get(rawMemberId);
               
             if (!memberObj) return; // Ghost User
 
@@ -3436,7 +3482,7 @@
             const shelfBasedTypes = ["ARKA_ACTTYP_BOOKSHELVED", "ARKA_ACTTYP_BOOKREAD", "ARKA_ACTTYP_BOOKREADING", "ARKA_ACTTYP_BOOKTOREAD", "ARKA_ACTTYP_BOOKDNF", "ARKA_ACTTYP_BOOKRATING", "ARKA_ACTTYP_BOOKREVIEW"];
             
             if (shelfBasedTypes.includes(type)) {
-                shelfRecord = globalShelvesDB.find(s => s.shelfId === log.activityDesc);
+                shelfRecord = shelvesMap.get(log.activityDesc);
                 bookId = shelfRecord ? shelfRecord.bookId : "";
             } else if (type === "ARKA_ACTTYP_BOOKADDED" || type === "ARKA_ACTTYP_BOOKUPDATE") {
                 bookId = log.activityDesc; //Assuming description only has Book ID --> in future it can change.
@@ -3445,7 +3491,7 @@
             // Skip if the book was deleted from the library (Ghost Book)
             let bookObj = null;
             if (bookId) {
-                bookObj = globalBooksDB.find(bk => bk.id === bookId);
+                bookObj = booksMap.get(bookId);
                 if (!bookObj && (type.includes("BOOK") || type.includes("SHELF") || type.includes("PAGE"))) return; 
             }
 
@@ -4042,7 +4088,7 @@
               <div class="trending-carousel">
           `;
           newArrivals.forEach(book => {
-            const adder = globalMembersDB.find(m => m.id === book.addedByRaw);
+            const adder = membersMap.get(book.addedByRaw);
             const adderName = adder ? adder.displayName : "Unknown";
             
             fullHtml += `
@@ -4067,7 +4113,7 @@
               <div class="trending-carousel">
           `;
           trendingBooks.forEach(tb => {
-            const book = globalBooksDB.find(b => b.id === tb.id);
+            const book = booksMap.get(tb.id);
             if (!book) return;
 
             fullHtml += `
@@ -4128,7 +4174,7 @@
           `;
           
           topReaders.forEach(reader => {
-            const member = globalMembersDB.find(m => m.id === reader.id);
+            const member = membersMap.get(reader.id);
             if (!member) return;
 
             const initLetter = member.displayName ? member.displayName.charAt(0).toUpperCase() : "👤";
@@ -4257,7 +4303,7 @@
       }
 
       function openEditBookWorkspace(bookId) {
-        const book = globalBooksDB.find(b => b.id === bookId);
+        const book = booksMap.get(bookId);
         if (!book) return;
 
         document.getElementById('workspaceBookId').value = bookId;
@@ -4369,7 +4415,8 @@
                   lastModifiedBy: currentUser,
                   isbn13: bookData.isbn13 || "",              
                   publishedDate: bookData.publishedDate || "",
-                  blurb: bookData.blurb || "" 
+                  blurb: bookData.blurb || "",
+                  activityPointsMap: globalActivityPointsMap 
                 };
               }
             } else {
@@ -4387,7 +4434,8 @@
                 lastModifiedBy: "",
                 isbn13: bookData.isbn13 || "",              
                 publishedDate: bookData.publishedDate || "",
-                blurb: bookData.blurb || ""
+                blurb: bookData.blurb || "",
+                activityPointsMap: globalActivityPointsMap
               });
             }
 
@@ -4562,7 +4610,7 @@
           const displayBooks = shelfInfo.data.slice(0, 5);
 
           displayBooks.forEach(shelfRecord => {
-            const book = globalBooksDB.find(b => b.id === shelfRecord.bookId);
+            const book = booksMap.get(shelfRecord.bookId);
             if (!book) return; 
             
             // Generate the standard cover
@@ -4698,7 +4746,7 @@
                 <div style="font-size: 0.85rem; color: #7f8c8d; font-weight: bold; margin-top: 5px;">${countText}</div>
             `;
         } else {
-            let mem = globalMembersDB.find(m => m.id === targetUserId);
+            let mem = membersMap.get(targetUserId);
             let memberName = mem ? mem.displayName : "Member";
             headerHtml = `
                 <div style="font-size: 1.1rem; color: #34495e; font-weight: bold;">${memberName}</div>
@@ -4740,7 +4788,7 @@
         }
 
         shelfRecordsArray.forEach(shelfRecord => {
-          const book = globalBooksDB.find(b => b.id === shelfRecord.bookId);
+          const book = booksMap.get(shelfRecord.bookId);
           if (!book) return;
 
           let card = document.createElement('div');
@@ -4789,7 +4837,7 @@
       function filterFullShelf() {
         const query = document.getElementById('fullShelfSearch').value.toLowerCase();
         const filtered = currentFullShelfBooks.filter(record => {
-          const book = globalBooksDB.find(b => b.id === record.bookId);
+          const book = booksMap.get(record.bookId);
           if (!book) return false;
           return (
             book.title.toLowerCase().includes(query) ||
@@ -4928,7 +4976,7 @@
         btn.innerText = "Sending...";
         descElement.style.borderColor = "#ccc"; // Reset border
 
-        const member = globalMembersDB.find(m => m.id === currentUser);
+        const member = membersMap.get(currentUser);
         const memberName = member ? member.displayName : "Unknown";
 
         const feedbackData = {
@@ -4936,7 +4984,8 @@
           memberName: memberName,
           category: document.getElementById('feedbackCategory').value,
           section: document.getElementById('feedbackSection').value,
-          description: desc
+          description: desc,
+          activityPointsMap: globalActivityPointsMap
         };
 
         // Dispatch to Google Apps Script Backend
@@ -5081,7 +5130,7 @@
         }
 
         function renderSinglePost(post) {
-          const member = globalMembersDB.find(m => m.id === post.memberId);
+          const member = membersMap.get(post.memberId);
           if (!member) return '';
 
           const initLetter = member.displayName ? member.displayName.charAt(0).toUpperCase() : "?";
@@ -5228,7 +5277,8 @@
           bookId: bookId,
           memberId: currentUser,
           postType: typeSelect ? typeSelect.value : "General Note",
-          content: content
+          content: content,
+          activityPointsMap: globalActivityPointsMap
         };
 
         google.script.run
@@ -5365,7 +5415,8 @@
         // 🔥 DRAW THE GRAPHS
         renderHistoricalGraphs(userLogs, memberId);
 
-        // Init carousel and word cloud
+        // Init carousel, pulse chart and word cloud
+        renderReadingPulse(userLogs);
         renderGenreWordCloud(memberId);
         initMeCarousel();
       }
@@ -5435,7 +5486,7 @@
         );
 
         finishedShelves.forEach(shelf => {
-          const book = globalBooksDB.find(b => b.id === shelf.bookId);
+          const book = booksMap.get(shelf.bookId);
           if (!book || !book.genre) return;
           book.genre.split(',').forEach(g => {
             const clean = g.trim();
@@ -5511,6 +5562,7 @@
         
         if (myYearlyChartInstance) myYearlyChartInstance.destroy();
         if (myCumulativeChartInstance) myCumulativeChartInstance.destroy();
+        if (myReadingPulseInstance) { myReadingPulseInstance.destroy(); myReadingPulseInstance = null; }
 
         if (!userLogs || userLogs.length === 0) {
           yearlyContainer.style.display = 'none';
@@ -5688,6 +5740,161 @@
       }
 
       /**
+       * Renders the Reading Pulse chart — raw weekly pages per year overlaid.
+       * Current year is bold purple. Past years are thin and progressively faded.
+       */
+      let myReadingPulseInstance = null;
+
+      function renderReadingPulse(userLogs) {
+        const container = document.getElementById('readingPulseContainer');
+        if (!container) return;
+
+        if (myReadingPulseInstance) {
+          myReadingPulseInstance.destroy();
+          myReadingPulseInstance = null;
+        }
+
+        if (!userLogs || userLogs.length === 0) {
+          container.innerHTML = `
+            <p style="text-align:center;color:#7f8c8d;font-style:italic;
+                      font-size:0.85rem;padding-top:80px;">
+              No page logs yet. Start logging to see your pulse!
+            </p>
+          `;
+          return;
+        }
+
+        const currentYear = new Date().getFullYear();
+        const currentWeek = getISOWeekNumber(new Date());
+
+        // --- 1. Build weekly buckets per year ---
+        let weeklyBuckets = {}; // { "2024": [0,0,10,...], "2025": [...] }
+
+        userLogs.forEach(log => {
+          const logDate = parseGoogleDate(log.timestamp);
+          const year = logDate.getFullYear().toString();
+          const week = getISOWeekNumber(logDate);
+          const pages = Number(log.pagesDelta) || 0;
+
+          if (!weeklyBuckets[year]) weeklyBuckets[year] = new Array(52).fill(0);
+          if (week >= 1 && week <= 52) {
+            weeklyBuckets[year][week - 1] += pages;
+          }
+        });
+
+        const years = Object.keys(weeklyBuckets).sort((a, b) => parseInt(a) - parseInt(b));
+
+        if (years.length === 0) return;
+
+        // --- 2. Build color palette ---
+        // Current year = bold purple, past years = progressively faded grays
+        function getYearStyle(year, totalYears, yearIndex) {
+          const isCurrent = parseInt(year) === currentYear;
+          if (isCurrent) {
+            return {
+              borderColor: '#A984BA',
+              backgroundColor: 'rgba(169,132,186,0.08)',
+              borderWidth: 3,
+              pointRadius: 2,
+              pointBackgroundColor: '#A984BA',
+              tension: 0.3,
+              fill: true,
+              order: 0 // Draw on top
+            };
+          }
+          // Older years fade more — most recent past year is darkest gray
+          const age = currentYear - parseInt(year);
+          const opacity = Math.max(0.15, 0.55 - (age - 1) * 0.12);
+          return {
+            borderColor: `rgba(127,140,141,${opacity})`,
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.3,
+            fill: false,
+            order: age // Older years drawn behind newer ones
+          };
+        }
+
+        const weekLabels = Array.from({ length: 52 }, (_, i) => `W${i + 1}`);
+
+        const datasets = years.map((year, idx) => {
+          const style = getYearStyle(year, years.length, idx);
+          
+          // For current year, only show up to current week (rest stays null so no flat zero tail)
+          let data = [...weeklyBuckets[year]];
+          if (parseInt(year) === currentYear) {
+            data = data.map((val, i) => i < currentWeek ? val : null);
+          }
+
+          return {
+            label: year,
+            data: data,
+            spanGaps: false,
+            ...style
+          };
+        });
+
+        // Put current year dataset last so it renders on top
+        datasets.sort((a, b) => b.order - a.order);
+
+        const ctx = document.getElementById('readingPulseChart');
+        if (!ctx) return;
+
+        myReadingPulseInstance = new Chart(ctx.getContext('2d'), {
+          type: 'line',
+          data: { labels: weekLabels, datasets: datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: {
+                  boxWidth: 12,
+                  font: { size: 11 },
+                  // Only show years in the legend, not clutter
+                  filter: (item) => true
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  title: (items) => `Week ${items[0].dataIndex + 1}`,
+                  label: (item) => `${item.dataset.label}: ${item.raw ?? 0} pages`
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: {
+                  maxTicksLimit: 13, // Show roughly every 4 weeks
+                  font: { size: 10 }
+                },
+                title: {
+                  display: true,
+                  text: 'Week of year',
+                  font: { size: 10, weight: 'bold' },
+                  color: '#7f8c8d'
+                }
+              },
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Pages logged',
+                  font: { size: 10, weight: 'bold' },
+                  color: '#7f8c8d'
+                },
+                ticks: { font: { size: 10 } }
+              }
+            }
+          }
+        });
+      }
+
+      /**
        * Math Helper: Calculates the median of an array of numbers.
        */
       function getMedian(arr) {
@@ -5862,6 +6069,17 @@
             showToast("Could not delete. Please try again.");
           })
           .deleteBookPost(postId);
+      }
+
+      /**
+       * Looks up club points for a given activity type directly from actTypeMap.
+       * @param {string} activityTypeId
+       * @param {number} [activityValue=1]
+       * @returns {number}
+       */
+      function calculateCpAwarded(activityTypeId, activityValue = 1) {
+        const actType = actTypeMap.get(activityTypeId);
+        return activityValue * (actType ? actType.activityClubPoints || 0 : 0);
       }
 
     </script>
