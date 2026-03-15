@@ -2488,7 +2488,7 @@
     </div>
 
     <script>
-      let currentAppVersion = "v0"; 
+      let currentAppVersion = "v37"; 
       let activeEmail = "";  
       let currentUser = ""; 
       /**
@@ -2517,6 +2517,8 @@
       let currentEventsSubTab = 'notices';      //Tracks which Events & Announcements sub-tab is active
       let globalEventRSVPsDB = [];              //@type {EventRSVPRecord[]} All RSVP rows loaded alongside events
       let globalEventsDB = [];
+      let globalChallengesDB = [];
+      let globalChallengeEnrollmentsDB = [];
       let isEventsDataLoaded = false;           //Tracks whether events data has been loaded this session
       let currentViewedEventId = null;          //ID of the event currently open in the detail view
       let currentEditingEventId = null;         //ID of the event currently open in the edit form (null = create mode)
@@ -2538,6 +2540,28 @@
       let globalActivityPointsMap = {}; // Flattened view of actTypeMap for backend serialisation
       let memberBadgeIndex = new Map();
       let eventsMap = new Map();
+      let challengesMap = new Map();    //@type {Map<string, ChallengeRecord>} key: challengeId → challenge object
+      /**
+       * key: challengeId → the CURRENT USER's enrollment for that challenge.
+       * Only contains enrollments where memberId === currentUser.
+       * Used by the Me tab card to instantly check enrolment status without
+       * scanning the full globalChallengeEnrollmentsDB array.
+       * @type {Map<string, ChallengeEnrollmentRecord>}
+       */
+      let myEnrollmentsMap = new Map();
+      /**
+       * Tracks which tab is active inside the Challenges view.
+       * Values: 'all' | 'mine'
+       * @type {string}
+       */
+      let currentChallengesSubTab = 'all';
+    
+      /**
+       * ID of the challenge currently open in the detail view.
+       * null when no detail view is open.
+       * @type {string|null}
+       */
+      let currentViewedChallengeId = null;
 
       const BOOKPOST_TYPE_CONFIG = {
         "General Note":  { emoji: "📌", bgColor: "#ecf0f1", textColor: "#34495e" },
@@ -3188,6 +3212,23 @@
                   myShelfIndexByBook.get(s.bookId).push(s);
                 }
               });
+
+              // Populate challenge globals from master data
+              globalChallengesDB           = masterData.challengesDB           || [];
+              globalChallengeEnrollmentsDB = masterData.challengeEnrollmentsDB || [];
+            
+              // Build O(1) challenge lookup map — keyed by challengeId
+              challengesMap = new Map(globalChallengesDB.map(c => [c.challengeId, c]));
+            
+              // Build per-user enrollment map — keyed by challengeId, current user only.
+              //    This is what the Me tab card reads to show "your" progress instantly.
+              //    NOTE: currentUser is already set by this point in the handler.
+              myEnrollmentsMap = new Map();
+              globalChallengeEnrollmentsDB
+                .filter(function(enrollment) { return enrollment.memberId === currentUser; })
+                .forEach(function(enrollment) {
+                  myEnrollmentsMap.set(enrollment.challengeId, enrollment);
+                });
 
               
               // If they are staring at the home feed, clear the loading text and draw the bubbles!
@@ -8935,7 +8976,7 @@
           weeksLabelEl.innerText = 'wks active \'' + String(activeYear).slice(-2);
           if (currentStreak > 0) weeksLabelEl.style.color = '#e67e22';
         }
-        
+
         container.innerHTML = `
           <div style="background:#fff8f0; border:1px solid #f0c070; border-radius:8px;
                       padding:10px 14px; display:flex; align-items:center;
