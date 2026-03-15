@@ -962,6 +962,250 @@
         text-align: left !important;
       }
 
+      /* ====================================================================
+        ANNOUNCEMENTS — Banner cards on Home feed & Notices tab
+        ==================================================================== */
+    
+      /* Outer wrapper injected above the activity feed on the Home screen */
+      .ann-banner-section {
+        margin-bottom: 14px;
+      }
+      .ann-banner-section-title {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #95a5a6;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 8px;
+      }
+    
+      /* Individual announcement card — used on Home feed AND in Notices tab */
+      .ann-card {
+        background: #fffdf5;
+        border-left: 4px solid #f59f00;
+        border-radius: 0 10px 10px 0;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+        position: relative;
+        box-shadow: 0 2px 6px rgba(245,159,0,0.07);
+        transition: box-shadow 0.2s;
+      }
+      .ann-card.ann-card--pinned {
+        background: #fff8e1;
+        border-left-color: #e67e00;
+      }
+    
+      /* Top meta row: type label + pin badge + dismiss button */
+      .ann-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 5px;
+      }
+      .ann-type-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #854F0B;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .ann-pin-badge {
+        font-size: 0.65rem;
+        background: #f59f00;
+        color: white;
+        padding: 1px 6px;
+        border-radius: 8px;
+        font-weight: 600;
+      }
+      /* Dismiss button — top-right of non-pinned cards */
+      .ann-dismiss-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        font-size: 1rem;
+        color: #bdc3c7;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        width: auto;
+      }
+      .ann-dismiss-btn:hover { color: #7f8c8d; }
+    
+      .ann-card-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 4px;
+        padding-right: 20px; /* Space for dismiss button */
+      }
+      .ann-card-body {
+        font-size: 0.85rem;
+        color: #34495e;
+        line-height: 1.5;
+        white-space: pre-line; /* Honour line breaks from textarea */
+      }
+      /* Date + author line at the bottom of notices tab cards */
+      .ann-card-footer {
+        font-size: 0.72rem;
+        color: #95a5a6;
+        margin-top: 7px;
+      }
+    
+      /* Admin action strip — only visible to admins in the Notices tab */
+      .ann-admin-strip {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px dashed #f0e0b0;
+        flex-wrap: wrap;
+      }
+      .ann-admin-btn {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 12px;
+        border: 1px solid;
+        cursor: pointer;
+        background: none;
+        width: auto;
+        transition: background 0.15s;
+      }
+      .ann-admin-btn--edit    { border-color: #3498db; color: #3498db; }
+      .ann-admin-btn--edit:hover  { background: #eaf4fb; }
+      .ann-admin-btn--pin     { border-color: #f59f00; color: #f59f00; }
+      .ann-admin-btn--pin:hover   { background: #fff3cd; }
+      .ann-admin-btn--archive { border-color: #e74c3c; color: #e74c3c; }
+      .ann-admin-btn--archive:hover { background: #fdf2f2; }
+    
+      /* ====================================================================
+        EVENTS & ANNOUNCEMENTS VIEW
+        ==================================================================== */
+      #eventsAndAnnouncementsView .lib-tab {
+        font-size: 0.82rem;
+      }
+    
+      /* Stub card shown while Events feature is not yet built */
+      .coming-soon-card {
+        text-align: center;
+        padding: 40px 20px;
+        color: #7f8c8d;
+      }
+      .coming-soon-card .cs-icon { font-size: 2.5rem; margin-bottom: 12px; }
+      .coming-soon-card .cs-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 6px;
+      }
+      .coming-soon-card .cs-body { font-size: 0.85rem; line-height: 1.5; }
+    
+      /* ====================================================================
+        ANNOUNCEMENT FORM — Bottom sheet (admin create / edit)
+        ==================================================================== */
+      #annFormDrawer label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #7f8c8d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 5px;
+        margin-top: 14px;
+      }
+      #annFormDrawer label:first-of-type { margin-top: 0; }
+      #annFormDrawer input[type="text"],
+      #annFormDrawer input[type="date"],
+      #annFormDrawer textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #ecf0f1;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+        color: #2c3e50;
+        font-family: inherit;
+        background: #f8f9fa;
+        resize: vertical;
+      }
+      #annFormDrawer input:focus,
+      #annFormDrawer textarea:focus {
+        border-color: #A984BA;
+        outline: none;
+        background: #fff;
+      }
+      /* Toggle row for isPinned */
+      .ann-pin-toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 0 4px;
+        border-top: 1px solid #f4f4f4;
+        margin-top: 14px;
+      }
+      .ann-pin-toggle-label {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+      .ann-pin-toggle-sub {
+        font-size: 0.75rem;
+        color: #7f8c8d;
+        margin-top: 1px;
+      }
+      /* Pill toggle — reuses existing pattern from other features */
+      .toggle-pill {
+        position: relative;
+        width: 40px;
+        height: 22px;
+        background: #bdc3c7;
+        border-radius: 11px;
+        cursor: pointer;
+        transition: background 0.2s;
+        flex-shrink: 0;
+      }
+      .toggle-pill.on { background: #A984BA; }
+      .toggle-pill::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.2s;
+      }
+      .toggle-pill.on::after { transform: translateX(18px); }
+    
+      /* Fixed FAB for admin create button */
+      #annCreateFab {
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        width: 52px;
+        height: 52px;
+        background: #2c3e50;
+        border-radius: 50%;
+        display: none; /* shown via JS when admin is on notices tab */
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        z-index: 300;
+        transition: background 0.2s;
+      }
+      #annCreateFab:hover { background: #1a252f; }
+      #annCreateFab .fab-icon {
+        color: white;
+        font-size: 1.6rem;
+        line-height: 1;
+        font-weight: 300;
+        margin-top: -2px;
+      }
+
     </style>
   </head>
   <body>
@@ -1057,7 +1301,8 @@
               <span id="syncIcon"><i class="fas fa-bolt"></i> Sync</span>
             </div>
           </div>
-          
+          <!-- Announcement Banner -->
+          <div id="announcementsBannerContainer"></div>
           <div id="feedLoadingText" style="text-align: center; color: #7f8c8d; padding: 20px; background: white; border-radius: 8px;">
             Gathering the latest club milestones...
           </div>
@@ -1747,11 +1992,109 @@
         </div>
       </div>
 
+      <!-- Events & Announcements full view ─────────────────────────────────────── -->
+      <div id="eventsAndAnnouncementsView" class="view-section" style="display: none;">
+        <div class="card">
+      
+          <!-- ── Header row ──────────────────────────────────────────────────── -->
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+            <button class="btn-back" onclick="switchTab('home')" style="margin-bottom:0;">⬅ Back</button>
+            <h2 style="margin:0; color:#2c3e50; font-size:1.15rem;">Events & Announcements</h2>
+          </div>
+      
+          <!-- ── Sub-tabs ────────────────────────────────────────────────────── -->
+          <div class="library-tabs" style="margin-bottom:16px;">
+            <div class="lib-tab" id="tabEvtUpcoming" onclick="switchEventsTab('upcoming')">📅 Upcoming</div>
+            <div class="lib-tab" id="tabEvtPast"     onclick="switchEventsTab('past')">🕓 Past</div>
+            <div class="lib-tab active" id="tabEvtNotices"  onclick="switchEventsTab('notices')">📣 Notices</div>
+          </div>
+      
+          <!-- ── Upcoming Events (stub — Events feature coming next) ─────────── -->
+          <div id="evtUpcomingContent" style="display:none;">
+            <div class="coming-soon-card">
+              <div class="cs-icon">📅</div>
+              <div class="cs-title">Events are on their way!</div>
+              <div class="cs-body">Club meetings, book buddy read sessions, socials and more will appear here once the Events feature is live.</div>
+            </div>
+          </div>
+      
+          <!-- ── Past Events (stub) ─────────────────────────────────────────── -->
+          <div id="evtPastContent" style="display:none;">
+            <div class="coming-soon-card">
+              <div class="cs-icon">🕓</div>
+              <div class="cs-title">Past events will be recorded here</div>
+              <div class="cs-body">Once events are created and completed, you'll find a full history here including attendance records and assets.</div>
+            </div>
+          </div>
+      
+          <!-- ── Notices tab ────────────────────────────────────────────────── -->
+          <div id="evtNoticesContent">
+            <!-- Content is rendered by renderNoticesTab() -->
+            <div id="noticesContainer">
+              <p style="text-align:center; color:#7f8c8d; padding:30px 0; font-style:italic;">
+                Loading notices...
+              </p>
+            </div>
+          </div>
+      
+        </div>
+      </div>
+      
+      <!-- Admin FAB — fixed position, shown only when admin is on Notices tab ──── -->
+      <div id="annCreateFab" onclick="openAnnouncementFormSheet(null)" title="Create Announcement">
+        <span class="fab-icon">+</span>
+      </div>
+      
+      <!-- Announcement create / edit bottom sheet ──────────────────────────────── -->
+      <div id="annFormModal" class="drawer-overlay" onclick="closeAnnouncementFormSheet()">
+        <div class="bottom-drawer" id="annFormDrawer"
+            style="max-height: 85vh; overflow-y: auto;"
+            onclick="event.stopPropagation()">
+      
+          <!-- Handle + title -->
+          <div style="width:36px; height:4px; background:#ecf0f1; border-radius:2px; margin:0 auto 14px;"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <h3 id="annFormTitle" style="margin:0; color:#2c3e50; font-size:1.05rem;">New Announcement</h3>
+            <i class="fa-solid fa-xmark" onclick="closeAnnouncementFormSheet()"
+              style="font-size:1.3rem; color:#7f8c8d; cursor:pointer; padding:4px;"></i>
+          </div>
+      
+          <!-- Form fields -->
+          <label for="annFormTitleInput">Title *</label>
+          <input type="text" id="annFormTitleInput" placeholder="Short, clear headline…" maxlength="120">
+      
+          <label for="annFormBodyInput">Body *</label>
+          <textarea id="annFormBodyInput" rows="4" placeholder="Full announcement text…"></textarea>
+      
+          <label for="annFormExpiryInput">Expiry date <span style="font-weight:400; text-transform:none;">(optional — leave blank to never expire)</span></label>
+          <input type="date" id="annFormExpiryInput">
+      
+          <!-- Pin toggle -->
+          <div class="ann-pin-toggle-row">
+            <div>
+              <div class="ann-pin-toggle-label">📌 Pin to Home Feed</div>
+              <div class="ann-pin-toggle-sub">Pinned notices always appear at the top and cannot be dismissed by members.</div>
+            </div>
+            <div id="annFormPinToggle" class="toggle-pill" onclick="toggleAnnFormPin()"></div>
+          </div>
+      
+          <!-- Action buttons -->
+          <div style="display:flex; gap:10px; margin-top:20px;">
+            <button id="annFormSaveBtn" class="btn-primary" style="flex:1;"
+                    onclick="saveAnnouncementFromForm()">Save Announcement</button>
+            <button class="btn-outline" style="flex:0 0 auto; width:auto; padding:12px 18px;"
+                    onclick="closeAnnouncementFormSheet()">Cancel</button>
+          </div>
+      
+        </div>
+      </div>
+
     <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer(false)"></div>
     <div class="bottom-drawer" id="bottomDrawer">
       <h3 style="margin-top: 0; color: #2c3e50; padding-left: 10px;">More</h3>
       
       <div class="drawer-item" onclick="openMyProfile()">👤 My Profile</div>
+      <div class="drawer-item" onclick="openEventsAndAnnouncementsView()">📅 Events & Announcements</div>
       <div class="drawer-item" onclick="openTenPagesChallenge()">🎯 10 Pages A Day Challenge</div>
       <div class="drawer-item" onclick="openBookBingo()">🎲 Book Bingo</div>
       <div class="drawer-item" onclick="openBadgeGallery()">🏅 Badges</div>
@@ -1813,6 +2156,7 @@
       let globalBookPostsDB = [];
       let globalBadgesDB    = [];
       let globalBadgeAwardsDB = [];
+      let globalAnnouncementsDB = [];
       let isAppDataLoaded = false;
       let lastViewBeforeDetails = 'library'; // Remembers how we got to a book detail view
       let currentFullShelfBooks = []; // Holds the books for the currently viewed full shelf so search is instant
@@ -1836,6 +2180,18 @@
         "Quote I Loved": { emoji: "🏷️",  bgColor: "#fffcf5", textColor: "#b7770d" },
         "Fan Cast":      { emoji: "🎬", bgColor: "#eae8f7", textColor: "#534AB7" }
       };
+      /**
+       * Announcement IDs the user has dismissed from the Home feed this session.
+       * Session-only — never written to the database. Clears on page reload.
+       * @type {Set<string>}
+       */
+      const dismissedAnnouncementIdsThisSession = new Set();
+
+      /** Tracks which announcementId is currently open in the edit form (null = create mode) */
+      let currentEditingAnnouncementId = null;
+    
+      /** Tracks which Events & Announcements sub-tab is active */
+      let currentEventsSubTab = 'notices';
       
       /* ====================================================================
          📚 ARKA HELP CENTER & KNOWLEDGE BASE (EDIT ARTICLES HERE)
@@ -2437,6 +2793,10 @@
                 }
                 memberBadgeIndex.get(award.memberId).push(award);
               });
+
+              globalAnnouncementsDB = masterData.announcementsDB || [];
+              // Render banner now if the user is already looking at the Home feed
+              renderAnnouncementsBanner();
               globalActivityPointsMap = Object.fromEntries(
                 [...actTypeMap.entries()].map(([id, obj]) => [id, obj.activityClubPoints || 0])
               );
@@ -2463,6 +2823,7 @@
                   renderHomeFeed(currentUser, 'meActivityFeed');
                   renderBadgeStrip(currentUser, 'meBadgeSectionContainer', true);
               }
+              
               populateMePage(response.memberID);
               renderHeatmap(currentUser);
 
@@ -2666,6 +3027,7 @@
         document.getElementById('fullShelfView').style.display = 'none';
         document.getElementById('helpView').style.display = 'none';
         document.getElementById('badgesView').style.display = 'none';
+        document.getElementById('eventsAndAnnouncementsView').style.display = 'none';
 
         // 3. Force reset all nested sub-views so we don't get overlapping cards
         document.getElementById('libAddBookWorkspace').style.display = 'none';
@@ -2720,9 +3082,15 @@
 
         if (tabName === 'home') {
           if (isAppDataLoaded) {
+            renderAnnouncementsBanner();
             renderHomeFeed();          
             fetchLatestActivities();   
           }
+        }
+
+        if (tabName === 'eventsAndAnnouncements') {
+          // Show/hide admin FAB based on active sub-tab
+          refreshEventsViewFabVisibility();
         }
         
         // 8. Snap to the top of the page so it feels like a fresh screen load
@@ -8264,6 +8632,501 @@
       function calculateCpAwarded(activityTypeId, activityValue = 1) {
         const actType = actTypeMap.get(activityTypeId);
         return activityValue * (actType ? actType.activityClubPoints || 0 : 0);
+      }
+
+      // ==========================================================================
+      // ANNOUNCEMENTS MODULE — Frontend Logic
+      // ==========================================================================
+    
+      // ── Navigation ─────────────────────────────────────────────────────────────
+    
+      /**
+       * Opens the Events & Announcements view from the More drawer.
+       * Defaults to the Notices sub-tab since Events isn't built yet.
+       */
+      function openEventsAndAnnouncementsView() {
+        toggleDrawer(false);
+        switchTab('eventsAndAnnouncements');
+        // Default to Notices; once Events ships change this to 'upcoming'
+        switchEventsTab('notices');
+      }
+    
+      /**
+       * Switches between the three sub-tabs inside Events & Announcements view.
+       * Controls visibility of content panels and the admin FAB.
+       *
+       * @param {'upcoming'|'past'|'notices'} tabName
+       */
+      function switchEventsTab(tabName) {
+        currentEventsSubTab = tabName;
+    
+        // Update tab pill active states
+        ['upcoming', 'past', 'notices'].forEach(function(t) {
+          const tabEl = document.getElementById('tabEvt' + t.charAt(0).toUpperCase() + t.slice(1));
+          if (tabEl) tabEl.classList.toggle('active', t === tabName);
+        });
+    
+        // Show/hide content panels
+        const panels = {
+          upcoming : document.getElementById('evtUpcomingContent'),
+          past     : document.getElementById('evtPastContent'),
+          notices  : document.getElementById('evtNoticesContent')
+        };
+        Object.entries(panels).forEach(function([key, el]) {
+          if (el) el.style.display = key === tabName ? 'block' : 'none';
+        });
+    
+        // Render the correct content
+        if (tabName === 'notices') {
+          renderNoticesTab();
+        }
+    
+        // Show admin FAB only on the notices tab (for now; will expand to upcoming later)
+        refreshEventsViewFabVisibility();
+      }
+    
+      /**
+       * Shows or hides the admin create FAB.
+       * Only visible when: user is admin AND the Notices sub-tab is active
+       * AND the Events & Announcements view is the current view.
+       */
+      function refreshEventsViewFabVisibility() {
+        const fab         = document.getElementById('annCreateFab');
+        const isAdmin     = ADMIN_MEMBER_IDS.includes(currentUser);
+        const isEventsView = document.getElementById('eventsAndAnnouncementsView') &&
+                            document.getElementById('eventsAndAnnouncementsView').style.display === 'block';
+    
+        if (fab) {
+          const shouldShow = isAdmin && isEventsView && currentEventsSubTab === 'notices';
+          fab.style.display = shouldShow ? 'flex' : 'none';
+        }
+      }
+    
+    
+      // ── Home Feed Banner ────────────────────────────────────────────────────────
+    
+      /**
+       * Renders active announcements in the Home feed banner container.
+       * Called after Big Gulp loads and on every Home tab switch.
+       *
+       * Pinned announcements appear first and cannot be dismissed.
+       * Non-pinned, non-expired announcements appear below with a dismiss (✕) button.
+       * Expired non-pinned announcements are silently filtered out.
+       *
+       * No backend call — works entirely from globalAnnouncementsDB.
+       */
+      function renderAnnouncementsBanner() {
+        const container = document.getElementById('announcementsBannerContainer');
+        if (!container || !isAppDataLoaded) return;
+    
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Compare dates only, ignore time
+    
+        // Filter to what should actually be shown
+        const visibleAnnouncements = globalAnnouncementsDB.filter(function(ann) {
+          // Already dismissed this session (non-pinned only — pinned cannot be dismissed)
+          if (!ann.isPinned && dismissedAnnouncementIdsThisSession.has(ann.announcementId)) return false;
+    
+          // Expired non-pinned notices are hidden automatically
+          if (!ann.isPinned && ann.expiryDate) {
+            const expiry = parseGoogleDate(ann.expiryDate);
+            if (!isNaN(expiry) && expiry < today) return false;
+          }
+    
+          return true;
+        });
+    
+        if (visibleAnnouncements.length === 0) {
+          container.innerHTML = '';
+          return;
+        }
+    
+        // Pinned first, then chronological by createdOn descending
+        const sorted = visibleAnnouncements.slice().sort(function(a, b) {
+          if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+          return parseGoogleDate(b.createdOn) - parseGoogleDate(a.createdOn);
+        });
+    
+        let html = '<div class="ann-banner-section">';
+        html    += '<div class="ann-banner-section-title">📣 Club Notices</div>';
+    
+        sorted.forEach(function(ann) {
+          const pinnedClass  = ann.isPinned ? ' ann-card--pinned' : '';
+          const pinBadge     = ann.isPinned ? '<span class="ann-pin-badge">📌 Pinned</span>' : '';
+          const dismissBtn   = !ann.isPinned
+            ? `<button class="ann-dismiss-btn" onclick="dismissAnnouncementFromFeed('${ann.announcementId}')" title="Dismiss">✕</button>`
+            : '';
+    
+          html += `
+            <div class="ann-card${pinnedClass}" id="annBannerCard_${ann.announcementId}">
+              ${dismissBtn}
+              <div class="ann-card-meta">
+                <span class="ann-type-label">Announcement</span>
+                ${pinBadge}
+              </div>
+              <div class="ann-card-title">${escapeHtml(ann.title)}</div>
+              <div class="ann-card-body">${escapeHtml(ann.body)}</div>
+            </div>`;
+        });
+    
+        html += '</div>';
+        container.innerHTML = html;
+      }
+    
+      /**
+       * Dismisses a non-pinned announcement from the Home feed for this session.
+       * Adds the ID to the in-memory Set — no database write.
+       *
+       * @param {string} announcementId - ARKA_ANN_X to hide
+       */
+      function dismissAnnouncementFromFeed(announcementId) {
+        dismissedAnnouncementIdsThisSession.add(announcementId);
+        // Animate out then re-render
+        const card = document.getElementById('annBannerCard_' + announcementId);
+        if (card) {
+          card.style.transition = 'opacity 0.3s, max-height 0.3s';
+          card.style.opacity    = '0';
+          card.style.maxHeight  = '0';
+          card.style.overflow   = 'hidden';
+          setTimeout(renderAnnouncementsBanner, 320);
+        }
+      }
+    
+    
+      // ── Notices Tab Renderer ───────────────────────────────────────────────────
+    
+      /**
+       * Renders the full Notices list in the Events & Announcements view.
+       * Admins see edit / pin-toggle / archive controls under each card.
+       * Regular members see read-only cards with expiry info if set.
+       *
+       * Works entirely from globalAnnouncementsDB — no backend call.
+       */
+      function renderNoticesTab() {
+        const container = document.getElementById('noticesContainer');
+        if (!container) return;
+    
+        if (!isAppDataLoaded) {
+          container.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:30px 0;font-style:italic;">Loading...</p>';
+          return;
+        }
+    
+        const isAdmin = ADMIN_MEMBER_IDS.includes(currentUser);
+    
+        if (globalAnnouncementsDB.length === 0) {
+          container.innerHTML = `
+            <div class="coming-soon-card">
+              <div class="cs-icon">📣</div>
+              <div class="cs-title">No notices yet</div>
+              <div class="cs-body">${isAdmin ? 'Tap the + button below to create the first announcement.' : 'Club admins will post notices here.'}</div>
+            </div>`;
+          return;
+        }
+    
+        // Pinned first, then newest first
+        const sorted = globalAnnouncementsDB.slice().sort(function(a, b) {
+          if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+          return parseGoogleDate(b.createdOn) - parseGoogleDate(a.createdOn);
+        });
+    
+        let html = '';
+    
+        sorted.forEach(function(ann) {
+          const creator    = membersMap.get(ann.createdBy);
+          const creatorName = creator ? creator.displayName : ann.createdBy;
+          const dateStr    = ann.createdOn ? getSmartTimeAgo(parseGoogleDate(ann.createdOn)) : '';
+          const pinnedClass = ann.isPinned ? ' ann-card--pinned' : '';
+          const pinBadge    = ann.isPinned ? '<span class="ann-pin-badge">📌 Pinned</span>' : '';
+          const expiryNote  = ann.expiryDate ? ` · Expires ${ann.expiryDate}` : '';
+    
+          // Admin controls
+          let adminStrip = '';
+          if (isAdmin) {
+            const pinLabel   = ann.isPinned ? 'Unpin' : '📌 Pin';
+            const pinAction  = ann.isPinned ? 'false' : 'true';
+            adminStrip = `
+              <div class="ann-admin-strip">
+                <button class="ann-admin-btn ann-admin-btn--edit"
+                        onclick="openAnnouncementFormSheet('${ann.announcementId}')">✏️ Edit</button>
+                <button class="ann-admin-btn ann-admin-btn--pin"
+                        onclick="setAnnouncementPinFromUI('${ann.announcementId}', ${pinAction})">${pinLabel}</button>
+                <button class="ann-admin-btn ann-admin-btn--archive"
+                        onclick="archiveAnnouncementFromUI('${ann.announcementId}')">🗑 Archive</button>
+              </div>`;
+          }
+    
+          html += `
+            <div class="ann-card${pinnedClass}" id="noticeCard_${ann.announcementId}">
+              <div class="ann-card-meta">
+                <span class="ann-type-label">Announcement</span>
+                ${pinBadge}
+              </div>
+              <div class="ann-card-title">${escapeHtml(ann.title)}</div>
+              <div class="ann-card-body">${escapeHtml(ann.body)}</div>
+              <div class="ann-card-footer">Posted by ${escapeHtml(creatorName)} · ${dateStr}${expiryNote}</div>
+              ${adminStrip}
+            </div>`;
+        });
+    
+        container.innerHTML = html;
+      }
+    
+    
+      // ── Admin: Create / Edit Form ──────────────────────────────────────────────
+    
+      /**
+       * Opens the announcement bottom sheet in create or edit mode.
+       * Create mode: announcementId = null → blank form, title = "New Announcement"
+       * Edit mode:   announcementId = ARKA_ANN_X → pre-fills all fields
+       *
+       * @param {string|null} announcementId - null for create, ARKA_ANN_X for edit
+       */
+      function openAnnouncementFormSheet(announcementId) {
+        currentEditingAnnouncementId = announcementId || null;
+    
+        const titleEl   = document.getElementById('annFormTitle');
+        const inputTitle = document.getElementById('annFormTitleInput');
+        const inputBody  = document.getElementById('annFormBodyInput');
+        const inputExpiry = document.getElementById('annFormExpiryInput');
+        const pinToggle  = document.getElementById('annFormPinToggle');
+        const saveBtn    = document.getElementById('annFormSaveBtn');
+    
+        if (announcementId) {
+          // Edit mode — pre-fill fields from globalAnnouncementsDB
+          const ann = globalAnnouncementsDB.find(function(a) { return a.announcementId === announcementId; });
+          if (!ann) { showToast('Announcement not found.'); return; }
+    
+          if (titleEl)   titleEl.textContent    = 'Edit Announcement';
+          if (inputTitle) inputTitle.value      = ann.title;
+          if (inputBody)  inputBody.value       = ann.body;
+          if (inputExpiry) {
+            // Convert dd-MMM-yyyy → yyyy-MM-dd for the date input
+            inputExpiry.value = convertToInputDateFormat(ann.expiryDate);
+          }
+          if (pinToggle)  pinToggle.classList.toggle('on', ann.isPinned);
+        } else {
+          // Create mode — blank form
+          if (titleEl)    titleEl.textContent   = 'New Announcement';
+          if (inputTitle)  inputTitle.value     = '';
+          if (inputBody)   inputBody.value      = '';
+          if (inputExpiry) inputExpiry.value    = '';
+          if (pinToggle)   pinToggle.classList.remove('on');
+        }
+    
+        if (saveBtn) {
+          saveBtn.disabled  = false;
+          saveBtn.innerText = 'Save Announcement';
+        }
+    
+        // Open the sheet
+        document.getElementById('annFormModal').style.display = 'flex';
+        setTimeout(function() {
+          document.getElementById('annFormDrawer').classList.add('open');
+        }, 10);
+      }
+    
+      /**
+       * Closes the announcement form bottom sheet with slide-down animation.
+       */
+      function closeAnnouncementFormSheet() {
+        const drawer = document.getElementById('annFormDrawer');
+        if (drawer) drawer.classList.remove('open');
+        setTimeout(function() {
+          const modal = document.getElementById('annFormModal');
+          if (modal) modal.style.display = 'none';
+        }, 300);
+        currentEditingAnnouncementId = null;
+      }
+    
+      /**
+       * Toggles the isPinned pill in the announcement form.
+       * Visual only — the actual value is read from the pill's CSS class on submit.
+       */
+      function toggleAnnFormPin() {
+        const toggle = document.getElementById('annFormPinToggle');
+        if (toggle) toggle.classList.toggle('on');
+      }
+    
+      /**
+       * Reads the form, validates, then calls saveAnnouncement() on the backend.
+       * Handles both create and edit paths via currentEditingAnnouncementId.
+       */
+      function saveAnnouncementFromForm() {
+        const btn        = document.getElementById('annFormSaveBtn');
+        const rawTitle   = (document.getElementById('annFormTitleInput').value || '').trim();
+        const rawBody    = (document.getElementById('annFormBodyInput').value  || '').trim();
+        const rawExpiry  = (document.getElementById('annFormExpiryInput').value || '').trim();
+        const isPinned   = document.getElementById('annFormPinToggle').classList.contains('on');
+    
+        // Front-end validation
+        if (!rawTitle) { showToast('Please add a title.'); document.getElementById('annFormTitleInput').focus(); return; }
+        if (!rawBody)  { showToast('Please add the announcement body.'); document.getElementById('annFormBodyInput').focus(); return; }
+    
+        // Convert yyyy-MM-dd → dd-MMM-yyyy for storage consistency
+        const expiryForStorage = rawExpiry ? convertFromInputDateFormat(rawExpiry) : '';
+    
+        btn.disabled  = true;
+        btn.innerText = 'Saving…';
+    
+        const payload = {
+          announcementId : currentEditingAnnouncementId || null,
+          title          : rawTitle,
+          body           : rawBody,
+          isPinned       : isPinned,
+          expiryDate     : expiryForStorage
+        };
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') {
+              showToast('Error: ' + res.message);
+              btn.disabled  = false;
+              btn.innerText = 'Save Announcement';
+              return;
+            }
+    
+            // Update local state instantly — no re-fetch needed
+            if (currentEditingAnnouncementId) {
+              // Edit: replace the existing entry in the array
+              const idx = globalAnnouncementsDB.findIndex(function(a) {
+                return a.announcementId === currentEditingAnnouncementId;
+              });
+              if (idx > -1) globalAnnouncementsDB[idx] = res.announcement;
+            } else {
+              // Create: push the new entry
+              globalAnnouncementsDB.push(res.announcement);
+            }
+    
+            closeAnnouncementFormSheet();
+            showToast(currentEditingAnnouncementId ? 'Announcement updated!' : 'Announcement created!');
+    
+            // Re-render both the banner and the notices tab
+            renderAnnouncementsBanner();
+            renderNoticesTab();
+          })
+          .withFailureHandler(function(err) {
+            showToast('Save failed. Please try again.');
+            btn.disabled  = false;
+            btn.innerText = 'Save Announcement';
+            console.error('saveAnnouncement error:', err);
+          })
+          .saveAnnouncement(payload);
+      }
+    
+    
+      // ── Admin: Pin toggle ──────────────────────────────────────────────────────
+    
+      /**
+       * Admin action: toggles the pin state of an announcement.
+       * Updates local state and re-renders immediately on success.
+       *
+       * @param {string}  announcementId - ARKA_ANN_X
+       * @param {boolean|string} pinState - true/false as boolean or string from onclick
+       */
+      function setAnnouncementPinFromUI(announcementId, pinState) {
+        const shouldPin = pinState === true || pinState === 'true';
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') { showToast('Error: ' + res.message); return; }
+    
+            // Update local array
+            const ann = globalAnnouncementsDB.find(function(a) { return a.announcementId === announcementId; });
+            if (ann) ann.isPinned = shouldPin;
+    
+            showToast(shouldPin ? 'Announcement pinned to Home feed.' : 'Announcement unpinned.');
+            renderNoticesTab();
+            renderAnnouncementsBanner();
+          })
+          .withFailureHandler(function() { showToast('Pin update failed. Try again.'); })
+          .setAnnouncementPin(announcementId, shouldPin);
+      }
+    
+    
+      // ── Admin: Archive ─────────────────────────────────────────────────────────
+    
+      /**
+       * Admin action: archives an announcement after an inline confirmation.
+       * Soft-delete — the row remains in the sheet, just hidden from all frontend reads.
+       *
+       * @param {string} announcementId - ARKA_ANN_X to archive
+       */
+      function archiveAnnouncementFromUI(announcementId) {
+        const ann = globalAnnouncementsDB.find(function(a) { return a.announcementId === announcementId; });
+        const title = ann ? ann.title : announcementId;
+    
+        // Simple confirmation — consistent with other destructive actions in the app
+        if (!confirm(`Archive "${title}"?\n\nIt will no longer appear in the app but remains in the sheet.`)) return;
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') { showToast('Error: ' + res.message); return; }
+    
+            // Remove from local array
+            globalAnnouncementsDB = globalAnnouncementsDB.filter(function(a) {
+              return a.announcementId !== announcementId;
+            });
+    
+            showToast('Announcement archived.');
+            renderNoticesTab();
+            renderAnnouncementsBanner();
+          })
+          .withFailureHandler(function() { showToast('Archive failed. Try again.'); })
+          .archiveAnnouncement(announcementId);
+      }
+    
+    
+      // ── Date conversion helpers ────────────────────────────────────────────────
+    
+      /**
+       * Converts Arka's storage format (dd-MMM-yyyy) to HTML date input format (yyyy-MM-dd).
+       * Returns "" if the input is blank or unparseable.
+       *
+       * @param {string} arkaDateStr - e.g. "25-Jun-2025"
+       * @returns {string} e.g. "2025-06-25"
+       */
+      function convertToInputDateFormat(arkaDateStr) {
+        if (!arkaDateStr) return '';
+        const parsed = parseGoogleDate(arkaDateStr);
+        if (isNaN(parsed)) return '';
+        const yyyy = parsed.getFullYear();
+        const mm   = String(parsed.getMonth() + 1).padStart(2, '0');
+        const dd   = String(parsed.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+    
+      /**
+       * Converts HTML date input format (yyyy-MM-dd) back to Arka storage format (dd-MMM-yyyy).
+       * Returns "" if the input is blank.
+       *
+       * @param {string} inputDateStr - e.g. "2025-06-25"
+       * @returns {string} e.g. "25-Jun-2025"
+       */
+      function convertFromInputDateFormat(inputDateStr) {
+        if (!inputDateStr) return '';
+        const d = new Date(inputDateStr + 'T00:00:00'); // Force local midnight to avoid UTC drift
+        if (isNaN(d)) return '';
+        const day   = String(d.getDate()).padStart(2, '0');
+        const month = d.toLocaleString('en-GB', { month: 'short' });
+        const year  = d.getFullYear();
+        return `${day}-${month}-${year}`;
+      }
+    
+      /**
+       * Escapes HTML special characters to prevent XSS when injecting user content via innerHTML.
+       * Used for all announcement titles and bodies before rendering.
+       *
+       * @param {string} str - Raw string from database
+       * @returns {string} HTML-safe string
+       */
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
       }
 
     </script>
