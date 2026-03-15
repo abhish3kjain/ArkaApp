@@ -83,8 +83,42 @@
  * @property {string} status - Visibility status: 'Active' or 'Deleted' (Col G)
  * @property {number} likeCount - Numeric sum of likes received (Col H)
  */
+ 
+/**
+ * @typedef {Object} ChallengeRecord
+ * @property {string}  challengeId     - Unique ID: ARKA_CHAL_X               (Col A)
+ * @property {string}  challengeType   - HABIT_STREAK | BINGO_GRID | etc.     (Col B)
+ * @property {string}  title           - Display name                          (Col C)
+ * @property {string}  description     - What members need to do               (Col D)
+ * @property {string}  startDate       - dd-MMM-yyyy                           (Col E)
+ * @property {string}  endDate         - dd-MMM-yyyy or blank if open-ended    (Col F)
+ * @property {number}  goalValue       - Primary numeric target                (Col G)
+ * @property {string}  goalUnit        - pages | books | letters | countries   (Col H)
+ * @property {string}  goalConfigJson  - Type-specific config as JSON string   (Col I)
+ * @property {string}  status          - Active | Upcoming | Completed |       (Col J)
+ *                                       Archived
+ * @property {boolean} isCompetitive   - Show Club leaderboard tab?            (Col K)
+ * @property {string}  seriesTag       - Groups editions e.g. BOOK_BINGO       (Col L)
+ * @property {boolean} isPinned        - Pin to top of Challenges list         (Col M)
+ * @property {string}  createdBy       - ARKA_MEMBER_X                         (Col N)
+ * @property {string}  createdOn       - dd-MM-yyyy HH:mm:ss Z                 (Col O)
+ */
+ 
+/**
+ * @typedef {Object} ChallengeEnrollmentRecord
+ * @property {string} enrollmentId         - Unique ID: ARKA_ENRL_X           (Col A)
+ * @property {string} challengeId          - ARKA_CHAL_X                      (Col B)
+ * @property {string} memberId             - ARKA_MEMBER_X                    (Col C)
+ * @property {string} enrolledOn           - dd-MM-yyyy HH:mm:ss Z            (Col D)
+ * @property {string} enrollmentStatus     - Active | Winner | Finisher |     (Col E)
+ *                                           Dropped
+ * @property {number} currentProgressValue - Quick-read integer progress      (Col F)
+ * @property {string} progressStateJson    - Full progress state as JSON str  (Col G)
+ * @property {string} lastProgressUpdate   - dd-MM-yyyy HH:mm:ss Z            (Col H)
+ * @property {string} completedOn          - dd-MM-yyyy HH:mm:ss Z or blank   (Col I)
+ */
 
-const APP_VERSION = "v36";
+const APP_VERSION = "v37";
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -98,6 +132,8 @@ const BADGE_AWARD_DB_SHEET = "BadgeAwardDB";
 const ANNOUNCEMENT_SHEET = "AnnouncementDB";
 const EVENT_SHEET           = "EventDB";
 const EVENT_RSVP_SHEET      = "EventRSVPDB";
+const CHALLENGE_SHEET            = "ChallengeDB";
+const CHALLENGE_ENROLLMENT_SHEET = "ChallengeEnrollmentDB";
 const BADGE_IMAGES_FOLDER_ID  = '1WLX0fy5RkuvMzpQwCkQjjSVlFTajxY59';
 const EVENT_ASSETS_FOLDER_ID = '1R0-aaxcymLuemLRXK2E_E0sqYEQdFC37';
 /**
@@ -1176,6 +1212,10 @@ function getAppMasterData() {
   // 10. Fetch AnnouncementDB — only Active rows come down; Archived are excluded here.
   const announcementsDBList = fetchActiveAnnouncements(ss);
 
+  // 11. Fetch ChallengeDB and ChallengeEnrollmentDB
+  const challengesDBList           = fetchChallenges(ss);
+  const challengeEnrollmentsDBList = fetchChallengeEnrollments(ss);
+
   return {
     status: "success",
     memberLevelsDB: levelList,
@@ -1187,8 +1227,14 @@ function getAppMasterData() {
     pageLogDB: pageLogDB,
     badgesDB: badgesDBList,
     badgeAwardsDB: badgeAwardsDBList,
-    announcementsDB: announcementsDBList
+    announcementsDB: announcementsDBList,
+    challengesDB           : challengesDBList,
+    challengeEnrollmentsDB : challengeEnrollmentsDBList
   };
+
+  
+
+
 }
 
 // Return latest APP Version as string
@@ -1874,6 +1920,130 @@ function fetchActiveAnnouncements(ss) {
   }
  
   return announcements;
+}
+
+/**
+ * PRIVATE HELPER: Reads all non-Archived challenges from ChallengeDB.
+ * Reuses the already-open spreadsheet instance passed in from getAppMasterData()
+ * to avoid opening a second connection — keeps the Big Gulp fast.
+ *
+ * Column mapping (0-indexed):
+ *   A=0  challengeId       B=1  challengeType     C=2  title
+ *   D=3  description       E=4  startDate         F=5  endDate
+ *   G=6  goalValue         H=7  goalUnit          I=8  goalConfigJson
+ *   J=9  status            K=10 isCompetitive     L=11 seriesTag
+ *   M=12 isPinned          N=13 createdBy         O=14 createdOn
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Open spreadsheet instance
+ * @returns {ChallengeRecord[]} Array of challenge objects (Archived rows excluded)
+ */
+function fetchChallenges(ss) {
+  const sheet = ss.getSheetByName(CHALLENGE_SHEET);
+  if (!sheet) return []; // Sheet not yet created — fail silently on first deploy
+ 
+  const data       = sheet.getDataRange().getValues();
+  const challenges = [];
+ 
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[0]) continue;                              // Skip blank rows
+    if (row[9].toString() === 'Archived') continue;    // Col J: Archived hidden from frontend
+ 
+    // Normalise Date objects → strings for consistent frontend handling
+    const rawStartDate = row[4];
+    const rawEndDate   = row[5];
+    const rawCreatedOn = row[14];
+ 
+    const startDateStr = rawStartDate instanceof Date
+      ? Utilities.formatDate(rawStartDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+      : String(rawStartDate || '');
+ 
+    const endDateStr = rawEndDate instanceof Date
+      ? Utilities.formatDate(rawEndDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+      : String(rawEndDate || '');
+ 
+    const createdOnStr = rawCreatedOn instanceof Date
+      ? Utilities.formatDate(rawCreatedOn, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z')
+      : String(rawCreatedOn || '');
+ 
+    challenges.push({
+      challengeId    : row[0].toString(),
+      challengeType  : row[1].toString(),
+      title          : row[2].toString(),
+      description    : row[3].toString(),
+      startDate      : startDateStr,
+      endDate        : endDateStr,
+      goalValue      : Number(row[6]) || 0,
+      goalUnit       : row[7].toString(),
+      goalConfigJson : row[8].toString(),   // Raw JSON string — frontend parses on demand
+      status         : row[9].toString(),   // Active | Upcoming | Completed | Archived
+      isCompetitive  : row[10].toString().toUpperCase() === 'TRUE',
+      seriesTag      : row[11] ? row[11].toString() : '',
+      isPinned       : row[12].toString().toUpperCase() === 'TRUE',
+      createdBy      : row[13].toString(),
+      createdOn      : createdOnStr
+    });
+  }
+ 
+  return challenges;
+}
+ 
+ 
+/**
+ * PRIVATE HELPER: Reads all ChallengeEnrollmentDB rows.
+ * All rows are returned — the frontend filters to the current user's enrollments
+ * for the Me tab, and uses the full set for Club leaderboard views.
+ *
+ * Column mapping (0-indexed):
+ *   A=0  enrollmentId          B=1  challengeId         C=2  memberId
+ *   D=3  enrolledOn            E=4  enrollmentStatus    F=5  currentProgressValue
+ *   G=6  progressStateJson     H=7  lastProgressUpdate  I=8  completedOn
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Open spreadsheet instance
+ * @returns {ChallengeEnrollmentRecord[]} Array of all enrollment objects
+ */
+function fetchChallengeEnrollments(ss) {
+  const sheet = ss.getSheetByName(CHALLENGE_ENROLLMENT_SHEET);
+  if (!sheet) return []; // Sheet not yet created — fail silently on first deploy
+ 
+  const data        = sheet.getDataRange().getValues();
+  const enrollments = [];
+ 
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row[0]) continue; // Skip blank rows
+ 
+    // Normalise Date objects → strings
+    const rawEnrolledOn          = row[3];
+    const rawLastProgressUpdate  = row[7];
+    const rawCompletedOn         = row[8];
+ 
+    const enrolledOnStr = rawEnrolledOn instanceof Date
+      ? Utilities.formatDate(rawEnrolledOn, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z')
+      : String(rawEnrolledOn || '');
+ 
+    const lastProgressUpdateStr = rawLastProgressUpdate instanceof Date
+      ? Utilities.formatDate(rawLastProgressUpdate, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z')
+      : String(rawLastProgressUpdate || '');
+ 
+    const completedOnStr = rawCompletedOn instanceof Date
+      ? Utilities.formatDate(rawCompletedOn, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z')
+      : String(rawCompletedOn || '');
+ 
+    enrollments.push({
+      enrollmentId          : row[0].toString(),
+      challengeId           : row[1].toString(),
+      memberId              : row[2].toString(),
+      enrolledOn            : enrolledOnStr,
+      enrollmentStatus      : row[4].toString(),  // Active | Winner | Finisher | Dropped
+      currentProgressValue  : Number(row[5]) || 0,
+      progressStateJson     : row[6].toString(),  // Raw JSON string — frontend parses on demand
+      lastProgressUpdate    : lastProgressUpdateStr,
+      completedOn           : completedOnStr
+    });
+  }
+ 
+  return enrollments;
 }
  
  
