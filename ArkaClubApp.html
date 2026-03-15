@@ -1205,7 +1205,179 @@
         font-weight: 300;
         margin-top: -2px;
       }
-
+      
+      /* ====================================================================
+        EVENTS — Cards, detail view, forms
+        ==================================================================== */
+    
+      /* Event type badge pill */
+      .evt-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 10px;
+        margin-bottom: 5px;
+      }
+      .evt-badge--meeting-v  { background: #E6F1FB; color: #185FA5; }
+      .evt-badge--meeting-f  { background: #EAF3DE; color: #3B6D11; }
+      .evt-badge--buddyread  { background: #EEEDFE; color: #534AB7; }
+      .evt-badge--social     { background: #FAEEDA; color: #854F0B; }
+      .evt-badge--other      { background: #f0f0f0; color: #555;    }
+    
+      /* Event list card */
+      .evt-card {
+        border: 1px solid #ecf0f1;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.15s;
+        background: #fff;
+      }
+      .evt-card:hover { border-color: #A984BA; box-shadow: 0 2px 8px rgba(169,132,186,0.1); }
+      .evt-card.evt-card--pinned { border-color: #A984BA; border-width: 2px; }
+      .evt-card.evt-card--cancelled { opacity: 0.55; }
+    
+      .evt-card-title { font-size: 1rem; font-weight: 700; color: #2c3e50; margin-bottom: 4px; }
+      .evt-card-meta  { font-size: 0.8rem; color: #7f8c8d; margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 8px; }
+      .evt-card-meta span { display: flex; align-items: center; gap: 3px; }
+    
+      /* Inline RSVP buttons on list cards */
+      .evt-rsvp-row  { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+      .evt-rsvp-btn  {
+        font-size: 0.75rem; font-weight: 700;
+        border: 1.5px solid; border-radius: 14px;
+        padding: 4px 10px; cursor: pointer; background: none; width: auto;
+        transition: background 0.15s, color 0.15s;
+      }
+      .evt-rsvp-btn--yes    { border-color: #639922; color: #639922; }
+      .evt-rsvp-btn--yes.selected, .evt-rsvp-btn--yes:hover { background: #639922; color: white; }
+      .evt-rsvp-btn--no     { border-color: #E24B4A; color: #E24B4A; }
+      .evt-rsvp-btn--no.selected, .evt-rsvp-btn--no:hover { background: #E24B4A; color: white; }
+      .evt-rsvp-btn--maybe  { border-color: #EF9F27; color: #EF9F27; }
+      .evt-rsvp-btn--maybe.selected, .evt-rsvp-btn--maybe:hover { background: #EF9F27; color: white; }
+    
+      .evt-rsvp-count { font-size: 0.75rem; color: #95a5a6; margin-left: auto; }
+    
+      /* Status chips */
+      .evt-status-chip {
+        display: inline-block; font-size: 0.65rem; font-weight: 700;
+        padding: 2px 7px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.4px;
+      }
+      .evt-status--active    { background: #EAF3DE; color: #3B6D11; }
+      .evt-status--cancelled { background: #FCEBEB; color: #A32D2D; }
+      .evt-status--completed { background: #f0f0f0; color: #555;    }
+    
+      /* ── Event Detail View ──────────────────────────────────────────────────── */
+      #eventDetailView .evt-detail-header {
+        background: #2c3e50; color: white;
+        padding: 14px 16px 12px;
+      }
+      .evt-detail-back-btn {
+        background: none; border: none; color: rgba(255,255,255,0.65);
+        font-size: 0.85rem; padding: 0; cursor: pointer; margin-bottom: 8px; width: auto;
+        display: flex; align-items: center; gap: 4px;
+      }
+      .evt-detail-back-btn:hover { color: white; }
+      .evt-detail-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 3px; }
+      .evt-detail-subtitle { font-size: 0.8rem; color: rgba(255,255,255,0.65); }
+    
+      .evt-detail-body { padding: 14px 16px; }
+    
+      .evt-detail-section-title {
+        font-size: 0.7rem; font-weight: 700; color: #95a5a6;
+        text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px;
+      }
+      .evt-detail-section-title:first-child { margin-top: 0; }
+    
+      /* Info rows (icon + value) */
+      .evt-info-row {
+        display: flex; gap: 10px; align-items: flex-start;
+        margin-bottom: 10px; font-size: 0.88rem; color: #34495e;
+      }
+      .evt-info-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; width: 18px; text-align: center; }
+      .evt-info-label { font-size: 0.72rem; color: #95a5a6; margin-bottom: 1px; }
+    
+      /* Attendee list rows */
+      .evt-attendee-row {
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 0; border-bottom: 1px solid #f4f4f4; font-size: 0.88rem;
+      }
+      .evt-attendee-row:last-child { border-bottom: none; }
+      .evt-attendee-name { flex: 1; color: #2c3e50; font-weight: 500; }
+      .evt-attendee-rsvp {
+        font-size: 0.7rem; font-weight: 600; padding: 2px 7px; border-radius: 8px;
+      }
+      .evt-rsvp-chip--yes     { background: #EAF3DE; color: #3B6D11; }
+      .evt-rsvp-chip--no      { background: #FCEBEB; color: #A32D2D; }
+      .evt-rsvp-chip--maybe   { background: #FFF3CD; color: #854F0B; }
+      .evt-rsvp-chip--invited { background: #E6F1FB; color: #185FA5; }
+      .evt-confirmed-tick     { font-size: 0.72rem; color: #639922; font-weight: 600; }
+    
+      /* Asset list rows */
+      .evt-asset-row {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 0; border-bottom: 1px solid #f4f4f4;
+      }
+      .evt-asset-row:last-child { border-bottom: none; }
+      .evt-asset-icon   { font-size: 1.3rem; flex-shrink: 0; }
+      .evt-asset-title  { font-size: 0.88rem; color: #185FA5; font-weight: 500; cursor: pointer; text-decoration: underline; flex: 1; }
+      .evt-asset-type   { font-size: 0.7rem; color: #95a5a6; }
+      .evt-asset-remove { background: none; border: none; color: #e74c3c; font-size: 0.75rem; cursor: pointer; width: auto; padding: 0 0 0 6px; }
+    
+      /* ── Event Form Bottom Sheet ─────────────────────────────────────────────── */
+      #evtFormDrawer label {
+        display: block; font-size: 0.78rem; font-weight: 600; color: #7f8c8d;
+        text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; margin-top: 12px;
+      }
+      #evtFormDrawer label:first-of-type { margin-top: 0; }
+      #evtFormDrawer input[type="text"],
+      #evtFormDrawer input[type="url"],
+      #evtFormDrawer input[type="date"],
+      #evtFormDrawer input[type="time"],
+      #evtFormDrawer select,
+      #evtFormDrawer textarea {
+        width: 100%; box-sizing: border-box; border: 1px solid #ecf0f1;
+        border-radius: 8px; padding: 9px 11px; font-size: 0.88rem;
+        color: #2c3e50; font-family: inherit; background: #f8f9fa;
+      }
+      #evtFormDrawer input:focus, #evtFormDrawer select:focus, #evtFormDrawer textarea:focus {
+        border-color: #A984BA; outline: none; background: #fff;
+      }
+      .evt-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    
+      /* ── Add Participant Sheet ───────────────────────────────────────────────── */
+      #evtAddParticipantDrawer select {
+        width: 100%; box-sizing: border-box; border: 1px solid #ecf0f1;
+        border-radius: 8px; padding: 9px 11px; font-size: 0.88rem;
+        color: #2c3e50; font-family: inherit; background: #f8f9fa; margin-top: 8px;
+      }
+    
+      /* ── Asset Upload Sheet ──────────────────────────────────────────────────── */
+      #evtAssetDrawer label {
+        display: block; font-size: 0.78rem; font-weight: 600; color: #7f8c8d;
+        text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; margin-top: 12px;
+      }
+      #evtAssetDrawer label:first-of-type { margin-top: 0; }
+      #evtAssetDrawer input[type="text"], #evtAssetDrawer select {
+        width: 100%; box-sizing: border-box; border: 1px solid #ecf0f1;
+        border-radius: 8px; padding: 9px 11px; font-size: 0.88rem;
+        color: #2c3e50; font-family: inherit; background: #f8f9fa;
+      }
+    
+      /* Event create FAB */
+      #evtCreateFab {
+        position: fixed; bottom: 80px; right: 20px; width: 52px; height: 52px;
+        background: #2c3e50; border-radius: 50%; display: none;
+        align-items: center; justify-content: center; cursor: pointer;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.25); z-index: 300; transition: background 0.2s;
+      }
+      #evtCreateFab:hover { background: #1a252f; }
+      #evtCreateFab .fab-icon { color: white; font-size: 1.6rem; font-weight: 300; margin-top: -2px; }
+    
     </style>
   </head>
   <body>
@@ -2089,6 +2261,174 @@
         </div>
       </div>
 
+      <!-- Event Detail View ──────────────────────────────────────────────────────── -->
+      <div id="eventDetailView" class="view-section" style="display: none;">
+      
+        <!-- Sticky header in dark blue -->
+        <div class="evt-detail-header">
+          <button class="evt-detail-back-btn" onclick="closeEventDetailView()">⬅ Back</button>
+          <div id="evtDetailTypeBadge"></div>
+          <div class="evt-detail-title" id="evtDetailTitle">Event</div>
+          <div class="evt-detail-subtitle" id="evtDetailSubtitle"></div>
+        </div>
+      
+        <!-- Scrollable body -->
+        <div class="card" style="border-radius: 0; box-shadow: none; margin: 0;">
+          <div id="evtDetailBody" class="evt-detail-body">
+            <p style="text-align:center; color:#7f8c8d; padding:40px 0;">Loading…</p>
+          </div>
+        </div>
+      
+      </div>
+      
+      <!-- Event Create / Edit Form — bottom sheet ──────────────────────────────── -->
+      <div id="evtFormModal" class="drawer-overlay" onclick="closeEventFormSheet()">
+        <div class="bottom-drawer" id="evtFormDrawer"
+            style="max-height: 88vh; overflow-y: auto;"
+            onclick="event.stopPropagation()">
+      
+          <div style="width:36px;height:4px;background:#ecf0f1;border-radius:2px;margin:0 auto 14px;"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 id="evtFormTitle" style="margin:0;color:#2c3e50;font-size:1.05rem;">New Event</h3>
+            <i class="fa-solid fa-xmark" onclick="closeEventFormSheet()" style="font-size:1.3rem;color:#7f8c8d;cursor:pointer;padding:4px;"></i>
+          </div>
+      
+          <label for="evtFormTypeSelect">Event Type *</label>
+          <select id="evtFormTypeSelect">
+            <!-- Options injected by openEventFormSheet() based on user role -->
+          </select>
+      
+          <label for="evtFormTitleInput">Title *</label>
+          <input type="text" id="evtFormTitleInput" placeholder="Short, clear event name…" maxlength="120">
+      
+          <label for="evtFormDescInput">Description</label>
+          <textarea id="evtFormDescInput" rows="3" placeholder="Agenda, details, what to bring…"></textarea>
+      
+          <label for="evtFormHostSelect">Host (optional)</label>
+          <select id="evtFormHostSelect">
+            <option value="">— No host assigned —</option>
+            <!-- Member options injected by openEventFormSheet() -->
+          </select>
+
+          <label for="evtFormTimezoneInput">
+            Event Timezone
+            <span style="font-weight:400; text-transform:none; font-size:0.75rem;">
+              — select a timezone.
+            </span>
+          </label>
+          <select id="evtFormTimezoneInput">
+            <option value="IST">IST — India Standard (UTC+5:30)</option>
+            <option value="CET">CET — Central European (UTC+1)</option>
+            <option value="CEST">CEST — Central European Summer (UTC+2)</option>
+            <option value="GMT">GMT — Greenwich Mean (UTC+0)</option>
+            <option value="BST">BST — British Summer (UTC+1)</option>
+            <option value="EST">EST — Eastern US (UTC-5)</option>
+            <option value="PST">PST — Pacific US (UTC-8)</option>
+            <option value="SGT">SGT — Singapore (UTC+8)</option>
+            <option value="AEST">AEST — Australia Eastern (UTC+10)</option>
+          </select>
+      
+          <label>Start *</label>
+          <div class="evt-form-row">
+            <input type="date" id="evtFormStartDate">
+            <input type="time" id="evtFormStartTime">
+          </div>
+      
+          <label>End</label>
+          <div class="evt-form-row">
+            <input type="date" id="evtFormEndDate">
+            <input type="time" id="evtFormEndTime">
+          </div>
+      
+          <label for="evtFormLinkInput">Meeting Link (optional)</label>
+          <input type="url" id="evtFormLinkInput" placeholder="https://meet.google.com/…">
+      
+          <!-- Pin toggle — visible to admins only, injected via JS -->
+          <div id="evtFormPinSection" style="display:none;">
+            <div class="ann-pin-toggle-row">
+              <div>
+                <div class="ann-pin-toggle-label">📌 Pin to top of Events</div>
+                <div class="ann-pin-toggle-sub">Pinned events appear first in the list.</div>
+              </div>
+              <div id="evtFormPinToggle" class="toggle-pill" onclick="toggleEvtFormPin()"></div>
+            </div>
+          </div>
+      
+          <div style="display:flex;gap:10px;margin-top:20px;">
+            <button id="evtFormSaveBtn" class="btn-primary" style="flex:1;" onclick="saveEventFromForm()">Save Event</button>
+            <button class="btn-outline" style="flex:0 0 auto;width:auto;padding:12px 18px;" onclick="closeEventFormSheet()">Cancel</button>
+          </div>
+      
+        </div>
+      </div>
+      
+      <!-- Add Participant — bottom sheet ─────────────────────────────────────────── -->
+      <div id="evtAddParticipantModal" class="drawer-overlay" onclick="closeAddParticipantSheet()">
+        <div class="bottom-drawer" id="evtAddParticipantDrawer"
+            style="max-height: 60vh; overflow-y: auto;"
+            onclick="event.stopPropagation()">
+      
+          <div style="width:36px;height:4px;background:#ecf0f1;border-radius:2px;margin:0 auto 14px;"></div>
+          <h3 style="margin:0 0 4px;color:#2c3e50;font-size:1.05rem;">Add Participant</h3>
+          <p style="font-size:0.82rem;color:#7f8c8d;margin:0 0 16px;">
+            A personal notice will be sent to the member automatically.
+          </p>
+      
+          <label for="evtParticipantSelect" style="font-size:0.78rem;font-weight:600;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;">Select Member</label>
+          <select id="evtParticipantSelect">
+            <!-- Options injected by openAddParticipantSheet() -->
+          </select>
+      
+          <div style="display:flex;gap:10px;margin-top:20px;">
+            <button id="evtAddParticipantBtn" class="btn-primary" style="flex:1;" onclick="submitAddParticipant()">Add to Event</button>
+            <button class="btn-outline" style="flex:0 0 auto;width:auto;padding:12px 18px;" onclick="closeAddParticipantSheet()">Cancel</button>
+          </div>
+      
+        </div>
+      </div>
+      
+      <!-- Upload Asset — bottom sheet ─────────────────────────────────────────────── -->
+      <div id="evtAssetModal" class="drawer-overlay" onclick="closeAssetUploadSheet()">
+        <div class="bottom-drawer" id="evtAssetDrawer"
+            style="max-height: 65vh; overflow-y: auto;"
+            onclick="event.stopPropagation()">
+      
+          <div style="width:36px;height:4px;background:#ecf0f1;border-radius:2px;margin:0 auto 14px;"></div>
+          <h3 style="margin:0 0 14px;color:#2c3e50;font-size:1.05rem;">Add Asset</h3>
+      
+          <label>Asset Type</label>
+          <select id="evtAssetTypeSelect">
+            <option value="Photo">🖼️ Photo</option>
+            <option value="PDF">📄 PDF</option>
+            <option value="PPT">📊 Presentation</option>
+            <option value="Document">📝 Document</option>
+            <option value="Other">📎 Other</option>
+          </select>
+      
+          <label>Display Title</label>
+          <input type="text" id="evtAssetTitleInput" placeholder="e.g. Group Selfie June 2025">
+      
+          <label>File</label>
+          <input type="file" id="evtAssetFileInput" style="margin-top:6px;"
+                onchange="handleEvtAssetFileSelection(event)">
+          <input type="hidden" id="evtAssetFileBase64">
+          <input type="hidden" id="evtAssetFileName">
+          <input type="hidden" id="evtAssetMimeType">
+          <div id="evtAssetFileLabel" style="font-size:0.8rem;color:#7f8c8d;margin-top:4px;">No file chosen</div>
+      
+          <div style="display:flex;gap:10px;margin-top:20px;">
+            <button id="evtAssetUploadBtn" class="btn-primary" style="flex:1;" onclick="submitAssetUpload()">Upload Asset</button>
+            <button class="btn-outline" style="flex:0 0 auto;width:auto;padding:12px 18px;" onclick="closeAssetUploadSheet()">Cancel</button>
+          </div>
+      
+        </div>
+      </div>
+      
+      <!-- Event create FAB ─────────────────────────────────────────────────────────── -->
+      <div id="evtCreateFab" onclick="openEventFormSheet(null)" title="Create Event">
+        <span class="fab-icon">+</span>
+      </div>
+
     <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer(false)"></div>
     <div class="bottom-drawer" id="bottomDrawer">
       <h3 style="margin-top: 0; color: #2c3e50; padding-left: 10px;">More</h3>
@@ -2156,12 +2496,19 @@
       let globalBookPostsDB = [];
       let globalBadgesDB    = [];
       let globalBadgeAwardsDB = [];
-      let globalAnnouncementsDB = [];
+      let globalAnnouncementsDB = [];           //@type {EventRecord[]} Full list of events loaded lazily on tab open
+      let currentEditingAnnouncementId = null;  //Tracks which announcementId is currently open in the edit form (null = create mode)
+      let currentEventsSubTab = 'notices';      //Tracks which Events & Announcements sub-tab is active
+      let globalEventRSVPsDB = [];              //@type {EventRSVPRecord[]} All RSVP rows loaded alongside events
+      let globalEventsDB = [];
+      let isEventsDataLoaded = false;           //Tracks whether events data has been loaded this session
+      let currentViewedEventId = null;          //ID of the event currently open in the detail view
+      let currentEditingEventId = null;         //ID of the event currently open in the edit form (null = create mode)
       let isAppDataLoaded = false;
-      let lastViewBeforeDetails = 'library'; // Remembers how we got to a book detail view
-      let currentFullShelfBooks = []; // Holds the books for the currently viewed full shelf so search is instant
-      let myYearlyChartInstance = null;   //Only for Me Tab of the user
-      let myCumulativeChartInstance = null;  //Only for Me Tab of the user
+      let lastViewBeforeDetails = 'library';    // Remembers how we got to a book detail view
+      let currentFullShelfBooks = [];           // Holds the books for the currently viewed full shelf so search is instant
+      let myYearlyChartInstance = null;         //Only for Me Tab of the user
+      let myCumulativeChartInstance = null;     //Only for Me Tab of the user
       let likedBookPostsThisSession = new Set();
 
       // --- O(1) LOOKUP MAPS (populated after Big Gulp loads) ---
@@ -2174,11 +2521,34 @@
       let myShelfIndexByBook = new Map(); // key: bookId → array of my shelf records
       let globalActivityPointsMap = {}; // Flattened view of actTypeMap for backend serialisation
       let memberBadgeIndex = new Map();
+      let eventsMap = new Map();
 
       const BOOKPOST_TYPE_CONFIG = {
         "General Note":  { emoji: "📌", bgColor: "#ecf0f1", textColor: "#34495e" },
         "Quote I Loved": { emoji: "🏷️",  bgColor: "#fffcf5", textColor: "#b7770d" },
         "Fan Cast":      { emoji: "🎬", bgColor: "#eae8f7", textColor: "#534AB7" }
+      };
+
+      /**
+       * Event type display config.
+       * memberCanCreate: true = any member may create this type.
+       *                  false = admin only.
+       */
+      const EVENT_TYPE_CONFIG = {
+        'Meeting-Virtual' : { label: '📹 Virtual Meeting', badgeClass: 'evt-badge--meeting-v', memberCanCreate: false },
+        'Meeting-F2F'     : { label: '🤝 In-Person Meeting', badgeClass: 'evt-badge--meeting-f', memberCanCreate: false },
+        'BookBuddyRead'   : { label: '📖 Book Buddy Read',  badgeClass: 'evt-badge--buddyread',  memberCanCreate: true  },
+        'Social'          : { label: '🎉 Social',            badgeClass: 'evt-badge--social',     memberCanCreate: true  },
+        'Other'           : { label: '📌 Other',             badgeClass: 'evt-badge--other',      memberCanCreate: true  }
+      };
+    
+      /** Asset type icons used in the detail view */
+      const EVENT_ASSET_ICONS = {
+        'Photo'    : '🖼️',
+        'PDF'      : '📄',
+        'PPT'      : '📊',
+        'Document' : '📝',
+        'Other'    : '📎'
       };
       /**
        * Announcement IDs the user has dismissed from the Home feed this session.
@@ -2186,12 +2556,6 @@
        * @type {Set<string>}
        */
       const dismissedAnnouncementIdsThisSession = new Set();
-
-      /** Tracks which announcementId is currently open in the edit form (null = create mode) */
-      let currentEditingAnnouncementId = null;
-    
-      /** Tracks which Events & Announcements sub-tab is active */
-      let currentEventsSubTab = 'notices';
       
       /* ====================================================================
          📚 ARKA HELP CENTER & KNOWLEDGE BASE (EDIT ARTICLES HERE)
@@ -3028,6 +3392,7 @@
         document.getElementById('helpView').style.display = 'none';
         document.getElementById('badgesView').style.display = 'none';
         document.getElementById('eventsAndAnnouncementsView').style.display = 'none';
+        document.getElementById('eventDetailView').style.display = 'none';
 
         // 3. Force reset all nested sub-views so we don't get overlapping cards
         document.getElementById('libAddBookWorkspace').style.display = 'none';
@@ -3089,8 +3454,9 @@
         }
 
         if (tabName === 'eventsAndAnnouncements') {
-          // Show/hide admin FAB based on active sub-tab
           refreshEventsViewFabVisibility();
+          // Lazy-load events the first time the tab is opened
+          if (!isEventsDataLoaded) loadEventsData();
         }
         
         // 8. Snap to the top of the page so it feels like a fresh screen load
@@ -5676,7 +6042,7 @@
         const sortedLog = activeLogs.sort((a, b) => parseGoogleDate(b.activityDate) - parseGoogleDate(a.activityDate));
         
         // Any Activity type that needs to be hidden from home feed goes here
-        const hiddenTypes = ["SYS_ACTTYP_CPUPDATE", "SYS_ACTTYP_ADDCP", "SYS_ACTTYP_BADGEAWARD", "SYS_ACTTYP_TOTALPAGES_UPDATE", "SYS_ACTTYP_TOTALBOOKS_UPDATE","SYS_ACTTYP_CLUBPOINTS_UPDATE","SYS_ACTTYP_CLUBPOINTS_ADD", "SYS_ACTTYP_CLUBPOINTS_CORRECTION","ARKA_ACTTYP_SHELFUPDATE"];
+        const hiddenTypes = ["SYS_ACTTYP_CPUPDATE", "SYS_ACTTYP_ADDCP", "SYS_ACTTYP_BADGEAWARD", "SYS_ACTTYP_TOTALPAGES_UPDATE", "SYS_ACTTYP_TOTALBOOKS_UPDATE","SYS_ACTTYP_CLUBPOINTS_UPDATE","SYS_ACTTYP_CLUBPOINTS_ADD", "SYS_ACTTYP_CLUBPOINTS_CORRECTION","ARKA_ACTTYP_SHELFUPDATE","ARKA_ACTTYP_EVENTCANCELLED","ARKA_ACTTYP_ANNOUNCEMENTPOSTED"];
         
         // --- PHASE 1 & 2: Normalize and Group ---
         let groupedFeed = {};
@@ -5732,6 +6098,12 @@
             // For Page Read external logs (10PagesaDay), keep them separate if needed, or group by day.
             if (type === "ARKA_ACTTYP_PAGEREAD" && isExternalUser) {
                  groupKey = `${rawMemberId}_EXTPAGE_${log.activityID}`; // Force individual bubble
+            }
+
+            // In the groupKey section, add:
+            const eventTypes = ["ARKA_ACTTYP_EVENTCREATED", "ARKA_ACTTYP_EVENTRSVP", "ARKA_ACTTYP_EVENTATTENDED"];
+            if (eventTypes.includes(type)) {
+                groupKey = `${rawMemberId}_${log.activityDesc}_${dateKey}`;
             }
 
             if (!groupedFeed[groupKey]) {
@@ -5809,6 +6181,23 @@
                 actionHtml = `levelled up! 🏆✨`;
             } else if (acts.includes("ARKA_ACTTYP_FEEDBACK")) {
                 actionHtml = `shared some feedback to help improve the app! 💡🙏`;
+            } else if (acts.includes("ARKA_ACTTYP_EVENTCREATED")) {
+                const evt = eventsMap.get(log.activityDesc);
+                const evtTitle = evt ? evt.title : 'a new event';
+                actionHtml = `created a new event: <b>${escapeHtml(evtTitle)}</b> 📅`;
+            } else if (acts.includes("ARKA_ACTTYP_EVENTRSVP")) {
+                const evt = eventsMap.get(log.activityDesc);
+                const evtTitle = evt ? evt.title : 'an event';
+                // Resolve their actual RSVP status from globalEventRSVPsDB for accurate text
+                const rsvp = globalEventRSVPsDB.find(function(r) {
+                    return r.eventId === log.activityDesc && r.memberId === log.activityMemberID;
+                });
+                const verb = (rsvp && rsvp.rsvpStatus === 'Maybe') ? 'is interested in' : 'is going to';
+                actionHtml = `${verb} <b>${escapeHtml(evtTitle)}</b> ✓`;
+            } else if (acts.includes("ARKA_ACTTYP_EVENTATTENDED")) {
+                const evt = eventsMap.get(log.activityDesc);
+                const evtTitle = evt ? evt.title : 'an event';
+                actionHtml = `attended <b>${escapeHtml(evtTitle)}</b> 🎉`;
             } else if (acts.includes("ARKA_ACTTYP_MILESTONE_PAGES") || acts.includes("ARKA_ACTTYP_MILESTONE_BOOKS")) {
                 const isPages = acts.includes("ARKA_ACTTYP_MILESTONE_PAGES");
                 actionHtml = `hit a new milestone! 🏆`;
@@ -8660,13 +9049,11 @@
       function switchEventsTab(tabName) {
         currentEventsSubTab = tabName;
     
-        // Update tab pill active states
         ['upcoming', 'past', 'notices'].forEach(function(t) {
           const tabEl = document.getElementById('tabEvt' + t.charAt(0).toUpperCase() + t.slice(1));
           if (tabEl) tabEl.classList.toggle('active', t === tabName);
         });
     
-        // Show/hide content panels
         const panels = {
           upcoming : document.getElementById('evtUpcomingContent'),
           past     : document.getElementById('evtPastContent'),
@@ -8676,30 +9063,30 @@
           if (el) el.style.display = key === tabName ? 'block' : 'none';
         });
     
-        // Render the correct content
-        if (tabName === 'notices') {
-          renderNoticesTab();
-        }
+        if (tabName === 'upcoming') renderUpcomingEvents();
+        if (tabName === 'past')     renderPastEvents();
+        if (tabName === 'notices')  renderNoticesTab();
     
-        // Show admin FAB only on the notices tab (for now; will expand to upcoming later)
         refreshEventsViewFabVisibility();
       }
     
       /**
-       * Shows or hides the admin create FAB.
-       * Only visible when: user is admin AND the Notices sub-tab is active
-       * AND the Events & Announcements view is the current view.
+       * UPDATED refreshEventsViewFabVisibility — replaces previous version.
+       * Shows the correct FAB based on active sub-tab:
+       *   Upcoming → event create FAB (any member who can create, not just admins)
+       *   Notices  → announcement create FAB (admins only)
+       *   Past     → no FAB
        */
       function refreshEventsViewFabVisibility() {
-        const fab         = document.getElementById('annCreateFab');
-        const isAdmin     = ADMIN_MEMBER_IDS.includes(currentUser);
+        const isAdmin      = ADMIN_MEMBER_IDS.includes(currentUser);
         const isEventsView = document.getElementById('eventsAndAnnouncementsView') &&
                             document.getElementById('eventsAndAnnouncementsView').style.display === 'block';
     
-        if (fab) {
-          const shouldShow = isAdmin && isEventsView && currentEventsSubTab === 'notices';
-          fab.style.display = shouldShow ? 'flex' : 'none';
-        }
+        const annFab = document.getElementById('annCreateFab');
+        const evtFab = document.getElementById('evtCreateFab');
+    
+        if (annFab) annFab.style.display = (isAdmin && isEventsView && currentEventsSubTab === 'notices')   ? 'flex' : 'none';
+        if (evtFab) evtFab.style.display = (isEventsView && currentEventsSubTab === 'upcoming') ? 'flex' : 'none';
       }
     
     
@@ -8732,6 +9119,9 @@
             const expiry = parseGoogleDate(ann.expiryDate);
             if (!isNaN(expiry) && expiry < today) return false;
           }
+
+          // Personal notices — only show to the target member
+          if (ann.targetMemberId && ann.targetMemberId !== currentUser) return false;
     
           return true;
         });
@@ -8812,8 +9202,14 @@
         }
     
         const isAdmin = ADMIN_MEMBER_IDS.includes(currentUser);
-    
-        if (globalAnnouncementsDB.length === 0) {
+
+        // Filter: club-wide notices (no target) OR notices personally addressed to this user.
+        // Admins do NOT see personal notices meant for other members — those are private.
+        const filtered = globalAnnouncementsDB.filter(function(ann) {
+          return !ann.targetMemberId || ann.targetMemberId === currentUser;
+        });
+
+        if (filtered.length === 0) {
           container.innerHTML = `
             <div class="coming-soon-card">
               <div class="cs-icon">📣</div>
@@ -8824,7 +9220,7 @@
         }
     
         // Pinned first, then newest first
-        const sorted = globalAnnouncementsDB.slice().sort(function(a, b) {
+        const sorted = filtered.slice().sort(function(a, b) {
           if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
           return parseGoogleDate(b.createdOn) - parseGoogleDate(a.createdOn);
         });
@@ -8838,10 +9234,13 @@
           const pinnedClass = ann.isPinned ? ' ann-card--pinned' : '';
           const pinBadge    = ann.isPinned ? '<span class="ann-pin-badge">📌 Pinned</span>' : '';
           const expiryNote  = ann.expiryDate ? ` · Expires ${ann.expiryDate}` : '';
+          const personalLabel = (ann.targetMemberId)
+            ? `<span style="font-size:0.65rem; background:#E6F1FB; color:#185FA5; padding:1px 5px; border-radius:6px; margin-left:4px;">Personal</span>`
+            : '';
     
           // Admin controls
           let adminStrip = '';
-          if (isAdmin) {
+          if (isAdmin && !ann.targetMemberId) {
             const pinLabel   = ann.isPinned ? 'Unpin' : '📌 Pin';
             const pinAction  = ann.isPinned ? 'false' : 'true';
             adminStrip = `
@@ -8859,6 +9258,7 @@
             <div class="ann-card${pinnedClass}" id="noticeCard_${ann.announcementId}">
               <div class="ann-card-meta">
                 <span class="ann-type-label">Announcement</span>
+                ${personalLabel}
                 ${pinBadge}
               </div>
               <div class="ann-card-title">${escapeHtml(ann.title)}</div>
@@ -9127,6 +9527,848 @@
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#39;');
+      }
+
+      // ==========================================================================
+      // EVENTS MODULE — Frontend Logic
+      // ==========================================================================
+    
+      // ── Permission helper (mirrors backend canManageEvent) ────────────────────
+    
+      /**
+       * Checks if the current user can manage a specific event.
+       * Mirrors canManageEvent() on the backend — used to show/hide UI controls.
+       * The backend re-validates before every write.
+       *
+       * @param {EventRecord} event
+       * @returns {boolean}
+       */
+      function currentUserCanManageEvent(event) {
+        return ADMIN_MEMBER_IDS.includes(currentUser)
+          || currentUser === event.hostMemberId
+          || currentUser === event.createdBy;
+      }
+    
+    
+      // ── Data loader ────────────────────────────────────────────────────────────
+    
+      /**
+       * Lazy-loads events and RSVPs from the backend.
+       * Called once when the user first opens the Events & Announcements view.
+       * Updates globalEventsDB, globalEventRSVPsDB, then re-renders the active tab.
+       */
+      function loadEventsData() {
+        // Show loading state in whichever content panel is visible
+        const upcomingEl = document.getElementById('evtUpcomingContent');
+        const pastEl     = document.getElementById('evtPastContent');
+        if (upcomingEl && upcomingEl.style.display !== 'none') {
+          upcomingEl.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:40px 0;font-style:italic;">Loading events…</p>';
+        }
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') {
+              showToast('Could not load events. Please try again.');
+              return;
+            }
+            globalEventsDB     = res.eventsDB  || [];
+            globalEventRSVPsDB = res.rsvpsDB   || [];
+            isEventsDataLoaded = true;
+            // Build once when events lazy-load — not in Big Gulp
+            eventsMap = new Map(globalEventsDB.map(function(e) { return [e.eventId, e]; }));  
+    
+            // Re-render whichever tab is currently showing
+            if (currentEventsSubTab === 'upcoming') renderUpcomingEvents();
+            if (currentEventsSubTab === 'past')     renderPastEvents();
+          })
+          .withFailureHandler(function() {
+            showToast('Failed to load events.');
+          })
+          .getEventsData();
+      }
+    
+    
+      // ── List renderers ─────────────────────────────────────────────────────────
+    
+      /**
+       * Renders upcoming Active events (startDate >= today) in the Upcoming tab.
+       * Pinned events always appear first, then sorted by startDate ascending.
+       * Works entirely from globalEventsDB + globalEventRSVPsDB — no backend call.
+       */
+      function renderUpcomingEvents() {
+        const container = document.getElementById('evtUpcomingContent');
+        if (!container) return;
+    
+        if (!isEventsDataLoaded) {
+          container.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:40px 0;font-style:italic;">Loading…</p>';
+          return;
+        }
+    
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+    
+        const upcoming = globalEventsDB.filter(function(e) {
+          if (e.status === 'Cancelled' || e.status === 'Completed') return false;
+          const startDate = parseGoogleDate(e.startDate);
+          return isNaN(startDate) || startDate >= today; // include undated events
+        });
+    
+        if (upcoming.length === 0) {
+          container.innerHTML = `
+            <div class="coming-soon-card">
+              <div class="cs-icon">📅</div>
+              <div class="cs-title">No upcoming events</div>
+              <div class="cs-body">Check back soon — or tap + to create one.</div>
+            </div>`;
+          return;
+        }
+    
+        // Pinned first, then date ascending
+        upcoming.sort(function(a, b) {
+          if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+          return parseGoogleDate(a.startDate) - parseGoogleDate(b.startDate);
+        });
+    
+        container.innerHTML = upcoming.map(function(evt) {
+          return buildEventCardHtml(evt);
+        }).join('');
+      }
+    
+      /**
+       * Renders past events (Completed or startDate < today) in the Past tab.
+       * Sorted by startDate descending (most recent first).
+       */
+      function renderPastEvents() {
+        const container = document.getElementById('evtPastContent');
+        if (!container) return;
+    
+        if (!isEventsDataLoaded) {
+          container.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:40px 0;font-style:italic;">Loading…</p>';
+          return;
+        }
+    
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+    
+        const past = globalEventsDB.filter(function(e) {
+          if (e.status === 'Completed' || e.status === 'Cancelled') return true;
+          const startDate = parseGoogleDate(e.startDate);
+          return !isNaN(startDate) && startDate < today;
+        });
+    
+        if (past.length === 0) {
+          container.innerHTML = `
+            <div class="coming-soon-card">
+              <div class="cs-icon">🕓</div>
+              <div class="cs-title">No past events yet</div>
+              <div class="cs-body">Completed events and past meetings will appear here.</div>
+            </div>`;
+          return;
+        }
+    
+        past.sort(function(a, b) {
+          return parseGoogleDate(b.startDate) - parseGoogleDate(a.startDate);
+        });
+    
+        container.innerHTML = past.map(function(evt) {
+          return buildEventCardHtml(evt);
+        }).join('');
+      }
+    
+      /**
+       * Builds the HTML for a single event list card.
+       * Includes: type badge, title, date/time, host, RSVP count, inline RSVP buttons.
+       *
+       * @param {EventRecord} evt
+       * @returns {string} HTML string
+       */
+      function buildEventCardHtml(evt) {
+        const typeCfg    = EVENT_TYPE_CONFIG[evt.eventType] || EVENT_TYPE_CONFIG['Other'];
+        const pinnedBadge = evt.isPinned
+          ? '<span style="font-size:0.65rem;background:#EEEDFE;color:#534AB7;padding:1px 5px;border-radius:6px;margin-left:4px;">📌</span>'
+          : '';
+        const statusChip  = evt.status !== 'Active'
+          ? `<span class="evt-status-chip evt-status--${evt.status.toLowerCase()}">${evt.status}</span>`
+          : '';
+    
+        // Date / time line
+        const dateParts = [];
+        if (evt.startDate) dateParts.push('📅 ' + evt.startDate);
+        if (evt.startTime) dateParts.push('🕐 ' + evt.startTime + (evt.eventTimezone ? ' ' + evt.eventTimezone : ''));
+        const dateStr = dateParts.join(' · ');
+    
+        // Host display name
+        const hostMember = evt.hostMemberId ? membersMap.get(evt.hostMemberId) : null;
+        const hostStr    = hostMember ? '👤 ' + escapeHtml(hostMember.displayName) : '';
+    
+        // RSVP count (Yes + Maybe from globalEventRSVPsDB)
+        const rsvpCount = globalEventRSVPsDB.filter(function(r) {
+          return r.eventId === evt.eventId && (r.rsvpStatus === 'Yes' || r.rsvpStatus === 'Maybe');
+        }).length;
+        const countStr  = rsvpCount > 0 ? rsvpCount + ' going' : '';
+    
+        // My RSVP status
+        const myRsvp    = globalEventRSVPsDB.find(function(r) {
+          return r.eventId === evt.eventId && r.memberId === currentUser;
+        });
+        const myStatus  = myRsvp ? myRsvp.rsvpStatus : null;
+    
+        const rsvpButtons = evt.status === 'Active' ? `
+          <div class="evt-rsvp-row" onclick="event.stopPropagation()">
+            <button class="evt-rsvp-btn evt-rsvp-btn--yes  ${myStatus === 'Yes'   ? 'selected' : ''}"
+                    onclick="quickRSVP('${evt.eventId}','Yes')">✓ Going</button>
+            <button class="evt-rsvp-btn evt-rsvp-btn--maybe ${myStatus === 'Maybe' ? 'selected' : ''}"
+                    onclick="quickRSVP('${evt.eventId}','Maybe')">Maybe</button>
+            <button class="evt-rsvp-btn evt-rsvp-btn--no   ${myStatus === 'No'    ? 'selected' : ''}"
+                    onclick="quickRSVP('${evt.eventId}','No')">Can't go</button>
+            ${countStr ? `<span class="evt-rsvp-count">${countStr}</span>` : ''}
+          </div>` : '';
+    
+        const cardClass = evt.isPinned ? 'evt-card evt-card--pinned' : 'evt-card';
+    
+        return `
+          <div class="${cardClass}" onclick="openEventDetailView('${evt.eventId}')">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+              <span class="evt-type-badge ${typeCfg.badgeClass}">${typeCfg.label}</span>
+              ${pinnedBadge} ${statusChip}
+            </div>
+            <div class="evt-card-title">${escapeHtml(evt.title)}</div>
+            <div class="evt-card-meta">
+              ${dateStr ? `<span>${dateStr}</span>` : ''}
+              ${hostStr ? `<span>${hostStr}</span>`  : ''}
+            </div>
+            ${rsvpButtons}
+          </div>`;
+      }
+    
+    
+      // ── Quick RSVP from list card ──────────────────────────────────────────────
+    
+      /**
+       * Submits a quick RSVP directly from the event list card without opening the detail view.
+       * Updates the local array and re-renders the list immediately on success.
+       *
+       * @param {string} eventId   - ARKA_EVENT_X
+       * @param {string} rsvpStatus - 'Yes' | 'No' | 'Maybe'
+       */
+      function quickRSVP(eventId, rsvpStatus) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') { showToast('RSVP failed: ' + res.message); return; }
+    
+            // Update or insert in local array
+            const idx = globalEventRSVPsDB.findIndex(function(r) {
+              return r.eventId === eventId && r.memberId === currentUser;
+            });
+            if (idx > -1) {
+              globalEventRSVPsDB[idx].rsvpStatus = rsvpStatus;
+            } else if (res.rsvp) {
+              globalEventRSVPsDB.push(res.rsvp);
+            }
+    
+            // Re-render the visible tab
+            if (currentEventsSubTab === 'upcoming') renderUpcomingEvents();
+            if (currentEventsSubTab === 'past')     renderPastEvents();
+            showToast(rsvpStatus === 'Yes' ? 'You\'re going! 🎉' : 'RSVP saved.');
+          })
+          .withFailureHandler(function() { showToast('RSVP failed. Try again.'); })
+          .saveEventRSVP({ eventId, memberId: currentUser, rsvpStatus });
+      }
+    
+    
+      // ── Event Detail View ──────────────────────────────────────────────────────
+    
+      /**
+       * Opens the Event Detail view for a given event.
+       * Uses the same push-view pattern as openBookDetailView().
+       *
+       * @param {string} eventId - ARKA_EVENT_X
+       */
+      function openEventDetailView(eventId) {
+        const evt = globalEventsDB.find(function(e) { return e.eventId === eventId; });
+        if (!evt) { showToast('Event not found.'); return; }
+    
+        currentViewedEventId = eventId;
+    
+        // Route via switchTab to correctly hide all other views
+        switchTab('eventDetail');
+        renderEventDetail(evt);
+      }
+    
+      /**
+       * Closes the event detail view and returns to the Events & Announcements view.
+       */
+      function closeEventDetailView() {
+        switchTab('eventsAndAnnouncements');
+        switchEventsTab(currentEventsSubTab || 'upcoming');
+      }
+    
+      /**
+       * Renders the full event detail: info rows, RSVP selector, attendee list, assets.
+       * Manager controls (edit, add participant, upload asset, confirm attendance, change status)
+       * are shown conditionally based on canManageEvent.
+       *
+       * @param {EventRecord} evt
+       */
+      function renderEventDetail(evt) {
+        const typeCfg     = EVENT_TYPE_CONFIG[evt.eventType] || EVENT_TYPE_CONFIG['Other'];
+        const canManage   = currentUserCanManageEvent(evt);
+        const hostMember  = evt.hostMemberId ? membersMap.get(evt.hostMemberId) : null;
+        const isAdmin     = ADMIN_MEMBER_IDS.includes(currentUser);
+    
+        // ── Header ────────────────────────────────────────────────────────────
+        document.getElementById('evtDetailTypeBadge').innerHTML =
+          `<span class="evt-type-badge ${typeCfg.badgeClass}" style="margin-bottom:6px;">${typeCfg.label}</span>`;
+        document.getElementById('evtDetailTitle').textContent = evt.title;
+    
+        const dateRange = [evt.startDate, evt.startTime].filter(Boolean).join(' · ')
+          + (evt.eventTimezone ? ' ' + evt.eventTimezone : '')   // ← add this
+          + (evt.endDate && evt.endDate !== evt.startDate ? ' – ' + evt.endDate : '')
+          + (evt.endTime ? ' · ' + evt.endTime : '');
+        document.getElementById('evtDetailSubtitle').textContent = dateRange;
+    
+        // ── Body ─────────────────────────────────────────────────────────────
+        let html = '';
+    
+        // Manager toolbar
+        if (canManage) {
+          const statusOptions = evt.status === 'Active'
+            ? `<button class="ann-admin-btn ann-admin-btn--archive" style="border-color:#e67e22;color:#e67e22;"
+                  onclick="changeEventStatus('${evt.eventId}','Completed')">✓ Mark Completed</button>
+              <button class="ann-admin-btn ann-admin-btn--archive"
+                  onclick="changeEventStatus('${evt.eventId}','Cancelled')">✗ Cancel Event</button>`
+            : `<button class="ann-admin-btn ann-admin-btn--edit"
+                  onclick="changeEventStatus('${evt.eventId}','Active')">↩ Reactivate</button>`;
+    
+          html += `
+            <div class="ann-admin-strip" style="border-top:none;padding-top:0;margin-bottom:14px;">
+              <button class="ann-admin-btn ann-admin-btn--edit" onclick="openEventFormSheet('${evt.eventId}')">✏️ Edit</button>
+              <button class="ann-admin-btn ann-admin-btn--pin"  onclick="openAddParticipantSheet('${evt.eventId}')">👤 Add Participant</button>
+              <button class="ann-admin-btn ann-admin-btn--edit" style="border-color:#A984BA;color:#A984BA;"
+                      onclick="openAssetUploadSheet('${evt.eventId}')">📎 Add Asset</button>
+              ${statusOptions}
+            </div>`;
+        }
+    
+        // Info rows
+        if (hostMember) {
+          html += `<div class="evt-info-row"><div class="evt-info-icon">👤</div>
+            <div><div class="evt-info-label">Host</div><div>${escapeHtml(hostMember.displayName)}</div></div></div>`;
+        }
+        if (evt.meetingLink) {
+          html += `<div class="evt-info-row"><div class="evt-info-icon">🔗</div>
+            <div><div class="evt-info-label">Meeting link</div>
+            <div><a href="${escapeHtml(evt.meetingLink)}" target="_blank" style="color:#185FA5;">
+              ${escapeHtml(evt.meetingLink)}</a></div></div></div>`;
+        }
+        if (evt.description) {
+          html += `<div class="evt-info-row"><div class="evt-info-icon">📝</div>
+            <div><div class="evt-info-label">About</div>
+            <div style="white-space:pre-line;">${escapeHtml(evt.description)}</div></div></div>`;
+        }
+    
+        // ── My RSVP ──────────────────────────────────────────────────────────
+        const myRsvp   = globalEventRSVPsDB.find(function(r) {
+          return r.eventId === evt.eventId && r.memberId === currentUser;
+        });
+        const myStatus = myRsvp ? myRsvp.rsvpStatus : null;
+    
+        html += `<div class="evt-detail-section-title">My RSVP</div>`;
+    
+        if (evt.status === 'Active') {
+          html += `<div class="evt-rsvp-row" style="margin-bottom:14px;">
+            <button class="evt-rsvp-btn evt-rsvp-btn--yes   ${myStatus==='Yes'   ? 'selected':''}"
+                    onclick="quickRSVP('${evt.eventId}','Yes');   renderEventDetail(globalEventsDB.find(e=>e.eventId==='${evt.eventId}'))">✓ Going</button>
+            <button class="evt-rsvp-btn evt-rsvp-btn--maybe ${myStatus==='Maybe' ? 'selected':''}"
+                    onclick="quickRSVP('${evt.eventId}','Maybe'); renderEventDetail(globalEventsDB.find(e=>e.eventId==='${evt.eventId}'))">Maybe</button>
+            <button class="evt-rsvp-btn evt-rsvp-btn--no    ${myStatus==='No'    ? 'selected':''}"
+                    onclick="quickRSVP('${evt.eventId}','No');    renderEventDetail(globalEventsDB.find(e=>e.eventId==='${evt.eventId}'))">Can't go</button>
+          </div>`;
+        } else {
+          html += `<p style="font-size:0.85rem;color:#7f8c8d;margin-bottom:14px;">RSVP is closed for this event.</p>`;
+        }
+    
+        // ── Attendees ─────────────────────────────────────────────────────────
+        const attendees = globalEventRSVPsDB.filter(function(r) { return r.eventId === evt.eventId; });
+        if (attendees.length > 0) {
+          html += `<div class="evt-detail-section-title">Attendees (${attendees.length})</div>`;
+          attendees.forEach(function(r) {
+            const member       = membersMap.get(r.memberId);
+            const displayName  = member ? escapeHtml(member.displayName) : r.memberId;
+            const avatarHtml   = buildAvatarHtml(member, 28);
+            const rsvpChipClass = {
+              'Yes': 'evt-rsvp-chip--yes', 'No': 'evt-rsvp-chip--no',
+              'Maybe': 'evt-rsvp-chip--maybe', 'Invited': 'evt-rsvp-chip--invited'
+            }[r.rsvpStatus] || '';
+            const confirmedHtml = r.attendanceConfirmed === 'Yes'
+              ? '<span class="evt-confirmed-tick">✓ Confirmed</span>' : '';
+    
+            // Admin confirm/unconfirm controls
+            const confirmBtn = canManage && evt.status !== 'Active'
+              ? (r.attendanceConfirmed === 'Yes'
+                  ? `<button class="evt-asset-remove" title="Remove confirmation"
+                            onclick="submitConfirmAttendance('${r.rsvpId}','${evt.eventId}','')">✕</button>`
+                  : `<button class="ann-admin-btn ann-admin-btn--edit" style="padding:2px 7px;font-size:0.7rem;"
+                            onclick="submitConfirmAttendance('${r.rsvpId}','${evt.eventId}','Yes')">Confirm</button>`)
+              : '';
+    
+            html += `
+              <div class="evt-attendee-row">
+                ${avatarHtml}
+                <div class="evt-attendee-name">${displayName}</div>
+                <span class="evt-attendee-rsvp ${rsvpChipClass}">${r.rsvpStatus}</span>
+                ${confirmedHtml}
+                ${confirmBtn}
+              </div>`;
+          });
+        }
+    
+        // ── Assets ────────────────────────────────────────────────────────────
+        let assets = [];
+        try { assets = JSON.parse(evt.assetsJson || '[]'); } catch (e) { assets = []; }
+    
+        if (assets.length > 0) {
+          html += `<div class="evt-detail-section-title">Assets</div>`;
+          assets.forEach(function(asset) {
+            const icon       = EVENT_ASSET_ICONS[asset.type] || '📎';
+            const removeBtn  = canManage
+              ? `<button class="evt-asset-remove" title="Remove asset"
+                        onclick="submitRemoveAsset('${evt.eventId}','${asset.assetId}')">✕</button>`
+              : '';
+            html += `
+              <div class="evt-asset-row">
+                <span class="evt-asset-icon">${icon}</span>
+                <div style="flex:1;min-width:0;">
+                  <div class="evt-asset-title"
+                      onclick="window.open('${escapeHtml(asset.driveLink)}','_blank')">${escapeHtml(asset.title)}</div>
+                  <div class="evt-asset-type">${asset.type}</div>
+                </div>
+                ${removeBtn}
+              </div>`;
+          });
+        }
+    
+        document.getElementById('evtDetailBody').innerHTML = html;
+        window.scrollTo(0, 0);
+      }
+    
+      /**
+       * Builds a small avatar HTML snippet (image or initial fallback).
+       * Reuses the same pattern as the member directory cards.
+       *
+       * @param {Object|null} member - Member object from membersMap (or null)
+       * @param {number} size        - Pixel size of the avatar circle
+       * @returns {string} HTML string
+       */
+      function buildAvatarHtml(member, size) {
+        const initial = member ? (member.displayName || '?').charAt(0).toUpperCase() : '?';
+        if (member && member.imageURL) {
+          return `<img src="${member.imageURL}" alt="${initial}"
+                      style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;"
+                      onerror="this.style.display='none'">`;
+        }
+        return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:#A984BA;
+                            color:white;font-size:${Math.round(size*0.4)}px;font-weight:bold;
+                            display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initial}</div>`;
+      }
+    
+    
+      // ── Event Form (Create / Edit) ─────────────────────────────────────────────
+    
+      /**
+       * Opens the event create/edit bottom sheet.
+       * Populates type options based on user role (admin sees all types; members see memberCanCreate only).
+       *
+       * @param {string|null} eventId - null for create, ARKA_EVENT_X for edit
+       */
+      function openEventFormSheet(eventId) {
+        currentEditingEventId = eventId || null;
+        const isAdmin         = ADMIN_MEMBER_IDS.includes(currentUser);
+    
+        // Build event type options
+        const typeSelect = document.getElementById('evtFormTypeSelect');
+        typeSelect.innerHTML = Object.entries(EVENT_TYPE_CONFIG)
+          .filter(function([key, cfg]) { return isAdmin || cfg.memberCanCreate; })
+          .map(function([key, cfg]) { return `<option value="${key}">${cfg.label}</option>`; })
+          .join('');
+    
+        // Build host member options
+        const hostSelect = document.getElementById('evtFormHostSelect');
+        const memberOpts = [...globalMembersDB]
+          .sort(function(a, b) { return a.displayName.localeCompare(b.displayName); })
+          .map(function(m) { return `<option value="${m.id}">${escapeHtml(m.displayName)}</option>`; })
+          .join('');
+        hostSelect.innerHTML = '<option value="">— No host assigned —</option>' + memberOpts;
+    
+        // Show pin toggle for admins only
+        const pinSection = document.getElementById('evtFormPinSection');
+        if (pinSection) pinSection.style.display = isAdmin ? 'block' : 'none';
+    
+        const titleEl  = document.getElementById('evtFormTitle');
+        const saveBtn  = document.getElementById('evtFormSaveBtn');
+    
+        if (eventId) {
+          // Edit mode — pre-fill
+          const evt = globalEventsDB.find(function(e) { return e.eventId === eventId; });
+          if (!evt) { showToast('Event not found.'); return; }
+    
+          if (titleEl) titleEl.textContent = 'Edit Event';
+          typeSelect.value = evt.eventType;
+          document.getElementById('evtFormTitleInput').value   = evt.title;
+          document.getElementById('evtFormDescInput').value    = evt.description;
+          hostSelect.value = evt.hostMemberId || '';
+          document.getElementById('evtFormTimezoneInput').value = evt.eventTimezone || 'IST';
+          document.getElementById('evtFormStartDate').value    = convertToInputDateFormat(evt.startDate);
+          document.getElementById('evtFormStartTime').value    = evt.startTime || '';
+          document.getElementById('evtFormEndDate').value      = convertToInputDateFormat(evt.endDate);
+          document.getElementById('evtFormEndTime').value      = evt.endTime   || '';
+          document.getElementById('evtFormLinkInput').value    = evt.meetingLink || '';
+          const pinToggle = document.getElementById('evtFormPinToggle');
+          if (pinToggle) pinToggle.classList.toggle('on', evt.isPinned);
+        } else {
+          // Create mode — blank form
+          if (titleEl) titleEl.textContent = 'New Event';
+          document.getElementById('evtFormTitleInput').value   = '';
+          document.getElementById('evtFormDescInput').value    = '';
+          hostSelect.value = '';
+          document.getElementById('evtFormTimezoneInput').value = 'IST';
+          document.getElementById('evtFormStartDate').value    = '';
+          document.getElementById('evtFormStartTime').value    = '';
+          document.getElementById('evtFormEndDate').value      = '';
+          document.getElementById('evtFormEndTime').value      = '';
+          document.getElementById('evtFormLinkInput').value    = '';
+          const pinToggle = document.getElementById('evtFormPinToggle');
+          if (pinToggle) pinToggle.classList.remove('on');
+        }
+    
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerText = 'Save Event'; }
+    
+        document.getElementById('evtFormModal').style.display = 'flex';
+        setTimeout(function() { document.getElementById('evtFormDrawer').classList.add('open'); }, 10);
+      }
+    
+      function closeEventFormSheet() {
+        const drawer = document.getElementById('evtFormDrawer');
+        if (drawer) drawer.classList.remove('open');
+        setTimeout(function() {
+          const modal = document.getElementById('evtFormModal');
+          if (modal) modal.style.display = 'none';
+        }, 300);
+        currentEditingEventId = null;
+      }
+    
+      function toggleEvtFormPin() {
+        const toggle = document.getElementById('evtFormPinToggle');
+        if (toggle) toggle.classList.toggle('on');
+      }
+    
+      /**
+       * Validates the event form and submits to the backend.
+       * Handles both create and edit paths via currentEditingEventId.
+       */
+      function saveEventFromForm() {
+        const btn       = document.getElementById('evtFormSaveBtn');
+        const title     = (document.getElementById('evtFormTitleInput').value || '').trim();
+        const eventType = document.getElementById('evtFormTypeSelect').value;
+        const startDate = document.getElementById('evtFormStartDate').value;
+    
+        if (!title)     { showToast('Please enter an event title.');     document.getElementById('evtFormTitleInput').focus(); return; }
+        if (!startDate) { showToast('Please set a start date.');         document.getElementById('evtFormStartDate').focus();  return; }
+    
+        btn.disabled  = true;
+        btn.innerText = 'Saving…';
+    
+        const payload = {
+          eventId      : currentEditingEventId || null,
+          eventType,
+          title,
+          description  : (document.getElementById('evtFormDescInput').value  || '').trim(),
+          hostMemberId : document.getElementById('evtFormHostSelect').value   || '',
+          eventTimezone : document.getElementById('evtFormTimezoneInput').value || 'IST',
+          startDate    : convertFromInputDateFormat(startDate),
+          startTime    : document.getElementById('evtFormStartTime').value    || '',
+          endDate      : convertFromInputDateFormat(document.getElementById('evtFormEndDate').value || ''),
+          endTime      : document.getElementById('evtFormEndTime').value      || '',
+          meetingLink  : (document.getElementById('evtFormLinkInput').value   || '').trim(),
+          isPinned     : document.getElementById('evtFormPinToggle').classList.contains('on')
+        };
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') {
+              showToast('Error: ' + res.message);
+              btn.disabled = false; btn.innerText = 'Save Event'; return;
+            }
+    
+            // Update local state
+            if (currentEditingEventId) {
+              const idx = globalEventsDB.findIndex(function(e) { return e.eventId === currentEditingEventId; });
+              if (idx > -1) globalEventsDB[idx] = res.event;
+            } else {
+              globalEventsDB.push(res.event);
+            }
+    
+            closeEventFormSheet();
+            showToast(currentEditingEventId ? 'Event updated!' : 'Event created! 📅');
+            if (currentEventsSubTab === 'upcoming') renderUpcomingEvents();
+            if (currentEventsSubTab === 'past')     renderPastEvents();
+    
+            // If detail view is open for this event, refresh it
+            if (currentViewedEventId === res.event.eventId) renderEventDetail(res.event);
+          })
+          .withFailureHandler(function() {
+            showToast('Save failed. Please try again.');
+            btn.disabled = false; btn.innerText = 'Save Event';
+          })
+          .saveEvent(payload);
+      }
+    
+    
+      // ── Add Participant ────────────────────────────────────────────────────────
+    
+      /**
+       * Opens the add-participant bottom sheet for a specific event.
+       * Filters out members who are already in the RSVP list.
+       *
+       * @param {string} eventId - ARKA_EVENT_X
+       */
+      function openAddParticipantSheet(eventId) {
+        const existingMemberIds = new Set(
+          globalEventRSVPsDB.filter(function(r) { return r.eventId === eventId; })
+                            .map(function(r) { return r.memberId; })
+        );
+    
+        const select = document.getElementById('evtParticipantSelect');
+        select.innerHTML = globalMembersDB
+          .filter(function(m) { return !existingMemberIds.has(m.id); })
+          .sort(function(a, b) { return a.displayName.localeCompare(b.displayName); })
+          .map(function(m) { return `<option value="${m.id}">${escapeHtml(m.displayName)}</option>`; })
+          .join('');
+    
+        if (!select.innerHTML) {
+          showToast('All members are already added to this event.');
+          return;
+        }
+    
+        select.dataset.eventId = eventId;
+        const btn = document.getElementById('evtAddParticipantBtn');
+        if (btn) { btn.disabled = false; btn.innerText = 'Add to Event'; }
+    
+        document.getElementById('evtAddParticipantModal').style.display = 'flex';
+        setTimeout(function() { document.getElementById('evtAddParticipantDrawer').classList.add('open'); }, 10);
+      }
+    
+      function closeAddParticipantSheet() {
+        const drawer = document.getElementById('evtAddParticipantDrawer');
+        if (drawer) drawer.classList.remove('open');
+        setTimeout(function() {
+          const modal = document.getElementById('evtAddParticipantModal');
+          if (modal) modal.style.display = 'none';
+        }, 300);
+      }
+    
+      function submitAddParticipant() {
+        const select   = document.getElementById('evtParticipantSelect');
+        const memberId = select.value;
+        const eventId  = select.dataset.eventId;
+        const btn      = document.getElementById('evtAddParticipantBtn');
+    
+        if (!memberId) { showToast('Please select a member.'); return; }
+    
+        btn.disabled = true; btn.innerText = 'Adding…';
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') {
+              showToast('Error: ' + res.message);
+              btn.disabled = false; btn.innerText = 'Add to Event'; return;
+            }
+    
+            // Push new RSVP row to local array
+            if (res.rsvp) globalEventRSVPsDB.push(res.rsvp);
+    
+            // Push personal announcement if one was created
+            if (res.announcement) globalAnnouncementsDB.push(res.announcement);
+    
+            closeAddParticipantSheet();
+            const memberName = membersMap.get(memberId)?.displayName || memberId;
+            showToast(memberName + ' added and notified!');
+    
+            // Refresh detail view if open
+            const evt = globalEventsDB.find(function(e) { return e.eventId === eventId; });
+            if (evt && currentViewedEventId === eventId) renderEventDetail(evt);
+          })
+          .withFailureHandler(function() {
+            showToast('Failed to add participant. Try again.');
+            btn.disabled = false; btn.innerText = 'Add to Event';
+          })
+          .saveEventRSVP({ eventId, memberId, rsvpStatus: 'Invited' });
+      }
+    
+    
+      // ── Attendance Confirmation ────────────────────────────────────────────────
+    
+      /**
+       * Submits an attendance confirmation change (admin/host/creator only).
+       * Updates local array and re-renders the detail view.
+       *
+       * @param {string} rsvpId              - ARKA_RSVP_X
+       * @param {string} eventId             - ARKA_EVENT_X
+       * @param {string} attendanceConfirmed - 'Yes' | '' to reset
+       */
+      function submitConfirmAttendance(rsvpId, eventId, attendanceConfirmed) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') { showToast('Error: ' + res.message); return; }
+    
+            // Update local RSVP record
+            const rsvp = globalEventRSVPsDB.find(function(r) { return r.rsvpId === rsvpId; });
+            if (rsvp) rsvp.attendanceConfirmed = attendanceConfirmed;
+    
+            const evt = globalEventsDB.find(function(e) { return e.eventId === eventId; });
+            if (evt) renderEventDetail(evt);
+            showToast(attendanceConfirmed === 'Yes' ? 'Attendance confirmed ✓' : 'Confirmation removed.');
+          })
+          .withFailureHandler(function() { showToast('Confirmation failed. Try again.'); })
+          .confirmEventAttendance({ rsvpId, eventId, attendanceConfirmed });
+      }
+    
+    
+      // ── Status change ──────────────────────────────────────────────────────────
+    
+      /**
+       * Changes an event's status (Completed / Cancelled / Active).
+       * Shows inline confirmation for destructive changes.
+       *
+       * @param {string} eventId   - ARKA_EVENT_X
+       * @param {string} newStatus - 'Completed' | 'Cancelled' | 'Active'
+       */
+      function changeEventStatus(eventId, newStatus) {
+        const evt = globalEventsDB.find(function(e) { return e.eventId === eventId; });
+        if (!evt) return;
+    
+        if (newStatus === 'Cancelled' && !confirm('Cancel "' + evt.title + '"?\nThis cannot be undone easily.')) return;
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') { showToast('Error: ' + res.message); return; }
+            evt.status = newStatus;
+            showToast('Event marked as ' + newStatus + '.');
+            renderEventDetail(evt);
+            if (currentEventsSubTab === 'upcoming') renderUpcomingEvents();
+            if (currentEventsSubTab === 'past')     renderPastEvents();
+          })
+          .withFailureHandler(function() { showToast('Status update failed. Try again.'); })
+          .updateEventStatus(eventId, newStatus);
+      }
+    
+    
+      // ── Asset Upload ───────────────────────────────────────────────────────────
+    
+      function openAssetUploadSheet(eventId) {
+        const btn = document.getElementById('evtAssetUploadBtn');
+        if (btn) { btn.disabled = false; btn.innerText = 'Upload Asset'; }
+        document.getElementById('evtAssetTitleInput').value  = '';
+        document.getElementById('evtAssetFileInput').value   = '';
+        document.getElementById('evtAssetFileBase64').value  = '';
+        document.getElementById('evtAssetFileName').value    = '';
+        document.getElementById('evtAssetMimeType').value    = '';
+        document.getElementById('evtAssetFileLabel').textContent = 'No file chosen';
+        document.getElementById('evtAssetFileInput').dataset.eventId = eventId;
+    
+        document.getElementById('evtAssetModal').style.display = 'flex';
+        setTimeout(function() { document.getElementById('evtAssetDrawer').classList.add('open'); }, 10);
+      }
+    
+      function closeAssetUploadSheet() {
+        const drawer = document.getElementById('evtAssetDrawer');
+        if (drawer) drawer.classList.remove('open');
+        setTimeout(function() {
+          const modal = document.getElementById('evtAssetModal');
+          if (modal) modal.style.display = 'none';
+        }, 300);
+      }
+    
+      /**
+       * Reads the selected file, encodes it to base64, and stores it in hidden fields.
+       * Identical pattern to the profile pic and badge image handlers.
+       *
+       * @param {Event} event - File input change event
+       */
+      function handleEvtAssetFileSelection(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+    
+        document.getElementById('evtAssetFileLabel').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+        document.getElementById('evtAssetFileName').value  = file.name;
+        document.getElementById('evtAssetMimeType').value  = file.type;
+    
+        // Auto-fill title from filename if empty
+        const titleInput = document.getElementById('evtAssetTitleInput');
+        if (!titleInput.value.trim()) {
+          titleInput.value = file.name.replace(/\.[^.]+$/, ''); // Strip extension
+        }
+    
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('evtAssetFileBase64').value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    
+      function submitAssetUpload() {
+        const btn       = document.getElementById('evtAssetUploadBtn');
+        const eventId   = document.getElementById('evtAssetFileInput').dataset.eventId;
+        const assetType  = document.getElementById('evtAssetTypeSelect').value;
+        const assetTitle = (document.getElementById('evtAssetTitleInput').value || '').trim();
+        const fileBase64 = document.getElementById('evtAssetFileBase64').value;
+        const fileName   = document.getElementById('evtAssetFileName').value;
+        const mimeType   = document.getElementById('evtAssetMimeType').value;
+    
+        if (!fileBase64) { showToast('Please select a file to upload.'); return; }
+        if (!assetTitle) { showToast('Please add a display title.'); document.getElementById('evtAssetTitleInput').focus(); return; }
+    
+        btn.disabled = true; btn.innerText = 'Uploading…';
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') {
+              showToast('Upload failed: ' + res.message);
+              btn.disabled = false; btn.innerText = 'Upload Asset'; return;
+            }
+    
+            // Update local event's assetsJson
+            const evt = globalEventsDB.find(function(e) { return e.eventId === eventId; });
+            if (evt) evt.assetsJson = res.updatedAssetsJson;
+    
+            closeAssetUploadSheet();
+            showToast('Asset uploaded! 📎');
+            if (evt && currentViewedEventId === eventId) renderEventDetail(evt);
+          })
+          .withFailureHandler(function() {
+            showToast('Upload failed. Please try again.');
+            btn.disabled = false; btn.innerText = 'Upload Asset';
+          })
+          .uploadEventAsset({ eventId, assetType, assetTitle, fileBase64, fileName, mimeType });
+      }
+    
+      function submitRemoveAsset(eventId, assetId) {
+        const evt       = globalEventsDB.find(function(e) { return e.eventId === eventId; });
+        const assets    = evt ? (() => { try { return JSON.parse(evt.assetsJson || '[]'); } catch(e) { return []; } })() : [];
+        const asset     = assets.find(function(a) { return a.assetId === assetId; });
+        const assetName = asset ? asset.title : assetId;
+    
+        if (!confirm('Remove "' + assetName + '"?\nThe Drive file is preserved — only the link is removed.')) return;
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') { showToast('Error: ' + res.message); return; }
+            if (evt) evt.assetsJson = res.updatedAssetsJson;
+            showToast('Asset removed.');
+            if (evt && currentViewedEventId === eventId) renderEventDetail(evt);
+          })
+          .withFailureHandler(function() { showToast('Remove failed. Try again.'); })
+          .removeEventAsset({ eventId, assetId });
       }
 
     </script>
