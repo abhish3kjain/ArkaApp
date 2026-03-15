@@ -141,6 +141,7 @@ L	status	Active, Cancelled, Completed
 M	isPinned	TRUE / FALSE	Pin to top of Events list
 N	createdBy	ARKA_MEMBER_X	Admin who created it
 O	createdOn	dd-MM-yyyy HH:mm:ss Z	
+P	eventTimezone			
 			
 EventRSVPDB			
 Col	Field	ID Format / Values	Notes
@@ -164,6 +165,7 @@ E	expiryDate	dd-MMM-yyyy or blank	Blank = never expires
 F	status	Active, Archived	Archived = hidden from feed
 G	createdBy	ARKA_MEMBER_X	
 H	createdOn	dd-MM-yyyy HH:mm:ss Z	
+I	targetMemberId	ARKA_MEMBER_X, blank = club wide	
 
 
 Activity Types :
@@ -202,3 +204,8 @@ SYS_ACTTYP_CLUBPOINTS_CORRECTION	System corrected points	Points are corrected fo
 ARKA_ACTTYPE_BOOKPOST	Post Discussion on a book	Records when a member adds to disucssion on a book	13-Mar-2026	20	BookPostID
 ARKA_ACTTYP_BADGEAWARD	Badge Awarded to a Member	Records when a badge is awarded to a member.	14-Mar-2026	1	AwardID
 ARKA_ACTTYP_BADGEREVOKE	Badge Revoked from a Member	Records when a badge is revoked from a member.	14-Mar-2026	-1	AwardID
+ARKA_ACTTYP_EVENTCREATED	Event Created	Member or admin created a club event	15-Mar-2026	5	EventID
+ARKA_ACTTYP_EVENTRSVP	Event RSVP	Member RSVPed Going or Maybe to an event	15-Mar-2026	2	RSVP ID
+ARKA_ACTTYP_EVENTATTENDED	Event Attended	Member's attendance at an event was confirmed	15-Mar-2026	10	EventID
+ARKA_ACTTYP_EVENTCANCELLED	Event Cancelled	Admin or manager cancelled an event	15-Mar-2026	0	EventID
+ARKA_ACTTYP_ANNOUNCEMENTPOSTED	Announcement Posted	Admin posted a club-wide notice	15-Mar-2026	0	AnnouncementID
