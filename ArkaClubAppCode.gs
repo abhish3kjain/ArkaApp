@@ -84,7 +84,7 @@
  * @property {number} likeCount - Numeric sum of likes received (Col H)
  */
 
-const APP_VERSION = "v35";
+const APP_VERSION = "v36";
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -106,7 +106,7 @@ const EVENT_ASSETS_FOLDER_ID = '1R0-aaxcymLuemLRXK2E_E0sqYEQdFC37';
  * Must be kept in sync with ADMIN_MEMBER_IDS on the frontend.
  * @type {string[]}
  */
-const ADMIN_MEMBER_IDS_BACKEND = ['ARKA_MEMBER_1', 'ARKA_MEMBER_20'];
+const ADMIN_MEMBER_IDS_BACKEND = ['ARKA_MEMBER_1'];
 
 /**
  * 1. Serve the HTML page
@@ -2214,16 +2214,16 @@ function getEventsData() {
           description  : eData[i][3].toString(),
           hostMemberId : eData[i][4].toString(),
           startDate    : rawStartDate instanceof Date
-            ? Utilities.formatDate(rawStartDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            ? Utilities.formatDate(rawStartDate, 'Session.getScriptTimeZone()', 'dd-MMM-yyyy')
             : String(rawStartDate || ''),
           startTime : eData[i][6] instanceof Date
-            ? Utilities.formatDate(eData[i][6], Session.getScriptTimeZone(), 'HH:mm')
+            ? Utilities.formatDate(eData[i][6], 'UTC', 'HH:mm')
             : String(eData[i][6] || ''),
           endDate      : rawEndDate instanceof Date
             ? Utilities.formatDate(rawEndDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
             : String(rawEndDate || ''),
           endTime   : eData[i][8] instanceof Date
-            ? Utilities.formatDate(eData[i][8], Session.getScriptTimeZone(), 'HH:mm')
+            ? Utilities.formatDate(eData[i][8], 'UTC', 'HH:mm')
             : String(eData[i][8] || ''),
           meetingLink  : eData[i][9].toString(),
           assetsJson   : eData[i][10].toString(),
@@ -2311,9 +2311,11 @@ function saveEvent(data) {
   const currentMemberId = getVerifiedMemberId();
   if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
  
-  // ── Validate type permission ──────────────────────────────────────────────
+  // ── Validate type permission (CREATE only) ────────────────────────────────
+  // On edit, the type dropdown is disabled for non-admins so the original type
+  // is always preserved. We only need to enforce admin-only types on creation.
   const adminOnlyTypes = ['Meeting-Virtual', 'Meeting-F2F'];
-  if (adminOnlyTypes.includes(data.eventType) && !isAdminMember(currentMemberId)) {
+  if (!data.eventId && adminOnlyTypes.includes(data.eventType) && !isAdminMember(currentMemberId)) {
     return { status: 'error', message: 'Only admins can create Meeting events.' };
   }
  
@@ -2352,6 +2354,10 @@ function saveEvent(data) {
       (data.endTime      || '').trim(),
       (data.meetingLink  || '').trim()
     ]]);
+    // Enforce plain-text format on time cells so Sheets never re-interprets
+    // them as Date objects (which would re-introduce the UTC offset bug).
+    eventSheet.getRange(found.rowIndex, 7).setNumberFormat('@STRING@'); // Col G: startTime
+    eventSheet.getRange(found.rowIndex, 9).setNumberFormat('@STRING@'); // Col I: endTime
     eventSheet.getRange(found.rowIndex, 16).setValue((data.eventTimezone || 'IST').trim());
     // Update isPinned (Col M = column 13)
     eventSheet.getRange(found.rowIndex, 13).setValue(isPinned);
@@ -2541,11 +2547,18 @@ function saveEventRSVP(data) {
  
     // Update existing row — only touch rsvpStatus (Col D) and rsvpDate (Col E)
     rsvpSheet.getRange(i + 1, 4, 1, 2).setValues([[data.rsvpStatus, timestamp]]);
+
+    // Log with the existing rsvpId so the home feed resolves to current status.
+    // Only log Yes/Maybe — 'No' entries are filtered out of the feed by design.
+    const existingRsvpId = rsvpData[i][0].toString();
+    if (data.rsvpStatus === 'Yes' || data.rsvpStatus === 'Maybe') {
+      try { logActivity(data.memberId, 'ARKA_ACTTYP_EVENTRSVP', 1, existingRsvpId); } catch(e) {}
+    }
  
     return {
       status: 'success',
       rsvp: {
-        rsvpId              : rsvpData[i][0].toString(),
+        rsvpId              : existingRsvpId,
         eventId             : data.eventId,
         memberId            : data.memberId,
         rsvpStatus          : data.rsvpStatus,
@@ -2579,8 +2592,10 @@ function saveEventRSVP(data) {
     currentMemberId    // Col I — addedBy (who created this row)
   ]);
 
+  // Store rsvpId (not eventId) so renderHomeFeed() can look up the live RSVP record,
+  // get the current status (correct verb), and filter out 'No' RSVPs dynamically.
   if (data.rsvpStatus === 'Yes' || data.rsvpStatus === 'Maybe') {
-    try { logActivity(data.memberId, 'ARKA_ACTTYP_EVENTRSVP', 1, data.eventId); } catch(e) {}
+    try { logActivity(data.memberId, 'ARKA_ACTTYP_EVENTRSVP', 1, rsvpId); } catch(e) {}
   }
  
   const newRsvp = {
