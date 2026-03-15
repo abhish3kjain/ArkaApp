@@ -1692,20 +1692,36 @@
             <div style="flex:1; height:2px; background:linear-gradient(to left, #2c3e50, transparent); border-radius:0;"></div>
           </div>
 
-          <!-- Stat pills -->
+          <!-- Stat pills — split design: current year (top) / lifetime total (bottom) -->
           <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px;">
+
+            <!-- Pages: year on top, lifetime below -->
             <div style="background:white; border:0.5px solid #ecf0f1; border-radius:10px; padding:10px; text-align:center;">
-              <div style="font-size:20px; font-weight:700; color:#2c3e50;" id="meStatPages">0</div>
-              <div style="font-size:10px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; margin-top:2px;">pages</div>
+              <div style="font-size:18px; font-weight:700; color:#2c3e50; line-height:1;" id="meStatPagesYear">–</div>
+              <div style="font-size:9px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; margin-top:3px;" id="meStatPagesYearLabel">pages</div>
+              <div style="height:1px; background:#ecf0f1; margin:6px 4px;"></div>
+              <div style="font-size:12px; font-weight:600; color:#95a5a6; line-height:1;" id="meStatPagesTotal">0</div>
+              <div style="font-size:9px; color:#bdc3c7; margin-top:2px;">total</div>
             </div>
+
+            <!-- Books: year on top, lifetime below -->
             <div style="background:white; border:0.5px solid #ecf0f1; border-radius:10px; padding:10px; text-align:center;">
-              <div style="font-size:20px; font-weight:700; color:#2c3e50;" id="meStatBooks">0</div>
-              <div style="font-size:10px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; margin-top:2px;">books</div>
+              <div style="font-size:18px; font-weight:700; color:#2c3e50; line-height:1;" id="meStatBooksYear">–</div>
+              <div style="font-size:9px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; margin-top:3px;" id="meStatBooksYearLabel">books</div>
+              <div style="height:1px; background:#ecf0f1; margin:6px 4px;"></div>
+              <div style="font-size:12px; font-weight:600; color:#95a5a6; line-height:1;" id="meStatBooksTotal">0</div>
+              <div style="font-size:9px; color:#bdc3c7; margin-top:2px;">total</div>
             </div>
+
+            <!-- Streak: current streak on top, active weeks this year below -->
             <div id="meStatStreakTile" style="background:#f8f9fa; border:0.5px solid #ecf0f1; border-radius:10px; padding:10px; text-align:center;">
-              <div style="font-size:20px; font-weight:700; color:#7f8c8d;" id="meStatStreakValue">–</div>
-              <div id="meStatStreakLabel" style="font-size:10px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; margin-top:2px;">streak</div>
+              <div style="font-size:18px; font-weight:700; color:#7f8c8d; line-height:1;" id="meStatStreakValue">–</div>
+              <div id="meStatStreakLabel" style="font-size:9px; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; margin-top:3px;">streak</div>
+              <div style="height:1px; background:#ecf0f1; margin:6px 4px;"></div>
+              <div style="font-size:12px; font-weight:600; color:#95a5a6; line-height:1;" id="meStatWeeksActive">–</div>
+              <div style="font-size:9px; color:#bdc3c7; margin-top:2px;" id="meStatWeeksLabel">wks active</div>
             </div>
+
           </div>
 
           <!-- Level progress bar -->
@@ -2480,7 +2496,7 @@
        * Must be kept in sync with ADMIN_MEMBER_IDS_BACKEND in the .gs file.
        * @type {string[]}
       */
-      const ADMIN_MEMBER_IDS = ['ARKA_MEMBER_1', 'ARKA_MEMBER_20'];
+      const ADMIN_MEMBER_IDS = ['ARKA_MEMBER_1'];
 
       /**
        * --- Global App State (The Big Gulp) ---
@@ -3320,12 +3336,14 @@
           }
         }
 
-        // ── Stat pills ────────────────────────────────────────────────────────
-        const meStatPagesEl = document.getElementById('meStatPages');
-        if (meStatPagesEl) meStatPagesEl.innerText = (Number(member.pages) || 0).toLocaleString();
+        // ── Stat pills — lifetime totals go into the bottom half of each split pill.
+        //    Current-year values are populated later by renderHeatmap() once page log
+        //    data has been processed.
+        const meStatPagesTotalEl = document.getElementById('meStatPagesTotal');
+        if (meStatPagesTotalEl) meStatPagesTotalEl.innerText = (Number(member.pages) || 0).toLocaleString();
 
-        const meStatBooksEl = document.getElementById('meStatBooks');
-        if (meStatBooksEl) meStatBooksEl.innerText = member.books || 0;
+        const meStatBooksTotalEl = document.getElementById('meStatBooksTotal');
+        if (meStatBooksTotalEl) meStatBooksTotalEl.innerText = member.books || 0;
 
         // ── Level progress bar ────────────────────────────────────────────────
         const lvls = globalMemberLevelsDB;
@@ -3376,7 +3394,15 @@
        */
       function switchTab(tabName) {
         // 1. Safety first: Always close the sliding drawer when navigating
-        toggleDrawer(false); 
+        toggleDrawer(false);
+
+        // 1A. Always reset event-management FABs to hidden.
+        //    refreshEventsViewFabVisibility() will re-show the correct one
+        //    only when the Events & Announcements view is the target.
+        const annFabEl = document.getElementById('annCreateFab');
+        const evtFabEl = document.getElementById('evtCreateFab');
+        if (annFabEl) annFabEl.style.display = 'none';
+        if (evtFabEl) evtFabEl.style.display = 'none';
 
         // 2. Hide ALL top-level views completely
         document.getElementById('homeView').style.display = "none";
@@ -3455,8 +3481,10 @@
 
         if (tabName === 'eventsAndAnnouncements') {
           refreshEventsViewFabVisibility();
-          // Lazy-load events the first time the tab is opened
-          if (!isEventsDataLoaded) loadEventsData();
+          // Always refresh events data when the tab is opened.
+          // loadEventsData() shows a spinner only on first load; subsequent calls
+          // are silent background refreshes that update the list when complete.
+          loadEventsData();
         }
         
         // 8. Snap to the top of the page so it feels like a fresh screen load
@@ -4766,6 +4794,10 @@
         dirContent.style.display  = isDirectory  ? 'block' : 'none';
         rankContent.style.display = !isDirectory ? 'block' : 'none';
       
+        if (isDirectory && isAppDataLoaded) {
+          loadMembersDirectory();
+        }
+
         if (!isDirectory && isAppDataLoaded) {
           renderLeaderboard(currentLeaderboardCategory);
         }
@@ -6100,10 +6132,19 @@
                  groupKey = `${rawMemberId}_EXTPAGE_${log.activityID}`; // Force individual bubble
             }
 
-            // In the groupKey section, add:
             const eventTypes = ["ARKA_ACTTYP_EVENTCREATED", "ARKA_ACTTYP_EVENTRSVP", "ARKA_ACTTYP_EVENTATTENDED"];
             if (eventTypes.includes(type)) {
-                groupKey = `${rawMemberId}_${log.activityDesc}_${dateKey}`;
+                // For EVENTRSVP the description is a rsvpId (new) or eventId (legacy).
+                // Resolve to eventId for groupKey so multiple RSVP changes to the same
+                // event on the same day collapse into one feed bubble.
+                let evtIdForKey = log.activityDesc;
+                if (type === 'ARKA_ACTTYP_EVENTRSVP' && log.activityDesc.startsWith('ARKA_RSVP_')) {
+                    const rsvpForKey = globalEventRSVPsDB.find(function(r) {
+                        return r.rsvpId === log.activityDesc;
+                    });
+                    if (rsvpForKey) evtIdForKey = rsvpForKey.eventId;
+                }
+                groupKey = rawMemberId + '_' + evtIdForKey + '_' + dateKey;
             }
 
             if (!groupedFeed[groupKey]) {
@@ -6113,12 +6154,14 @@
                     book: bookObj,
                     shelf: shelfRecord,
                     source: log.activitySource || "ArkaClubApp " + currentAppVersion,
-                    primaryAction: "", // The main text
-                    activities: [],    // Array of all activity types in this bucket
+                    primaryAction: "",
+                    activities: [],
                     latestReview: "",
                     latestRating: 0,
                     externalDesc: "",
-                    levelUpDesc: ""
+                    levelUpDesc: "",
+                    eventId: "",   // used by EVENTCREATED and EVENTATTENDED
+                    rsvpId: ""    // used by EVENTRSVP — resolves to live RSVP record
                 };
             }
 
@@ -6133,10 +6176,44 @@
             if (type === "ARKA_ACTTYP_MILESTONE_PAGES" || type === "ARKA_ACTTYP_MILESTONE_BOOKS") {
                 bucket.externalDesc = log.activityDesc.toString(); // This "takes" the number from the DB
             }
+            // Capture event/RSVP identifiers into the bucket for Phase 3 rendering.
+            // EVENTRSVP new-style: description is rsvpId — store in bucket.rsvpId.
+            // EVENTRSVP legacy:   description is eventId — store in bucket.eventId as fallback.
+            // All other event types: description is eventId — store in bucket.eventId.
+            if (eventTypes.includes(type)) {
+                if (type === 'ARKA_ACTTYP_EVENTRSVP' && log.activityDesc.startsWith('ARKA_RSVP_')) {
+                    bucket.rsvpId = log.activityDesc;
+                } else {
+                    bucket.eventId = log.activityDesc;
+                }
+            }
         });
 
-        // Convert the map back to an array and sort by latest date
-        let feedItems = Object.values(groupedFeed).sort((a, b) => b.dateObj - a.dateObj);
+        // --- PHASE 2.5: Resolve RSVP records and filter out 'No' RSVPs ---
+        // For each EVENTRSVP bucket that has a rsvpId, look up the live RSVP record.
+        // If the current status is 'No' the member has declined — hide from feed entirely.
+        // If resolved successfully, attach eventId and current status for Phase 3 rendering.
+        // Buckets whose rsvpId can't be resolved (Events data not loaded yet) pass through
+        // with a graceful fallback rendered in Phase 3.
+        Object.values(groupedFeed).forEach(function(item) {
+            if (!item.activities.includes('ARKA_ACTTYP_EVENTRSVP') || !item.rsvpId) return;
+            const liveRsvp = globalEventRSVPsDB.find(function(r) {
+                return r.rsvpId === item.rsvpId;
+            });
+            if (!liveRsvp) return; // Events not loaded — leave for Phase 3 fallback
+            if (liveRsvp.rsvpStatus === 'No') {
+                item.shouldSkip = true; // Member declined — remove from feed
+                return;
+            }
+            // Resolved successfully — attach live data for Phase 3
+            item.eventId           = liveRsvp.eventId;
+            item.resolvedRsvpStatus = liveRsvp.rsvpStatus; // current status, not snapshot
+        });
+
+        // Convert the map back to an array, remove declined RSVPs, and sort by latest date
+        let feedItems = Object.values(groupedFeed)
+            .filter(function(item) { return !item.shouldSkip; })
+            .sort(function(a, b) { return b.dateObj - a.dateObj; });
 
         // --- PHASE 3: Render ---
         feedItems.forEach(item => {
@@ -6182,20 +6259,34 @@
             } else if (acts.includes("ARKA_ACTTYP_FEEDBACK")) {
                 actionHtml = `shared some feedback to help improve the app! 💡🙏`;
             } else if (acts.includes("ARKA_ACTTYP_EVENTCREATED")) {
-                const evt = eventsMap.get(log.activityDesc);
+                const evt = eventsMap.get(item.eventId);
                 const evtTitle = evt ? evt.title : 'a new event';
                 actionHtml = `created a new event: <b>${escapeHtml(evtTitle)}</b> 📅`;
             } else if (acts.includes("ARKA_ACTTYP_EVENTRSVP")) {
-                const evt = eventsMap.get(log.activityDesc);
-                const evtTitle = evt ? evt.title : 'an event';
-                // Resolve their actual RSVP status from globalEventRSVPsDB for accurate text
-                const rsvp = globalEventRSVPsDB.find(function(r) {
-                    return r.eventId === log.activityDesc && r.memberId === log.activityMemberID;
-                });
-                const verb = (rsvp && rsvp.rsvpStatus === 'Maybe') ? 'is interested in' : 'is going to';
-                actionHtml = `${verb} <b>${escapeHtml(evtTitle)}</b> ✓`;
+                // item.eventId is populated by Phase 2.5 resolution (rsvpId path)
+                // or directly from the legacy log description (eventId path).
+                // item.resolvedRsvpStatus is the live RSVP status from Phase 2.5.
+                if (item.eventId) {
+                    const evt = eventsMap.get(item.eventId);
+                    const evtTitle = evt ? evt.title : 'an event';
+                    // resolvedRsvpStatus is set by Phase 2.5 when rsvpId lookup succeeded.
+                    // For legacy rows (old eventId-based description), fall back to a
+                    // globalEventRSVPsDB lookup — same behaviour as before for old rows.
+                    const rsvpStatus = item.resolvedRsvpStatus
+                        || (function() {
+                            const r = globalEventRSVPsDB.find(function(x) {
+                                return x.eventId === item.eventId && x.memberId === item.member.id;
+                            });
+                            return r ? r.rsvpStatus : 'Yes';
+                        })();
+                    const verb = (rsvpStatus === 'Maybe') ? 'is interested in' : 'is going to';
+                    actionHtml = verb + ' <b>' + escapeHtml(evtTitle) + '</b> ✓';
+                } else {
+                    // rsvpId present but Events data not loaded yet — graceful fallback
+                    actionHtml = 'responded to an event 📅';
+                }
             } else if (acts.includes("ARKA_ACTTYP_EVENTATTENDED")) {
-                const evt = eventsMap.get(log.activityDesc);
+                const evt = eventsMap.get(item.eventId);
                 const evtTitle = evt ? evt.title : 'an event';
                 actionHtml = `attended <b>${escapeHtml(evtTitle)}</b> 🎉`;
             } else if (acts.includes("ARKA_ACTTYP_MILESTONE_PAGES") || acts.includes("ARKA_ACTTYP_MILESTONE_BOOKS")) {
@@ -8043,12 +8134,20 @@
             }
         });
 
-        // Update the HTML counters
-        const statsPagesEl = document.getElementById('statsTotalPages');
-        if (statsPagesEl) statsPagesEl.innerText = pagesThisYear.toLocaleString();
+        // Populate the top half of the split stat pills with current-year data.
+        // The bottom halves (lifetime totals) are set earlier by populateMePage().
+        const meStatPagesYearEl = document.getElementById('meStatPagesYear');
+        if (meStatPagesYearEl) meStatPagesYearEl.innerText = pagesThisYear.toLocaleString();
 
-        const statsBooksEl = document.getElementById('statsTotalBooks');
-        if (statsBooksEl) statsBooksEl.innerText = booksThisYear;
+        const meStatBooksYearEl = document.getElementById('meStatBooksYear');
+        if (meStatBooksYearEl) meStatBooksYearEl.innerText = booksThisYear;
+
+        // Update the sub-labels to show the actual year (e.g. "2026 pages")
+        const meStatPagesYearLabelEl = document.getElementById('meStatPagesYearLabel');
+        if (meStatPagesYearLabelEl) meStatPagesYearLabelEl.innerText = currentYear + ' pages';
+
+        const meStatBooksYearLabelEl = document.getElementById('meStatBooksYearLabel');
+        if (meStatBooksYearLabelEl) meStatBooksYearLabelEl.innerText = currentYear + ' books';
 
         // 6. Draw the 52 Squares in the CSS Grid
         grid.innerHTML = ''; 
@@ -8801,7 +8900,15 @@
                             text-align:right;">🏆 Personal best!</div>`
               : '');
 
-        // Set the streak pill in the stat row
+        // ── Active weeks this year ────────────────────────────────────────────
+        // Count weeks 1..currentWeekNum where at least 1 page was logged.
+        // currentWeekNum is already calculated at the top of this function.
+        let activeWeeksThisYear = 0;
+        for (let w = 1; w <= currentWeekNum; w++) {
+          if ((weeklyPagesCurrentYear[w] || 0) > 0) activeWeeksThisYear++;
+        }
+
+        // ── Update the streak stat pill (top half = current streak) ──────────
         const streakPillVal  = document.getElementById('meStatStreakValue');
         const streakPillTile = document.getElementById('meStatStreakTile');
         if (streakPillVal) {
@@ -8814,6 +8921,21 @@
             if (lbl) lbl.style.color = '#854F0B';
           }
         }
+
+        // ── Update the streak stat pill (bottom half = active weeks) ─────────
+        // Format: "31/45" where 45 = weeks elapsed so far this year.
+        // Short year suffix e.g. '26 makes it clear this is the current year only.
+        const weeksActiveEl = document.getElementById('meStatWeeksActive');
+        const weeksLabelEl  = document.getElementById('meStatWeeksLabel');
+        if (weeksActiveEl) {
+          weeksActiveEl.innerText = activeWeeksThisYear + '/' + currentWeekNum;
+          if (currentStreak > 0) weeksActiveEl.style.color = '#854F0B';
+        }
+        if (weeksLabelEl) {
+          weeksLabelEl.innerText = 'wks active \'' + String(activeYear).slice(-2);
+          if (currentStreak > 0) weeksLabelEl.style.color = '#e67e22';
+        }
+        
         container.innerHTML = `
           <div style="background:#fff8f0; border:1px solid #f0c070; border-radius:8px;
                       padding:10px 14px; display:flex; align-items:center;
@@ -9553,36 +9675,40 @@
       // ── Data loader ────────────────────────────────────────────────────────────
     
       /**
-       * Lazy-loads events and RSVPs from the backend.
-       * Called once when the user first opens the Events & Announcements view.
-       * Updates globalEventsDB, globalEventRSVPsDB, then re-renders the active tab.
+       * Loads (or refreshes) events and RSVPs from the backend.
+       * First call: shows a loading spinner while data arrives.
+       * Subsequent calls: silent background refresh — list updates once response arrives.
        */
       function loadEventsData() {
-        // Show loading state in whichever content panel is visible
-        const upcomingEl = document.getElementById('evtUpcomingContent');
-        const pastEl     = document.getElementById('evtPastContent');
-        if (upcomingEl && upcomingEl.style.display !== 'none') {
-          upcomingEl.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:40px 0;font-style:italic;">Loading events…</p>';
+        // Only show the loading spinner the very first time (no data yet).
+        // Repeat visits silently refresh in the background without clearing the current list.
+        if (!isEventsDataLoaded) {
+          const upcomingEl = document.getElementById('evtUpcomingContent');
+          if (upcomingEl && upcomingEl.style.display !== 'none') {
+            upcomingEl.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:40px 0;font-style:italic;">Loading events…</p>';
+          }
         }
     
         google.script.run
           .withSuccessHandler(function(res) {
             if (res.status === 'error') {
-              showToast('Could not load events. Please try again.');
+              // Only surface the error toast if we have nothing to show
+              if (!isEventsDataLoaded) showToast('Could not load events. Please try again.');
               return;
             }
             globalEventsDB     = res.eventsDB  || [];
             globalEventRSVPsDB = res.rsvpsDB   || [];
             isEventsDataLoaded = true;
-            // Build once when events lazy-load — not in Big Gulp
-            eventsMap = new Map(globalEventsDB.map(function(e) { return [e.eventId, e]; }));  
+            // Rebuild the O(1) lookup map with fresh data
+            eventsMap = new Map(globalEventsDB.map(function(e) { return [e.eventId, e]; }));
     
-            // Re-render whichever tab is currently showing
+            // Re-render the currently visible sub-tab with the fresh data
             if (currentEventsSubTab === 'upcoming') renderUpcomingEvents();
             if (currentEventsSubTab === 'past')     renderPastEvents();
           })
           .withFailureHandler(function() {
-            showToast('Failed to load events.');
+            // Only show toast on first load — silent failure on background refreshes
+            if (!isEventsDataLoaded) showToast('Failed to load events.');
           })
           .getEventsData();
       }
@@ -9985,12 +10111,23 @@
         currentEditingEventId = eventId || null;
         const isAdmin         = ADMIN_MEMBER_IDS.includes(currentUser);
     
-        // Build event type options
+        // Build event type options.
+        // EDIT MODE: show all types so the current type is always present in the list,
+        //            then lock the dropdown for non-admins (type changes are admin-only).
+        // CREATE MODE: filter to only the types the user is permitted to create.
         const typeSelect = document.getElementById('evtFormTypeSelect');
-        typeSelect.innerHTML = Object.entries(EVENT_TYPE_CONFIG)
-          .filter(function([key, cfg]) { return isAdmin || cfg.memberCanCreate; })
-          .map(function([key, cfg]) { return `<option value="${key}">${cfg.label}</option>`; })
-          .join('');
+        if (eventId) {
+          typeSelect.innerHTML = Object.entries(EVENT_TYPE_CONFIG)
+            .map(function([key, cfg]) { return '<option value="' + key + '">' + cfg.label + '</option>'; })
+            .join('');
+          typeSelect.disabled = !isAdmin; // non-admin hosts cannot change the event type
+        } else {
+          typeSelect.innerHTML = Object.entries(EVENT_TYPE_CONFIG)
+            .filter(function([key, cfg]) { return isAdmin || cfg.memberCanCreate; })
+            .map(function([key, cfg]) { return '<option value="' + key + '">' + cfg.label + '</option>'; })
+            .join('');
+          typeSelect.disabled = false;
+        }
     
         // Build host member options
         const hostSelect = document.getElementById('evtFormHostSelect');
