@@ -96,7 +96,10 @@ const PROFILE_PICS_FOLDER_ID = '11n3v_TfITYYOCg-IQRFSrgqs89M0T1j8';
 const BADGE_DB_SHEET = "BadgeDB";
 const BADGE_AWARD_DB_SHEET = "BadgeAwardDB";
 const ANNOUNCEMENT_SHEET = "AnnouncementDB";
+const EVENT_SHEET           = "EventDB";
+const EVENT_RSVP_SHEET      = "EventRSVPDB";
 const BADGE_IMAGES_FOLDER_ID  = '1WLX0fy5RkuvMzpQwCkQjjSVlFTajxY59';
+const EVENT_ASSETS_FOLDER_ID = '1R0-aaxcymLuemLRXK2E_E0sqYEQdFC37';
 /**
  * Member IDs that have administrative privileges.
  * Update this array to add or remove admins.
@@ -1865,7 +1868,8 @@ function fetchActiveAnnouncements(ss) {
       expiryDate     : expiryStr,
       status         : data[i][5].toString(),
       createdBy      : data[i][6].toString(),
-      createdOn      : createdOnStr
+      createdOn      : createdOnStr,
+      targetMemberId : data[i][8] ? data[i][8].toString() : ''
     });
   }
  
@@ -1891,6 +1895,7 @@ function fetchActiveAnnouncements(ss) {
  * @param {string}  data.body             - Required body text (non-empty)
  * @param {boolean} data.isPinned         - true → pin to home feed
  * @param {string}  [data.expiryDate]     - Optional dd-MMM-yyyy expiry date
+ * @param {string} [data.targetMemberId] - ARKA_MEMBER_X for personal notice, blank = club-wide
  * @returns {{ status: string, announcement?: AnnouncementRecord, message?: string }}
  */
 function saveAnnouncement(data) {
@@ -1959,8 +1964,13 @@ function saveAnnouncement(data) {
     expiryDate,      // Col E — expiryDate
     'Active',        // Col F — status
     currentMemberId, // Col G — createdBy
-    timestamp        // Col H — createdOn
+    timestamp,        // Col H — createdOn
+    data.targetMemberId || ''     //Col I - targetMember ID where this notice will display, blank - club wide
   ]);
+
+  if (!data.targetMemberId) {
+    try { logActivity(currentMemberId, 'ARKA_ACTTYP_ANNOUNCEMENTPOSTED', 1, announcementId); } catch(e) {}
+  }
  
   return {
     status: 'success',
@@ -1972,7 +1982,8 @@ function saveAnnouncement(data) {
       expiryDate,
       status    : 'Active',
       createdBy : currentMemberId,
-      createdOn : timestamp
+      createdOn : timestamp,
+      targetMemberId: data.targetMemberId || ''
     }
   };
 }
@@ -2036,5 +2047,758 @@ function setAnnouncementPin(announcementId, pinState) {
   }
  
   return { status: 'error', message: 'Announcement not found.' };
+}
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+ 
+/**
+ * @typedef {Object} EventRecord
+ * @property {string}  eventId        - Unique ID: ARKA_EVENT_X              (Col A)
+ * @property {string}  eventType      - Meeting-Virtual | Meeting-F2F |       (Col B)
+ *                                      BookBuddyRead | Social | Other
+ * @property {string}  title          - Display name of the event             (Col C)
+ * @property {string}  description    - Full event details                    (Col D)
+ * @property {string}  hostMemberId   - ARKA_MEMBER_X or "" if no host       (Col E)
+ * @property {string}  startDate      - dd-MMM-yyyy                          (Col F)
+ * @property {string}  startTime      - HH:mm (24hr)                         (Col G)
+ * @property {string}  endDate        - dd-MMM-yyyy                          (Col H)
+ * @property {string}  endTime        - HH:mm (24hr)                         (Col I)
+ * @property {string}  meetingLink    - URL or ""                             (Col J)
+ * @property {string}  assetsJson     - JSON string array of asset objects    (Col K)
+ * @property {string}  status         - Active | Cancelled | Completed        (Col L)
+ * @property {boolean} isPinned       - Pinned to top of events list          (Col M)
+ * @property {string}  createdBy      - ARKA_MEMBER_X                        (Col N)
+ * @property {string}  createdOn      - dd-MM-yyyy HH:mm:ss Z                (Col O)
+ */
+ 
+/**
+ * @typedef {Object} EventRSVPRecord
+ * @property {string} rsvpId               - Unique ID: ARKA_RSVP_X         (Col A)
+ * @property {string} eventId              - ARKA_EVENT_X                   (Col B)
+ * @property {string} memberId             - ARKA_MEMBER_X                  (Col C)
+ * @property {string} rsvpStatus           - Invited | Yes | No | Maybe     (Col D)
+ * @property {string} rsvpDate             - dd-MM-yyyy HH:mm:ss Z          (Col E)
+ * @property {string} attendanceConfirmed  - Yes | No | "" (blank=pending)  (Col F)
+ * @property {string} confirmedBy          - ARKA_MEMBER_X or ""            (Col G)
+ * @property {string} confirmedOn          - timestamp or ""                (Col H)
+ * @property {string} addedBy              - ARKA_MEMBER_X who created row  (Col I)
+ */
+ 
+/**
+ * @typedef {Object} EventAsset
+ * @property {string} assetId    - ARKA_EVTASSET_X
+ * @property {string} type       - Photo | PDF | PPT | Document | Other
+ * @property {string} title      - Display name shown in the app
+ * @property {string} driveLink  - Google Drive viewer URL (open in new window)
+ * @property {string} uploadedBy - ARKA_MEMBER_X
+ * @property {string} uploadedOn - dd-MM-yyyy HH:mm:ss Z
+ */
+ 
+ 
+// ============================================================================
+// STEP 5a — PRIVATE HELPERS
+// ============================================================================
+ 
+/**
+ * PRIVATE HELPER: Checks whether a member has management rights over a specific event.
+ * Management rights = can edit details, add participants, confirm attendance, add assets.
+ * Three-way check: Admin OR the designated host OR the original creator.
+ *
+ * IMPORTANT: Always call with a verified memberId from getVerifiedMemberId().
+ * The frontend has the same function for UI gating — the backend is the true security gate.
+ *
+ * @param {string} memberId         - Verified ARKA_MEMBER_X
+ * @param {Object} event            - Must contain hostMemberId and createdBy
+ * @param {string} event.hostMemberId
+ * @param {string} event.createdBy
+ * @returns {boolean}
+ */
+function canManageEvent(memberId, event) {
+  return isAdminMember(memberId)
+    || (event.hostMemberId && memberId === event.hostMemberId)
+    || (event.createdBy    && memberId === event.createdBy);
+}
+ 
+/**
+ * PRIVATE HELPER: Reads a single event row from EventDB by eventId.
+ * Used internally to verify permissions before writes.
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} eventSheet - Open EventDB sheet
+ * @param {string} eventId - ARKA_EVENT_X to find
+ * @returns {{rowIndex: number, event: Object}|null}
+ *   rowIndex is 1-based (matches getRange row). Returns null if not found.
+ */
+function getEventRowById(eventSheet, eventId) {
+  const data = eventSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString() !== eventId.toString()) continue;
+    return {
+      rowIndex: i + 1, // 1-based for getRange
+      event: {
+        eventId      : data[i][0].toString(),
+        eventType    : data[i][1].toString(),
+        title        : data[i][2].toString(),
+        description  : data[i][3].toString(),
+        hostMemberId : data[i][4].toString(),
+        startDate    : data[i][5].toString(),
+        startTime    : data[i][6].toString(),
+        endDate      : data[i][7].toString(),
+        endTime      : data[i][8].toString(),
+        meetingLink  : data[i][9].toString(),
+        assetsJson   : data[i][10].toString(),
+        status       : data[i][11].toString(),
+        isPinned     : data[i][12].toString().toUpperCase() === 'TRUE',
+        createdBy    : data[i][13].toString(),
+        createdOn    : data[i][14].toString()
+      }
+    };
+  }
+  return null;
+}
+ 
+/**
+ * PRIVATE HELPER: Generates the next sequential asset ID within an existing assetsJson string.
+ * Format: ARKA_EVTASSET_X where X is one higher than the highest existing ID in the array.
+ *
+ * @param {EventAsset[]} existingAssets - Already-parsed assets array
+ * @returns {string} New asset ID, e.g. "ARKA_EVTASSET_3"
+ */
+function getNextAssetId(existingAssets) {
+  if (!existingAssets || existingAssets.length === 0) return 'ARKA_EVTASSET_1';
+  const nums = existingAssets.map(function(a) {
+    const n = parseInt((a.assetId || '').split('_')[2]);
+    return isNaN(n) ? 0 : n;
+  });
+  return 'ARKA_EVTASSET_' + (Math.max.apply(null, nums) + 1);
+}
+ 
+ 
+// ============================================================================
+// STEP 5b — LAZY LOADER (called on-demand, NOT in Big Gulp)
+// ============================================================================
+ 
+/**
+ * Lazy-loads all events and their RSVPs in a single backend call.
+ * Called by the frontend when the user first opens Events & Announcements view.
+ * NOT included in getAppMasterData() — keeps startup cost at zero.
+ *
+ * Returns ALL events (Upcoming + Past) so the frontend can filter by status/date.
+ * Returns ALL RSVPs so the frontend can resolve attendee lists client-side.
+ *
+ * @returns {{ status: string, eventsDB: EventRecord[], rsvpsDB: EventRSVPRecord[] }}
+ */
+function getEventsData() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+ 
+    // ── Read EventDB ────────────────────────────────────────────────────────
+    const eventSheet = ss.getSheetByName(EVENT_SHEET);
+    const eventsList = [];
+ 
+    if (eventSheet) {
+      const eData = eventSheet.getDataRange().getValues();
+      for (let i = 1; i < eData.length; i++) {
+        if (!eData[i][0]) continue;
+ 
+        // Normalise Date objects to strings
+        const rawStartDate = eData[i][5];
+        const rawEndDate   = eData[i][7];
+        const rawCreatedOn = eData[i][14];
+ 
+        eventsList.push({
+          eventId      : eData[i][0].toString(),
+          eventType    : eData[i][1].toString(),
+          title        : eData[i][2].toString(),
+          description  : eData[i][3].toString(),
+          hostMemberId : eData[i][4].toString(),
+          startDate    : rawStartDate instanceof Date
+            ? Utilities.formatDate(rawStartDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            : String(rawStartDate || ''),
+          startTime : eData[i][6] instanceof Date
+            ? Utilities.formatDate(eData[i][6], Session.getScriptTimeZone(), 'HH:mm')
+            : String(eData[i][6] || ''),
+          endDate      : rawEndDate instanceof Date
+            ? Utilities.formatDate(rawEndDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            : String(rawEndDate || ''),
+          endTime   : eData[i][8] instanceof Date
+            ? Utilities.formatDate(eData[i][8], Session.getScriptTimeZone(), 'HH:mm')
+            : String(eData[i][8] || ''),
+          meetingLink  : eData[i][9].toString(),
+          assetsJson   : eData[i][10].toString(),
+          status       : eData[i][11].toString(),
+          isPinned     : eData[i][12].toString().toUpperCase() === 'TRUE',
+          createdBy    : eData[i][13].toString(),
+          createdOn    : rawCreatedOn instanceof Date
+            ? Utilities.formatDate(rawCreatedOn, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z')
+            : String(rawCreatedOn || ''),
+          eventTimezone : eData[i][15] ? eData[i][15].toString() : 'IST'
+        });
+      }
+    }
+ 
+    // ── Read EventRSVPDB ────────────────────────────────────────────────────
+    const rsvpSheet = ss.getSheetByName(EVENT_RSVP_SHEET);
+    const rsvpsList = [];
+ 
+    if (rsvpSheet) {
+      const rData = rsvpSheet.getDataRange().getValues();
+      for (let i = 1; i < rData.length; i++) {
+        if (!rData[i][0]) continue;
+ 
+        const rawRsvpDate     = rData[i][4];
+        const rawConfirmedOn  = rData[i][7];
+ 
+        rsvpsList.push({
+          rsvpId              : rData[i][0].toString(),
+          eventId             : rData[i][1].toString(),
+          memberId            : rData[i][2].toString(),
+          rsvpStatus          : rData[i][3].toString(),
+          rsvpDate            : rawRsvpDate instanceof Date
+            ? Utilities.formatDate(rawRsvpDate, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z')
+            : String(rawRsvpDate || ''),
+          attendanceConfirmed : rData[i][5].toString(),
+          confirmedBy         : rData[i][6].toString(),
+          confirmedOn         : rawConfirmedOn instanceof Date
+            ? Utilities.formatDate(rawConfirmedOn, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z')
+            : String(rawConfirmedOn || ''),
+          addedBy             : rData[i][8].toString()
+        });
+      }
+    }
+ 
+    return { status: 'success', eventsDB: eventsList, rsvpsDB: rsvpsList };
+ 
+  } catch (e) {
+    console.error('getEventsData error:', e);
+    return { status: 'error', message: e.toString(), eventsDB: [], rsvpsDB: [] };
+  }
+}
+ 
+ 
+// ============================================================================
+// STEP 5c — CREATE / EDIT / STATUS
+// ============================================================================
+ 
+/**
+ * Creates a new event or updates an existing one.
+ *
+ * PERMISSION RULES:
+ *   Create — Admin can create any event type.
+ *             Members can create: BookBuddyRead, Social, Other.
+ *             Meeting-Virtual and Meeting-F2F are admin-only.
+ *   Update — Admin OR host OR original creator (canManageEvent).
+ *
+ * Pass data.eventId to update; omit (or null) to create.
+ *
+ * @param {Object}  data
+ * @param {string}  [data.eventId]      - ARKA_EVENT_X to update; omit to create
+ * @param {string}  data.eventType      - Meeting-Virtual | Meeting-F2F | BookBuddyRead | Social | Other
+ * @param {string}  data.title          - Required
+ * @param {string}  [data.description]  - Optional details
+ * @param {string}  [data.hostMemberId] - Optional ARKA_MEMBER_X host
+ * @param {string}  data.startDate      - dd-MMM-yyyy
+ * @param {string}  [data.startTime]    - HH:mm
+ * @param {string}  [data.endDate]      - dd-MMM-yyyy
+ * @param {string}  [data.endTime]      - HH:mm
+ * @param {string}  [data.meetingLink]  - URL
+ * @param {boolean} [data.isPinned]     - Admin-only; ignored for non-admins on create
+ * @returns {{ status: string, event?: EventRecord, message?: string }}
+ */
+function saveEvent(data) {
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
+ 
+  // ── Validate type permission ──────────────────────────────────────────────
+  const adminOnlyTypes = ['Meeting-Virtual', 'Meeting-F2F'];
+  if (adminOnlyTypes.includes(data.eventType) && !isAdminMember(currentMemberId)) {
+    return { status: 'error', message: 'Only admins can create Meeting events.' };
+  }
+ 
+  // ── Validate required fields ──────────────────────────────────────────────
+  const title = (data.title || '').trim();
+  if (!title)          return { status: 'error', message: 'Event title cannot be empty.' };
+  if (!data.eventType) return { status: 'error', message: 'Event type is required.' };
+  if (!data.startDate) return { status: 'error', message: 'Start date is required.' };
+ 
+  const ss         = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const eventSheet = ss.getSheetByName(EVENT_SHEET);
+  if (!eventSheet) return { status: 'error', message: 'EventDB sheet not found. Please create it first.' };
+ 
+  const timestamp  = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z');
+  const isPinned   = isAdminMember(currentMemberId) ? (data.isPinned === true || data.isPinned === 'TRUE') : false;
+ 
+  // ── UPDATE path ───────────────────────────────────────────────────────────
+  if (data.eventId) {
+    const found = getEventRowById(eventSheet, data.eventId);
+    if (!found) return { status: 'error', message: 'Event not found.' };
+ 
+    if (!canManageEvent(currentMemberId, found.event)) {
+      return { status: 'error', message: 'You do not have permission to edit this event.' };
+    }
+ 
+    // Update editable columns B–J, M (type, title, desc, host, dates, times, link, isPinned)
+    // Preserve assetsJson (Col K), status (Col L), createdBy (Col N), createdOn (Col O)
+    eventSheet.getRange(found.rowIndex, 2, 1, 9).setValues([[
+      data.eventType,
+      title,
+      (data.description  || '').trim(),
+      (data.hostMemberId || '').trim(),
+      (data.startDate    || '').trim(),
+      (data.startTime    || '').trim(),
+      (data.endDate      || '').trim(),
+      (data.endTime      || '').trim(),
+      (data.meetingLink  || '').trim()
+    ]]);
+    eventSheet.getRange(found.rowIndex, 16).setValue((data.eventTimezone || 'IST').trim());
+    // Update isPinned (Col M = column 13)
+    eventSheet.getRange(found.rowIndex, 13).setValue(isPinned);
+ 
+    const updatedEvent = Object.assign({}, found.event, {
+      eventType    : data.eventType,
+      title,
+      description  : (data.description  || '').trim(),
+      hostMemberId : (data.hostMemberId || '').trim(),
+      startDate    : (data.startDate    || '').trim(),
+      startTime    : (data.startTime    || '').trim(),
+      endDate      : (data.endDate      || '').trim(),
+      endTime      : (data.endTime      || '').trim(),
+      meetingLink  : (data.meetingLink  || '').trim(),
+      isPinned : isPinned,
+      createdBy     : found.event.createdBy,    // preserved — never changes
+      createdOn     : found.event.createdOn,    // preserved — never changes
+      eventTimezone : (data.eventTimezone || 'IST').trim()
+    });
+ 
+    return { status: 'success', event: updatedEvent };
+  }
+ 
+  // ── CREATE path ───────────────────────────────────────────────────────────
+  const sheetData  = eventSheet.getDataRange().getValues();
+  let newNum = 1;
+  if (sheetData.length > 1) {
+    const lastId  = sheetData[sheetData.length - 1][0].toString();
+    const lastNum = parseInt(lastId.split('_')[2]);
+    if (!isNaN(lastNum)) newNum = lastNum + 1;
+  }
+  const eventId = 'ARKA_EVENT_' + newNum;
+ 
+  eventSheet.appendRow([
+    eventId,                              // Col A
+    data.eventType,                       // Col B
+    title,                                // Col C
+    (data.description  || '').trim(),     // Col D
+    (data.hostMemberId || '').trim(),     // Col E
+    (data.startDate    || '').trim(),     // Col F
+    (data.startTime    || '').trim(),     // Col G
+    (data.endDate      || '').trim(),     // Col H
+    (data.endTime      || '').trim(),     // Col I
+    (data.meetingLink  || '').trim(),     // Col J
+    '[]',                                 // Col K — empty assets JSON array
+    'Active',                             // Col L — status
+    isPinned,                             // Col M
+    currentMemberId,                      // Col N — createdBy
+    timestamp,                             // Col O — createdOn
+    (data.eventTimezone || 'IST').trim()   // Col P - timezone
+  ]);
+
+  const newRow = eventSheet.getLastRow();
+  eventSheet.getRange(newRow, 7).setNumberFormat('@STRING@'); // startTime
+  eventSheet.getRange(newRow, 9).setNumberFormat('@STRING@'); // endTime
+  try { logActivity(currentMemberId, 'ARKA_ACTTYP_EVENTCREATED', 1, eventId); } catch(e) {}
+ 
+  const newEvent = {
+    eventId,
+    eventType    : data.eventType,
+    title,
+    description  : (data.description  || '').trim(),
+    hostMemberId : (data.hostMemberId || '').trim(),
+    startDate    : (data.startDate    || '').trim(),
+    startTime    : (data.startTime    || '').trim(),
+    endDate      : (data.endDate      || '').trim(),
+    endTime      : (data.endTime      || '').trim(),
+    meetingLink  : (data.meetingLink  || '').trim(),
+    assetsJson   : '[]',
+    status       : 'Active',
+    isPinned,
+    createdBy    : currentMemberId,
+    createdOn    : timestamp,
+    eventTimezone : (data.eventTimezone || 'IST').trim()
+  };
+ 
+  return { status: 'success', event: newEvent };
+}
+ 
+ 
+/**
+ * Updates the status of an event to Cancelled or Completed.
+ * Only event managers (admin / host / creator) may do this.
+ *
+ * @param {string} eventId - ARKA_EVENT_X
+ * @param {string} newStatus - 'Cancelled' | 'Completed'
+ * @returns {{ status: string, message?: string }}
+ */
+function updateEventStatus(eventId, newStatus) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
+ 
+  const validStatuses = ['Cancelled', 'Completed', 'Active'];
+  if (!validStatuses.includes(newStatus)) {
+    return { status: 'error', message: 'Invalid status value.' };
+  }
+ 
+  const ss         = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const eventSheet = ss.getSheetByName(EVENT_SHEET);
+  if (!eventSheet) return { status: 'error', message: 'EventDB sheet not found.' };
+ 
+  const found = getEventRowById(eventSheet, eventId);
+  if (!found) return { status: 'error', message: 'Event not found.' };
+ 
+  if (!canManageEvent(currentMemberId, found.event)) {
+    return { status: 'error', message: 'You do not have permission to change this event\'s status.' };
+  }
+ 
+  eventSheet.getRange(found.rowIndex, 12).setValue(newStatus); // Col L = status
+  if (newStatus === 'Cancelled') {
+    try { logActivity(currentMemberId, 'ARKA_ACTTYP_EVENTCANCELLED', 1, eventId); } catch(e) {}
+  }
+  return { status: 'success' };
+}
+ 
+ 
+// ============================================================================
+// STEP 5d — RSVP & PARTICIPANTS
+// ============================================================================
+ 
+/**
+ * Handles both member self-RSVP and manager-added participants.
+ *
+ * SELF-RSVP: Any member can RSVP Yes/No/Maybe on any Active event.
+ *   - If no existing row for this member+event, creates one.
+ *   - If row exists with status Invited, updates it to the chosen status.
+ *   - If row exists with Yes/No/Maybe, updates it.
+ *
+ * MANAGER-ADD: Admin/host/creator can add a member with status 'Invited'.
+ *   - Creates a row for the target member with rsvpStatus = 'Invited'.
+ *   - Auto-creates a targeted personal announcement notifying the invitee.
+ *   - Fails silently on the announcement if AnnouncementDB is unavailable.
+ *   - Will not duplicate: if member already has any row for this event, returns error.
+ *
+ * @param {Object} data
+ * @param {string} data.eventId     - ARKA_EVENT_X
+ * @param {string} data.memberId    - Target ARKA_MEMBER_X (self or admin-added)
+ * @param {string} data.rsvpStatus  - 'Yes' | 'No' | 'Maybe' | 'Invited'
+ * @returns {{ status: string, rsvp?: EventRSVPRecord, announcement?: Object, message?: string }}
+ */
+function saveEventRSVP(data) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
+ 
+  const validStatuses = ['Yes', 'No', 'Maybe', 'Invited'];
+  if (!validStatuses.includes(data.rsvpStatus)) {
+    return { status: 'error', message: 'Invalid RSVP status.' };
+  }
+ 
+  const isAddingParticipant = data.rsvpStatus === 'Invited';
+ 
+  // Permission: adding a participant requires management rights
+  if (isAddingParticipant) {
+    const ss         = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const eventSheet = ss.getSheetByName(EVENT_SHEET);
+    if (!eventSheet) return { status: 'error', message: 'EventDB sheet not found.' };
+ 
+    const found = getEventRowById(eventSheet, data.eventId);
+    if (!found) return { status: 'error', message: 'Event not found.' };
+ 
+    if (!canManageEvent(currentMemberId, found.event)) {
+      return { status: 'error', message: 'Only admins, the host, or the event creator can add participants.' };
+    }
+  } else {
+    // Self-RSVP: target member must be the caller
+    if (data.memberId !== currentMemberId) {
+      return { status: 'error', message: 'You can only update your own RSVP.' };
+    }
+  }
+ 
+  const ss        = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const rsvpSheet = ss.getSheetByName(EVENT_RSVP_SHEET);
+  if (!rsvpSheet) return { status: 'error', message: 'EventRSVPDB sheet not found.' };
+ 
+  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z');
+  const rsvpData  = rsvpSheet.getDataRange().getValues();
+ 
+  // ── Check for existing row ────────────────────────────────────────────────
+  for (let i = 1; i < rsvpData.length; i++) {
+    if (rsvpData[i][1].toString() !== data.eventId.toString()) continue;
+    if (rsvpData[i][2].toString() !== data.memberId.toString()) continue;
+ 
+    // Row exists
+    if (isAddingParticipant) {
+      return { status: 'error', message: 'This member already has an RSVP for this event.' };
+    }
+ 
+    // Update existing row — only touch rsvpStatus (Col D) and rsvpDate (Col E)
+    rsvpSheet.getRange(i + 1, 4, 1, 2).setValues([[data.rsvpStatus, timestamp]]);
+ 
+    return {
+      status: 'success',
+      rsvp: {
+        rsvpId              : rsvpData[i][0].toString(),
+        eventId             : data.eventId,
+        memberId            : data.memberId,
+        rsvpStatus          : data.rsvpStatus,
+        rsvpDate            : timestamp,
+        attendanceConfirmed : rsvpData[i][5].toString(),
+        confirmedBy         : rsvpData[i][6].toString(),
+        confirmedOn         : rsvpData[i][7].toString(),
+        addedBy             : rsvpData[i][8].toString()
+      }
+    };
+  }
+ 
+  // ── Create new RSVP row ───────────────────────────────────────────────────
+  let newNum = 1;
+  if (rsvpData.length > 1) {
+    const lastId  = rsvpData[rsvpData.length - 1][0].toString();
+    const lastNum = parseInt(lastId.split('_')[2]);
+    if (!isNaN(lastNum)) newNum = lastNum + 1;
+  }
+  const rsvpId = 'ARKA_RSVP_' + newNum;
+ 
+  rsvpSheet.appendRow([
+    rsvpId,            // Col A
+    data.eventId,      // Col B
+    data.memberId,     // Col C
+    data.rsvpStatus,   // Col D
+    timestamp,         // Col E — rsvpDate
+    '',                // Col F — attendanceConfirmed (blank until post-event)
+    '',                // Col G — confirmedBy
+    '',                // Col H — confirmedOn
+    currentMemberId    // Col I — addedBy (who created this row)
+  ]);
+
+  if (data.rsvpStatus === 'Yes' || data.rsvpStatus === 'Maybe') {
+    try { logActivity(data.memberId, 'ARKA_ACTTYP_EVENTRSVP', 1, data.eventId); } catch(e) {}
+  }
+ 
+  const newRsvp = {
+    rsvpId,
+    eventId             : data.eventId,
+    memberId            : data.memberId,
+    rsvpStatus          : data.rsvpStatus,
+    rsvpDate            : timestamp,
+    attendanceConfirmed : '',
+    confirmedBy         : '',
+    confirmedOn         : '',
+    addedBy             : currentMemberId
+  };
+ 
+  // ── Auto-notification for Invited participants (Idea B) ───────────────────
+  let createdAnnouncement = null;
+  if (isAddingParticipant) {
+    try {
+      // Fetch the event title for the announcement body
+      const eventSheet = ss.getSheetByName(EVENT_SHEET);
+      const evtFound   = getEventRowById(eventSheet, data.eventId);
+      const eventTitle = evtFound ? evtFound.event.title : 'an upcoming event';
+ 
+      const annResult = saveAnnouncement({
+        title          : '📅 You\'ve been invited to an event',
+        body           : 'You\'ve been added to "' + eventTitle + '". Open Events & Announcements to RSVP.',
+        isPinned       : false,
+        expiryDate     : '',
+        targetMemberId : data.memberId   // Personal — only this member sees it
+      });
+ 
+      if (annResult.status === 'success') createdAnnouncement = annResult.announcement;
+    } catch (annErr) {
+      // Announcement failure should never block the RSVP write
+      console.error('Auto-invite announcement failed (non-fatal):', annErr);
+    }
+  }
+ 
+  return { status: 'success', rsvp: newRsvp, announcement: createdAnnouncement };
+}
+ 
+ 
+/**
+ * Confirms or removes attendance confirmation for a participant post-event.
+ * Only event managers (admin / host / creator) can confirm attendance.
+ *
+ * @param {Object} data
+ * @param {string} data.rsvpId              - ARKA_RSVP_X to update
+ * @param {string} data.eventId             - ARKA_EVENT_X (used for permission check)
+ * @param {string} data.attendanceConfirmed - 'Yes' | 'No' | '' (blank to reset)
+ * @returns {{ status: string, message?: string }}
+ */
+function confirmEventAttendance(data) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
+ 
+  const ss         = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const eventSheet = ss.getSheetByName(EVENT_SHEET);
+  if (!eventSheet) return { status: 'error', message: 'EventDB sheet not found.' };
+ 
+  const found = getEventRowById(eventSheet, data.eventId);
+  if (!found) return { status: 'error', message: 'Event not found.' };
+ 
+  if (!canManageEvent(currentMemberId, found.event)) {
+    return { status: 'error', message: 'Only admins, the host, or the creator can confirm attendance.' };
+  }
+ 
+  const rsvpSheet = ss.getSheetByName(EVENT_RSVP_SHEET);
+  if (!rsvpSheet) return { status: 'error', message: 'EventRSVPDB sheet not found.' };
+ 
+  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z');
+  const rsvpRows  = rsvpSheet.getDataRange().getValues();
+ 
+  for (let i = 1; i < rsvpRows.length; i++) {
+    if (rsvpRows[i][0].toString() !== data.rsvpId.toString()) continue;
+ 
+    // Update cols F, G, H: attendanceConfirmed, confirmedBy, confirmedOn
+    rsvpSheet.getRange(i + 1, 6, 1, 3).setValues([[
+      data.attendanceConfirmed || '',
+      data.attendanceConfirmed ? currentMemberId : '',
+      data.attendanceConfirmed ? timestamp       : ''
+    ]]);
+
+    if (data.attendanceConfirmed === 'Yes') {
+      // Log against the participant's memberId (not the confirming admin's)
+      const attendeeMemberId = rsvpRows[i][2].toString();
+      try { logActivity(attendeeMemberId, 'ARKA_ACTTYP_EVENTATTENDED', 1, data.eventId); } catch(e) {}
+    }
+ 
+    return { status: 'success' };
+  }
+ 
+  return { status: 'error', message: 'RSVP record not found.' };
+}
+ 
+ 
+// ============================================================================
+// STEP 5e — ASSETS
+// ============================================================================
+ 
+/**
+ * Uploads a file to the Event Assets Drive folder and appends the asset
+ * metadata to the event's assetsJson column.
+ *
+ * Only event managers (admin / host / creator) can add assets.
+ * Accepts any file type; Drive's built-in viewer handles rendering.
+ * The stored driveLink opens the file in a new browser window via Drive viewer.
+ *
+ * @param {Object} data
+ * @param {string} data.eventId      - ARKA_EVENT_X to attach the asset to
+ * @param {string} data.assetTitle   - Display name shown in the app
+ * @param {string} data.assetType    - Photo | PDF | PPT | Document | Other
+ * @param {string} data.fileBase64   - Data URI: "data:mime/type;base64,..."
+ * @param {string} data.fileName     - Original filename including extension
+ * @param {string} data.mimeType     - MIME type, e.g. "image/jpeg", "application/pdf"
+ * @returns {{ status: string, asset?: EventAsset, updatedAssetsJson?: string, message?: string }}
+ */
+function uploadEventAsset(data) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
+ 
+  const ss         = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const eventSheet = ss.getSheetByName(EVENT_SHEET);
+  if (!eventSheet) return { status: 'error', message: 'EventDB sheet not found.' };
+ 
+  const found = getEventRowById(eventSheet, data.eventId);
+  if (!found) return { status: 'error', message: 'Event not found.' };
+ 
+  if (!canManageEvent(currentMemberId, found.event)) {
+    return { status: 'error', message: 'You do not have permission to add assets to this event.' };
+  }
+ 
+  if (!data.fileBase64) return { status: 'error', message: 'No file data received.' };
+  if (!data.fileName)   return { status: 'error', message: 'File name is required.' };
+ 
+  // ── Upload to Drive ───────────────────────────────────────────────────────
+  const folder    = DriveApp.getFolderById(EVENT_ASSETS_FOLDER_ID);
+  const rawBase64 = data.fileBase64.includes(',') ? data.fileBase64.split(',')[1] : data.fileBase64;
+  const mimeType  = data.mimeType || 'application/octet-stream';
+ 
+  // Prefix filename with eventId so assets are easy to find in Drive
+  const safeFileName = data.eventId + '_' + data.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const blob          = Utilities.newBlob(Utilities.base64Decode(rawBase64), mimeType, safeFileName);
+  const uploadedFile  = folder.createFile(blob);
+ 
+  // Make the file accessible to anyone with the link
+  uploadedFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+ 
+  // Drive viewer URL — opens in new window without downloading
+  const driveLink = 'https://drive.google.com/file/d/' + uploadedFile.getId() + '/view';
+ 
+  // ── Append to assetsJson ──────────────────────────────────────────────────
+  const timestamp     = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z');
+  let existingAssets  = [];
+ 
+  try {
+    const raw = found.event.assetsJson.trim();
+    if (raw && raw !== '[]') existingAssets = JSON.parse(raw);
+  } catch (e) {
+    existingAssets = []; // Corrupt JSON — start fresh, don't block upload
+  }
+ 
+  const newAsset = {
+    assetId    : getNextAssetId(existingAssets),
+    type       : data.assetType  || 'Other',
+    title      : (data.assetTitle || data.fileName).trim(),
+    driveLink,
+    uploadedBy : currentMemberId,
+    uploadedOn : timestamp
+  };
+ 
+  existingAssets.push(newAsset);
+  const updatedAssetsJson = JSON.stringify(existingAssets);
+ 
+  // Write back to Col K (column 11)
+  eventSheet.getRange(found.rowIndex, 11).setValue(updatedAssetsJson);
+ 
+  return { status: 'success', asset: newAsset, updatedAssetsJson };
+}
+ 
+ 
+/**
+ * Removes a single asset from an event's assetsJson by its assetId.
+ * The Drive file is NOT deleted — it remains in the folder for safety.
+ * Only event managers can remove assets.
+ *
+ * @param {Object} data
+ * @param {string} data.eventId  - ARKA_EVENT_X
+ * @param {string} data.assetId  - ARKA_EVTASSET_X to remove
+ * @returns {{ status: string, updatedAssetsJson?: string, message?: string }}
+ */
+function removeEventAsset(data) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
+ 
+  const ss         = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const eventSheet = ss.getSheetByName(EVENT_SHEET);
+  if (!eventSheet) return { status: 'error', message: 'EventDB sheet not found.' };
+ 
+  const found = getEventRowById(eventSheet, data.eventId);
+  if (!found) return { status: 'error', message: 'Event not found.' };
+ 
+  if (!canManageEvent(currentMemberId, found.event)) {
+    return { status: 'error', message: 'You do not have permission to remove assets from this event.' };
+  }
+
+  let assets = [];
+  try {
+    assets = JSON.parse(found.event.assetsJson || '[]');
+  } catch (e) {
+    return { status: 'error', message: 'Could not parse assets data.' };
+  }
+ 
+  const filtered          = assets.filter(function(a) { return a.assetId !== data.assetId; });
+  const updatedAssetsJson = JSON.stringify(filtered);
+ 
+  eventSheet.getRange(found.rowIndex, 11).setValue(updatedAssetsJson);
+ 
+  return { status: 'success', updatedAssetsJson };
 }
  
