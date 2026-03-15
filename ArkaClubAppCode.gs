@@ -84,7 +84,7 @@
  * @property {number} likeCount - Numeric sum of likes received (Col H)
  */
 
-const APP_VERSION = "v33";
+const APP_VERSION = "v35";
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -95,6 +95,7 @@ const PAGELOG_SHEET = "PageLogDB";
 const PROFILE_PICS_FOLDER_ID = '11n3v_TfITYYOCg-IQRFSrgqs89M0T1j8';
 const BADGE_DB_SHEET = "BadgeDB";
 const BADGE_AWARD_DB_SHEET = "BadgeAwardDB";
+const ANNOUNCEMENT_SHEET = "AnnouncementDB";
 const BADGE_IMAGES_FOLDER_ID  = '1WLX0fy5RkuvMzpQwCkQjjSVlFTajxY59';
 /**
  * Member IDs that have administrative privileges.
@@ -1169,6 +1170,9 @@ function getAppMasterData() {
     }
   }
 
+  // 10. Fetch AnnouncementDB — only Active rows come down; Archived are excluded here.
+  const announcementsDBList = fetchActiveAnnouncements(ss);
+
   return {
     status: "success",
     memberLevelsDB: levelList,
@@ -1179,7 +1183,8 @@ function getAppMasterData() {
     activityLogDB: activityLogList,
     pageLogDB: pageLogDB,
     badgesDB: badgesDBList,
-    badgeAwardsDB: badgeAwardsDBList
+    badgeAwardsDB: badgeAwardsDBList,
+    announcementsDB: announcementsDBList
   };
 }
 
@@ -1805,3 +1810,231 @@ function revokeBadgeAward(awardId) {
  
   return { status: 'error', message: 'Award record not found.' };
 }
+
+// ============================================================================
+// PRIVATE HELPER
+// ============================================================================
+ 
+/**
+ * @typedef {Object} AnnouncementRecord
+ * @property {string}  announcementId - Unique ID: ARKA_ANN_X         (Col A)
+ * @property {string}  title          - Short headline                 (Col B)
+ * @property {string}  body           - Full announcement text         (Col C)
+ * @property {boolean} isPinned       - TRUE pins to home feed         (Col D)
+ * @property {string}  expiryDate     - dd-MMM-yyyy or "" = no expiry (Col E)
+ * @property {string}  status         - "Active" | "Archived"         (Col F)
+ * @property {string}  createdBy      - ARKA_MEMBER_X                 (Col G)
+ * @property {string}  createdOn      - dd-MM-yyyy HH:mm:ss Z         (Col H)
+ */
+ 
+/**
+ * PRIVATE HELPER: Reads all non-Archived announcements from AnnouncementDB.
+ * Reuses the already-open spreadsheet instance passed in from getAppMasterData()
+ * to avoid opening a second connection — keeps the Big Gulp fast.
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Open spreadsheet instance
+ * @returns {AnnouncementRecord[]} Array of active announcement objects
+ */
+function fetchActiveAnnouncements(ss) {
+  const sheet = ss.getSheetByName(ANNOUNCEMENT_SHEET);
+  if (!sheet) return []; // Sheet not yet created — fail silently
+ 
+  const data          = sheet.getDataRange().getValues();
+  const announcements = [];
+ 
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;                               // Skip empty rows
+    if (data[i][5].toString() === 'Archived') continue;      // Archived = hidden
+ 
+    // Normalise Date objects to strings for consistent frontend handling
+    const rawExpiry    = data[i][4];
+    const expiryStr    = rawExpiry instanceof Date
+      ? Utilities.formatDate(rawExpiry, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+      : String(rawExpiry || '');
+ 
+    const rawCreatedOn = data[i][7];
+    const createdOnStr = rawCreatedOn instanceof Date
+      ? Utilities.formatDate(rawCreatedOn, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z')
+      : String(rawCreatedOn || '');
+ 
+    announcements.push({
+      announcementId : data[i][0].toString(),
+      title          : data[i][1].toString(),
+      body           : data[i][2].toString(),
+      isPinned       : data[i][3].toString().toUpperCase() === 'TRUE',
+      expiryDate     : expiryStr,
+      status         : data[i][5].toString(),
+      createdBy      : data[i][6].toString(),
+      createdOn      : createdOnStr
+    });
+  }
+ 
+  return announcements;
+}
+ 
+ 
+// ============================================================================
+// PUBLIC FUNCTIONS
+// ============================================================================
+ 
+/**
+ * ADMIN ONLY: Creates a new announcement or updates an existing one.
+ *
+ * Pass `data.announcementId` to update an existing row; omit it (or null)
+ * to create a brand-new announcement.
+ *
+ * Security gate: verified session + admin check on both paths.
+ *
+ * @param {Object}  data
+ * @param {string}  [data.announcementId] - ARKA_ANN_X to update, or omit to create
+ * @param {string}  data.title            - Required headline (non-empty)
+ * @param {string}  data.body             - Required body text (non-empty)
+ * @param {boolean} data.isPinned         - true → pin to home feed
+ * @param {string}  [data.expiryDate]     - Optional dd-MMM-yyyy expiry date
+ * @returns {{ status: string, announcement?: AnnouncementRecord, message?: string }}
+ */
+function saveAnnouncement(data) {
+  // ── Auth gates ────────────────────────────────────────────────────────────
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId)                return { status: 'error', message: 'Unauthorized session.' };
+  if (!isAdminMember(currentMemberId)) return { status: 'error', message: 'Admin access required.' };
+ 
+  // ── Input validation ──────────────────────────────────────────────────────
+  const title = (data.title || '').trim();
+  const body  = (data.body  || '').trim();
+  if (!title) return { status: 'error', message: 'Title cannot be empty.' };
+  if (!body)  return { status: 'error', message: 'Announcement body cannot be empty.' };
+ 
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(ANNOUNCEMENT_SHEET);
+  if (!sheet) return { status: 'error', message: 'AnnouncementDB sheet not found. Please create it first.' };
+ 
+  const isPinned   = (data.isPinned === true || data.isPinned === 'TRUE');
+  const expiryDate = (data.expiryDate || '').trim();
+  const timestamp  = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z');
+ 
+  // ── UPDATE path ───────────────────────────────────────────────────────────
+  if (data.announcementId) {
+    const rows = sheet.getDataRange().getValues();
+ 
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString() !== data.announcementId.toString()) continue;
+ 
+      // Update editable columns B–E; preserve createdBy (G) and createdOn (H)
+      sheet.getRange(i + 1, 2, 1, 4).setValues([[title, body, isPinned, expiryDate]]);
+ 
+      return {
+        status: 'success',
+        announcement: {
+          announcementId : data.announcementId,
+          title,
+          body,
+          isPinned,
+          expiryDate,
+          status    : rows[i][5].toString(),
+          createdBy : rows[i][6].toString(),
+          createdOn : rows[i][7].toString()
+        }
+      };
+    }
+    return { status: 'error', message: 'Announcement not found.' };
+  }
+ 
+  // ── CREATE path ───────────────────────────────────────────────────────────
+  // Generate sequential ARKA_ANN_X ID from the last occupied row
+  const sheetData = sheet.getDataRange().getValues();
+  let newNum = 1;
+  if (sheetData.length > 1) {
+    const lastId  = sheetData[sheetData.length - 1][0].toString();
+    const lastNum = parseInt(lastId.split('_')[2]);
+    if (!isNaN(lastNum)) newNum = lastNum + 1;
+  }
+  const announcementId = 'ARKA_ANN_' + newNum;
+ 
+  sheet.appendRow([
+    announcementId,  // Col A — ID
+    title,           // Col B — Title
+    body,            // Col C — Body
+    isPinned,        // Col D — isPinned
+    expiryDate,      // Col E — expiryDate
+    'Active',        // Col F — status
+    currentMemberId, // Col G — createdBy
+    timestamp        // Col H — createdOn
+  ]);
+ 
+  return {
+    status: 'success',
+    announcement: {
+      announcementId,
+      title,
+      body,
+      isPinned,
+      expiryDate,
+      status    : 'Active',
+      createdBy : currentMemberId,
+      createdOn : timestamp
+    }
+  };
+}
+ 
+ 
+/**
+ * ADMIN ONLY: Soft-deletes an announcement by setting its status to "Archived".
+ * The row is preserved in the sheet for audit purposes; it will be excluded from
+ * all frontend reads automatically (fetchActiveAnnouncements filters it out).
+ *
+ * @param {string} announcementId - ARKA_ANN_X to archive
+ * @returns {{ status: string, message?: string }}
+ */
+function archiveAnnouncement(announcementId) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId)                return { status: 'error', message: 'Unauthorized session.' };
+  if (!isAdminMember(currentMemberId)) return { status: 'error', message: 'Admin access required.' };
+ 
+  if (!announcementId) return { status: 'error', message: 'Announcement ID is required.' };
+ 
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(ANNOUNCEMENT_SHEET);
+  if (!sheet) return { status: 'error', message: 'AnnouncementDB sheet not found.' };
+ 
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString() !== announcementId.toString()) continue;
+    sheet.getRange(i + 1, 6).setValue('Archived'); // Col F = status
+    return { status: 'success' };
+  }
+ 
+  return { status: 'error', message: 'Announcement not found.' };
+}
+ 
+ 
+/**
+ * ADMIN ONLY: Pins or unpins an announcement.
+ * Pinned announcements always appear at the top of the Home feed regardless of
+ * date, and cannot be dismissed by members.
+ *
+ * @param {string}  announcementId - ARKA_ANN_X to update
+ * @param {boolean} pinState       - true to pin, false to unpin
+ * @returns {{ status: string, message?: string }}
+ */
+function setAnnouncementPin(announcementId, pinState) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId)                return { status: 'error', message: 'Unauthorized session.' };
+  if (!isAdminMember(currentMemberId)) return { status: 'error', message: 'Admin access required.' };
+ 
+  if (!announcementId) return { status: 'error', message: 'Announcement ID is required.' };
+ 
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(ANNOUNCEMENT_SHEET);
+  if (!sheet) return { status: 'error', message: 'AnnouncementDB sheet not found.' };
+ 
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString() !== announcementId.toString()) continue;
+    sheet.getRange(i + 1, 4).setValue(pinState === true); // Col D = isPinned (boolean)
+    return { status: 'success' };
+  }
+ 
+  return { status: 'error', message: 'Announcement not found.' };
+}
+ 
