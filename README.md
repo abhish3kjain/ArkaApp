@@ -124,6 +124,47 @@ F	Status	Active / Revoked
 G	Notes	Optional admin note
 
 
+EventDB			
+Col	Field	ID Format / Values	Notes
+A	eventId	ARKA_EVENT_1	Primary key
+B	eventType	Meeting-Virtual, Meeting-F2F, BookBuddyRead, Social, Other	Drives icon + badge colour
+C	title	string	Display name
+D	description	string	Full details, can be long
+E	hostMemberId	ARKA_MEMBER_X or blank	Optional — not all events have a host
+F	startDate	dd-MMM-yyyy	
+G	startTime	HH:mm	24hr format
+H	endDate	dd-MMM-yyyy	Can equal startDate
+I	endTime	HH:mm	24hr format
+J	meetingLink	URL or blank	Zoom/Meet link if virtual
+K	assetsJson	JSON string	[{"type":"Photo","title":"...","link":"..."}] — consolidated, no extra sheet
+L	status	Active, Cancelled, Completed	
+M	isPinned	TRUE / FALSE	Pin to top of Events list
+N	createdBy	ARKA_MEMBER_X	Admin who created it
+O	createdOn	dd-MM-yyyy HH:mm:ss Z	
+			
+EventRSVPDB			
+Col	Field	ID Format / Values	Notes
+A	rsvpId	ARKA_RSVP_1	Primary key
+B	eventId	ARKA_EVENT_X	FK → EventDB
+C	memberId	ARKA_MEMBER_X	FK → MemberDB
+D	rsvpStatus	Yes, No, Maybe	Member's own response; Invited is new — means added by someone else, member hasn't responded yet
+E	rsvpDate	dd-MM-yyyy HH:mm:ss Z	Date of RSVP or invitation
+F	attendanceConfirmed	Invited, Yes, No, blank	Admin-set post-event
+G	confirmedBy	ARKA_MEMBER_X or blank	Which admin confirmed
+H	confirmedOn	timestamp or blank	When admin confirmed
+I	addedBy	ARKA_MEMBER_X	New — who created this row. Self = member RSVPed themselves. Otherwise = admin/host/creator pre-added them
+			
+AnnouncementDB			
+Col	Field	ID Format / Values	Notes
+A	announcementId	ARKA_ANN_1	Primary key
+B	title	string	Short headline
+C	body	string	Full text, can have line breaks
+D	isPinned	TRUE / FALSE	Pinned always shows, un-pinned disappears after expiry
+E	expiryDate	dd-MMM-yyyy or blank	Blank = never expires
+F	status	Active, Archived	Archived = hidden from feed
+G	createdBy	ARKA_MEMBER_X	
+H	createdOn	dd-MM-yyyy HH:mm:ss Z	
+
 
 Activity Types :
 
