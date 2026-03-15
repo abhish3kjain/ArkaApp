@@ -84,7 +84,7 @@
  * @property {number} likeCount - Numeric sum of likes received (Col H)
  */
 
-const APP_VERSION = "v28";
+const APP_VERSION = "v33";
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -93,6 +93,16 @@ const ACTIVITYLOG_SHEET = "ActivityLogDB";
 const FEEDBACK_SHEET ="FeedbackDB";
 const PAGELOG_SHEET = "PageLogDB";
 const PROFILE_PICS_FOLDER_ID = '11n3v_TfITYYOCg-IQRFSrgqs89M0T1j8';
+const BADGE_DB_SHEET = "BadgeDB";
+const BADGE_AWARD_DB_SHEET = "BadgeAwardDB";
+const BADGE_IMAGES_FOLDER_ID  = '1WLX0fy5RkuvMzpQwCkQjjSVlFTajxY59';
+/**
+ * Member IDs that have administrative privileges.
+ * Update this array to add or remove admins.
+ * Must be kept in sync with ADMIN_MEMBER_IDS on the frontend.
+ * @type {string[]}
+ */
+const ADMIN_MEMBER_IDS_BACKEND = ['ARKA_MEMBER_1', 'ARKA_MEMBER_20'];
 
 /**
  * 1. Serve the HTML page
@@ -1119,6 +1129,46 @@ function getAppMasterData() {
     }
   }
 
+  // 8. Fetch BadgeDB
+  const badgeSheet    = ss.getSheetByName(BADGE_DB_SHEET);
+  let   badgesDBList  = [];
+  if (badgeSheet) {
+    const bData = badgeSheet.getDataRange().getValues();
+    for (let i = 1; i < bData.length; i++) {
+      if (!bData[i][0]) continue;
+      badgesDBList.push({
+        id:          bData[i][0].toString(),
+        caption:     bData[i][1].toString(),
+        description: bData[i][2].toString(),
+        imgUrl:      bData[i][3].toString(),
+        badgePoints: Number(bData[i][4]) || 0   // Col E
+      });
+    }
+  }
+ 
+  // 9. Fetch BadgeAwardDB — fetches ALL records; frontend filters to Active as needed
+  const badgeAwardSheet    = ss.getSheetByName(BADGE_AWARD_DB_SHEET);
+  let   badgeAwardsDBList  = [];
+  if (badgeAwardSheet) {
+    const baData = badgeAwardSheet.getDataRange().getValues();
+    for (let i = 1; i < baData.length; i++) {
+      if (!baData[i][0]) continue;
+      let rawAwardDate   = baData[i][4];
+      let safeAwardDate  = rawAwardDate instanceof Date
+        ? Utilities.formatDate(rawAwardDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+        : String(rawAwardDate);
+      badgeAwardsDBList.push({
+        awardId:     baData[i][0].toString(),
+        badgeId:     baData[i][1].toString(),
+        memberId:    baData[i][2].toString(),
+        awardedBy:   baData[i][3].toString(),
+        awardedDate: safeAwardDate,
+        status:      baData[i][5].toString(),
+        notes:       baData[i][6] ? baData[i][6].toString() : ''
+      });
+    }
+  }
+
   return {
     status: "success",
     memberLevelsDB: levelList,
@@ -1127,7 +1177,9 @@ function getAppMasterData() {
     shelvesDB: shelvesList,
     activityTypeDB: activityTypeList,
     activityLogDB: activityLogList,
-    pageLogDB: pageLogDB
+    pageLogDB: pageLogDB,
+    badgesDB: badgesDBList,
+    badgeAwardsDB: badgeAwardsDBList
   };
 }
 
@@ -1502,4 +1554,254 @@ function getActivityMultiplier(activityTypeID, clientPointsMap, ss) {
     }
   }
   return 0;
+}
+
+/**
+ * PRIVATE HELPER: Checks whether a given member ID has admin privileges.
+ * Used as a security gate before every badge write operation.
+ *
+ * @param   {string}  memberId - The ARKA_MEMBER_X to check
+ * @returns {boolean}
+ */
+function isAdminMember(memberId) {
+  return ADMIN_MEMBER_IDS_BACKEND.includes(memberId);
+}
+ 
+ 
+/**
+ * PRIVATE HELPER: Keeps the MemberDB Col N badge cache in sync.
+ * Col N stores a comma-separated list of badge IDs a member holds,
+ * purely as a fast display cache. The source of truth is BadgeAwardDB.
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss       - Open spreadsheet instance
+ * @param {string}                                    memberId - ARKA_MEMBER_X to update
+ * @param {string}                                    badgeId  - ARKA_BADGE_X to add or remove
+ * @param {'add'|'remove'}                            action
+ */
+function updateMemberBadgeCache(ss, memberId, badgeId, action) {
+  const memberSheet = ss.getSheetByName(MEMBERS_SHEET);
+  const data = memberSheet.getDataRange().getValues();
+ 
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] !== memberId) continue;
+ 
+    const rawCache  = data[i][13].toString(); // Col N (0-indexed = 13)
+    let badgeList   = (rawCache === 'None' || rawCache === '')
+      ? []
+      : rawCache.split(',').map(b => b.trim()).filter(b => b);
+ 
+    if (action === 'add') {
+      if (!badgeList.includes(badgeId)) badgeList.push(badgeId);
+    } else if (action === 'remove') {
+      badgeList = badgeList.filter(b => b !== badgeId);
+    }
+ 
+    const newCache = badgeList.length > 0 ? badgeList.join(', ') : 'None';
+    memberSheet.getRange(i + 1, 14).setValue(newCache); // Col N is the 14th column
+    return;
+  }
+}
+ 
+ 
+/**
+ * ADMIN ONLY: Creates a new badge entry in BadgeDB and uploads the badge image
+ * to the dedicated badge images Google Drive folder.
+ *
+ * @param   {Object} badgeData
+ * @param   {string} badgeData.caption      - Short display name for the badge
+ * @param   {string} badgeData.description  - Full description of what this badge represents
+ * @param   {string} badgeData.imageBase64  - Base64 data URI (image/jpeg) from the frontend canvas
+ * @returns {Object} { status, newBadge } | { status: 'error', message }
+ */
+function addNewBadge(badgeData) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId)              return { status: 'error', message: 'Unauthorized session.' };
+  if (!isAdminMember(currentMemberId)) return { status: 'error', message: 'Admin access required.' };
+ 
+  if (!badgeData.caption || !badgeData.caption.trim()) {
+    return { status: 'error', message: 'Badge caption cannot be empty.' };
+  }
+  if (!badgeData.imageBase64) {
+    return { status: 'error', message: 'Badge image is required.' };
+  }
+ 
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(BADGE_DB_SHEET);
+  const data  = sheet.getDataRange().getValues();
+ 
+  // Generate sequential ARKA_BADGE_X ID from the last row
+  let newNum = 1;
+  if (data.length > 1) {
+    const lastId  = data[data.length - 1][0].toString();
+    const lastNum = parseInt(lastId.split('_')[2]);
+    if (!isNaN(lastNum)) newNum = lastNum + 1;
+  }
+  const badgeId = 'ARKA_BADGE_' + newNum;
+ 
+  // Upload badge image to Drive — replace any previous file with the same name
+  const folder   = DriveApp.getFolderById(BADGE_IMAGES_FOLDER_ID);
+  const fileName = badgeId + '_badge.jpg';
+ 
+  const existingFiles = folder.getFilesByName(fileName);
+  while (existingFiles.hasNext()) existingFiles.next().setTrashed(true);
+ 
+  const rawBase64 = badgeData.imageBase64.split(',')[1];
+  const blob      = Utilities.newBlob(Utilities.base64Decode(rawBase64), 'image/jpeg', fileName);
+  const newFile   = folder.createFile(blob);
+ 
+  // Store at w400 — frontend swaps the sz parameter for smaller sizes at render time
+  const badgeImgUrl = 'https://drive.google.com/thumbnail?id=' + newFile.getId() + '&sz=w400';
+ 
+  const badgePoints = Number(badgeData.badgePoints) || 0;
+  sheet.appendRow([badgeId, badgeData.caption.trim(), badgeData.description.trim(), badgeImgUrl, badgePoints]);
+ 
+  return {
+    status: 'success',
+    newBadge: {
+      id:          badgeId,
+      caption:     badgeData.caption.trim(),
+      description: badgeData.description.trim(),
+      imgUrl:      badgeImgUrl,
+      badgePoints: badgePoints
+    }
+  };
+}
+ 
+ 
+/**
+ * ADMIN ONLY: Awards a badge to a specific member.
+ * Writes a new row to BadgeAwardDB and updates the MemberDB Col N badge cache.
+ * Prevents awarding the same badge to the same member twice (if already Active).
+ *
+ * @param   {Object} awardData
+ * @param   {string} awardData.badgeId  - ARKA_BADGE_X to award
+ * @param   {string} awardData.memberId - ARKA_MEMBER_X receiving the badge
+ * @param   {string} [awardData.notes]  - Optional admin note
+ * @returns {Object} { status, newAward } | { status: 'error', message }
+ */
+function awardBadgeToMember(awardData) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId)              return { status: 'error', message: 'Unauthorized session.' };
+  if (!isAdminMember(currentMemberId)) return { status: 'error', message: 'Admin access required.' };
+  if (!awardData.badgeId || !awardData.memberId) {
+    return { status: 'error', message: 'Badge ID and Member ID are both required.' };
+  }
+ 
+  const ss         = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const awardSheet = ss.getSheetByName(BADGE_AWARD_DB_SHEET);
+  const existingAwards = awardSheet.getDataRange().getValues();
+ 
+  // Duplicate guard — prevent awarding the same active badge to the same member twice
+  for (let i = 1; i < existingAwards.length; i++) {
+    if (existingAwards[i][1] === awardData.badgeId &&
+        existingAwards[i][2] === awardData.memberId &&
+        existingAwards[i][5] === 'Active') {
+      return { status: 'error', message: 'This member already holds this badge.' };
+    }
+  }
+ 
+  // Generate sequential ARKA_AWARD_X ID
+  let newNum = 1;
+  if (existingAwards.length > 1) {
+    const lastId  = existingAwards[existingAwards.length - 1][0].toString();
+    const lastNum = parseInt(lastId.split('_')[2]);
+    if (!isNaN(lastNum)) newNum = lastNum + 1;
+  }
+  const awardId      = 'ARKA_AWARD_' + newNum;
+  const dateFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MMM-yyyy');
+ 
+  awardSheet.appendRow([
+    awardId,
+    awardData.badgeId,
+    awardData.memberId,
+    currentMemberId,       // Col D: who awarded it
+    dateFormatted,         // Col E: award date
+    'Active',              // Col F: status
+    awardData.notes || ''  // Col G: optional admin note
+  ]);
+ 
+  // Keep MemberDB Col N cache in sync so the member card shows the badge count
+  updateMemberBadgeCache(ss, awardData.memberId, awardData.badgeId, 'add');
+  
+  // Look up how many points this badge is worth from BadgeDB col E
+  // activityValue = badgePoints, multiplier in ActivityTypeDB = 1,
+  // so cpAwarded = badgePoints exactly — same pattern as page reads.
+  const badgeSheetForPoints = ss.getSheetByName(BADGE_DB_SHEET);
+  const badgeRows = badgeSheetForPoints.getDataRange().getValues();
+  let badgePointsForActivity = 0;
+  for (let i = 1; i < badgeRows.length; i++) {
+    if (badgeRows[i][0].toString() === awardData.badgeId) {
+      badgePointsForActivity = Number(badgeRows[i][4]) || 0; // Col E: badgePoints
+      break;
+    }
+  }
+ 
+  // Log the badge award activity — description holds the AwardID for traceability
+  try {
+    logActivity(awardData.memberId, 'ARKA_ACTTYP_BADGEAWARD', badgePointsForActivity, awardId);
+  } catch(e) {
+    console.error('Badge activity log failed but award was saved: ' + e.toString());
+  }
+
+  return {
+    status: 'success',
+    newAward: {
+      awardId:     awardId,
+      badgeId:     awardData.badgeId,
+      memberId:    awardData.memberId,
+      awardedBy:   currentMemberId,
+      awardedDate: dateFormatted,
+      status:      'Active',
+      notes:       awardData.notes || ''
+    }
+  };
+}
+ 
+ 
+/**
+ * ADMIN ONLY: Revokes an existing badge award by setting its status to 'Revoked'.
+ * Also removes the badge from the MemberDB Col N cache so the member card
+ * updates immediately without requiring a full app reload.
+ *
+ * @param   {string} awardId - ARKA_AWARD_X to revoke
+ * @returns {Object} { status } | { status: 'error', message }
+ */
+function revokeBadgeAward(awardId) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId)              return { status: 'error', message: 'Unauthorized session.' };
+  if (!isAdminMember(currentMemberId)) return { status: 'error', message: 'Admin access required.' };
+ 
+  const ss         = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const awardSheet = ss.getSheetByName(BADGE_AWARD_DB_SHEET);
+  const data       = awardSheet.getDataRange().getValues();
+ 
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString() !== awardId.toString()) continue;
+ 
+    awardSheet.getRange(i + 1, 6).setValue('Revoked');
+    updateMemberBadgeCache(ss, data[i][2], data[i][1], 'remove');
+
+    // Look up badge points to reverse — same lookup as awardBadgeToMember
+    const badgeSheetForPoints = ss.getSheetByName(BADGE_DB_SHEET);
+    const badgeRows = badgeSheetForPoints.getDataRange().getValues();
+    let badgePointsToReverse = 0;
+    for (let j = 1; j < badgeRows.length; j++) {
+      if (badgeRows[j][0].toString() === data[i][1].toString()) {
+        badgePointsToReverse = Number(badgeRows[j][4]) || 0;
+        break;
+      }
+    }
+
+    // activityValue = badgePoints, multiplier in ActivityTypeDB = -1
+    // so cpAwarded = badgePoints × -1 = deduction
+    try {
+      logActivity(data[i][2], 'ARKA_ACTTYP_BADGEREVOKE', badgePointsToReverse, awardId);
+    } catch(e) {
+      console.error('Revoke activity log failed but revocation was saved: ' + e.toString());
+    }
+
+    return { status: 'success' };
+  }
+ 
+  return { status: 'error', message: 'Award record not found.' };
 }
