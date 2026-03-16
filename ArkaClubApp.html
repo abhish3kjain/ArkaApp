@@ -1377,6 +1377,147 @@
       }
       #evtCreateFab:hover { background: #1a252f; }
       #evtCreateFab .fab-icon { color: white; font-size: 1.6rem; font-weight: 300; margin-top: -2px; }
+
+      /* ── Challenge FAB ────────────────────────────────────────────────────────── */
+      #chalCreateFab {
+        position: fixed; bottom: 80px; right: 20px; width: 52px; height: 52px;
+        background: #2c3e50; border-radius: 50%; display: none;
+        align-items: center; justify-content: center; cursor: pointer;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.25); z-index: 300; transition: background 0.2s;
+      }
+      #chalCreateFab:hover { background: #1a252f; }
+      #chalCreateFab .fab-icon { color: white; font-size: 1.6rem; font-weight: 300; margin-top: -2px; }
+    
+      /* ── Challenge type badge pills ───────────────────────────────────────────── */
+      .chal-type-badge {
+        display: inline-block; font-size: 0.68rem; font-weight: 600; padding: 2px 8px;
+        border-radius: 20px; text-transform: uppercase; letter-spacing: 0.4px;
+      }
+      .chal-type-HABIT_STREAK   { background: #FAEEDA; color: #633806; }
+      .chal-type-BINGO_GRID     { background: #EEEDFE; color: #3C3489; }
+      .chal-type-BUDDY_READ     { background: #FBEAF0; color: #72243E; }
+      .chal-type-COUNTRY_SPREAD { background: #E1F5EE; color: #085041; }
+      .chal-type-ALPHABET       { background: #E6F1FB; color: #0C447C; }
+      .chal-type-BOOK_COUNT     { background: #FAEEDA; color: #633806; }
+      .chal-type-PAGE_COUNT     { background: #E6F1FB; color: #0C447C; }
+    
+      /* ── Challenge list card ──────────────────────────────────────────────────── */
+      .chal-card {
+        background: white; border: 1px solid #ecf0f1; border-radius: 10px;
+        padding: 14px 16px; margin-bottom: 10px;
+      }
+      .chal-card-pinned { border-left: 3px solid #A984BA; }
+      .chal-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+      .chal-card-title  { font-weight: 600; font-size: 0.95rem; color: #2c3e50; margin-bottom: 4px; }
+      .chal-card-meta   { font-size: 0.78rem; color: #7f8c8d; margin-top: 4px; }
+      .chal-card-enroll-count {
+        font-size: 0.72rem; background: #EAF3DE; color: #27500A;
+        padding: 2px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+      }
+      .chal-card-admin-strip {
+        display: flex; gap: 8px; margin-top: 10px; padding-top: 10px;
+        border-top: 1px solid #f0f0f0;
+      }
+      .chal-admin-btn {
+        background: none; border: 1px solid #ecf0f1; border-radius: 6px;
+        padding: 5px 10px; font-size: 0.78rem; cursor: pointer; color: #7f8c8d;
+        font-family: inherit;
+      }
+      .chal-admin-btn:hover { background: #f8f9fa; }
+      .chal-admin-btn--archive:hover { color: #e74c3c; border-color: #e74c3c; }
+    
+      /* ── Challenge form drawer ────────────────────────────────────────────────── */
+      #chalFormDrawer label {
+        display: block; font-size: 0.78rem; font-weight: 600; color: #7f8c8d;
+        text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; margin-top: 14px;
+      }
+      #chalFormDrawer label:first-of-type { margin-top: 0; }
+      #chalFormDrawer input[type="text"],
+      #chalFormDrawer input[type="number"],
+      #chalFormDrawer input[type="date"],
+      #chalFormDrawer select,
+      #chalFormDrawer textarea {
+        width: 100%; box-sizing: border-box; border: 1px solid #ecf0f1;
+        border-radius: 8px; padding: 9px 11px; font-size: 0.88rem;
+        color: #2c3e50; font-family: inherit; background: #f8f9fa;
+      }
+      #chalFormDrawer input:focus,
+      #chalFormDrawer select:focus,
+      #chalFormDrawer textarea:focus {
+        border-color: #A984BA; outline: none; background: #fff;
+      }
+      .chal-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .chal-type-section { display: none; }
+      .chal-type-section.visible { display: block; }
+      .chal-section-divider {
+        font-size: 0.72rem; font-weight: 600; color: #A984BA; text-transform: uppercase;
+        letter-spacing: 0.5px; margin: 16px 0 8px; padding-top: 12px;
+        border-top: 1px dashed #ecf0f1;
+      }
+    
+      /* Toggle pill — reused from announcement form */
+      .chal-toggle-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 0; border-bottom: 1px solid #f8f9fa; gap: 12px;
+      }
+      .chal-toggle-row:last-of-type { border-bottom: none; }
+      .chal-toggle-label { font-size: 0.88rem; color: #2c3e50; font-weight: 500; }
+      .chal-toggle-sub   { font-size: 0.75rem; color: #7f8c8d; margin-top: 2px; }
+    
+      /* Bingo cell grid inside the form */
+      .bingo-cell-grid { display: grid; gap: 6px; margin-top: 8px; }
+      .bingo-cell-input {
+        width: 100%; box-sizing: border-box; border: 1px solid #ecf0f1;
+        border-radius: 6px; padding: 7px 9px; font-size: 0.82rem;
+        color: #2c3e50; font-family: inherit; background: #f8f9fa;
+      }
+      .bingo-cell-input.is-free {
+        background: #EEEDFE; color: #534AB7; font-style: italic;
+      }
+      .bingo-cell-label {
+        font-size: 0.68rem; color: #bdc3c7; margin-bottom: 2px; text-transform: none;
+        letter-spacing: 0; font-weight: 400;
+      }
+
+      /* ── Enrol confirmation sheet ─────────────────────────────────────────────── */
+      .enrol-challenge-title {
+        font-weight: 600; font-size: 1rem; color: #2c3e50; margin-bottom: 4px;
+      }
+      .enrol-challenge-meta {
+        font-size: 0.8rem; color: #7f8c8d; margin-bottom: 16px; line-height: 1.5;
+      }
+      .enrol-goal-section {
+        background: #f8f9fa; border: 1px solid #ecf0f1; border-radius: 8px;
+        padding: 12px 14px; margin-bottom: 16px;
+      }
+      .enrol-goal-label {
+        font-size: 0.78rem; font-weight: 600; color: #7f8c8d;
+        text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+      }
+      .enrol-goal-input {
+        width: 100%; box-sizing: border-box; border: 1px solid #ecf0f1; border-radius: 8px;
+        padding: 9px 11px; font-size: 0.95rem; color: #2c3e50; font-family: inherit;
+        background: white; text-align: center; font-weight: 600;
+      }
+      .enrol-goal-hint {
+        font-size: 0.75rem; color: #7f8c8d; margin-top: 6px; text-align: center;
+      }
+    
+      /* Enrol / Drop buttons on challenge cards */
+      .chal-enrol-btn {
+        background: #2c3e50; color: white; border: none; border-radius: 20px;
+        padding: 5px 14px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+        font-family: inherit; white-space: nowrap; flex-shrink: 0;
+      }
+      .chal-enrol-btn:hover { background: #1a252f; }
+      .chal-drop-btn {
+        background: none; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 20px;
+        padding: 5px 12px; font-size: 0.75rem; cursor: pointer; font-family: inherit;
+        white-space: nowrap; flex-shrink: 0;
+      }
+      .chal-drop-btn:hover { background: #fff5f5; }
+      
+
     
     </style>
   </head>
@@ -2227,6 +2368,337 @@
       
         </div>
       </div>
+
+      <!-- ── Challenges full view ────────────────────────────────────────────────── -->
+      <div id="challengesView" class="view-section" style="display: none;">
+        <div class="card">
+      
+          <!-- Header -->
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+            <button class="btn-back" onclick="switchTab('home')" style="margin-bottom:0;">⬅ Back</button>
+            <h2 style="margin:0; color:#2c3e50; font-size:1.15rem;">Challenges</h2>
+          </div>
+      
+          <!-- Sub-tabs: All / Mine (members) or Active / Upcoming / Archived (admins see all) -->
+          <div class="library-tabs" style="margin-bottom:16px;" id="chalSubTabBar">
+            <div class="lib-tab active" id="tabChalAll"      onclick="switchChallengesTab('all')">All</div>
+            <div class="lib-tab"        id="tabChalMine"     onclick="switchChallengesTab('mine')">Mine</div>
+            <div class="lib-tab"        id="tabChalUpcoming" onclick="switchChallengesTab('upcoming')" style="display:none;">Upcoming</div>
+            <div class="lib-tab"        id="tabChalArchived" onclick="switchChallengesTab('archived')" style="display:none;">Archived</div>
+          </div>
+      
+          <!-- Tab content panels -->
+          <div id="chalAllContent">
+            <div id="chalAllList">
+              <p style="text-align:center; color:#7f8c8d; padding:20px 0; font-style:italic;">Loading challenges...</p>
+            </div>
+          </div>
+      
+          <div id="chalMineContent" style="display:none;">
+            <div id="chalMineList">
+              <p style="text-align:center; color:#7f8c8d; padding:20px 0; font-style:italic;">Loading your challenges...</p>
+            </div>
+          </div>
+      
+          <div id="chalUpcomingContent" style="display:none;">
+            <div id="chalUpcomingList">
+              <p style="text-align:center; color:#7f8c8d; padding:20px 0; font-style:italic;">No upcoming challenges.</p>
+            </div>
+          </div>
+      
+          <div id="chalArchivedContent" style="display:none;">
+            <div id="chalArchivedList">
+              <p style="text-align:center; color:#7f8c8d; padding:20px 0; font-style:italic;">No archived challenges.</p>
+            </div>
+          </div>
+      
+        </div>
+      </div>
+      
+      <!-- ── Challenge Admin FAB ──────────────────────────────────────────────────── -->
+      <div id="chalCreateFab" onclick="openChallengeFormSheet(null)" title="Create Challenge">
+        <span class="fab-icon">+</span>
+      </div>
+      
+      <!-- ── Challenge create / edit bottom sheet ─────────────────────────────────── -->
+      <div id="chalFormModal" class="drawer-overlay" onclick="closeChallengeFormSheet()">
+        <div class="bottom-drawer" id="chalFormDrawer"
+            style="max-height: 90vh; overflow-y: auto;"
+            onclick="event.stopPropagation()">
+      
+          <!-- Handle + title -->
+          <div style="width:36px; height:4px; background:#ecf0f1; border-radius:2px; margin:0 auto 14px;"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <h3 id="chalFormTitle" style="margin:0; color:#2c3e50; font-size:1.05rem;">New Challenge</h3>
+            <i class="fa-solid fa-xmark" onclick="closeChallengeFormSheet()"
+              style="font-size:1.3rem; color:#7f8c8d; cursor:pointer; padding:4px;"></i>
+          </div>
+      
+          <!-- ── Common fields ──────────────────────────────────────────────────── -->
+          <label for="chalFormTypeSelect">Challenge Type *</label>
+          <select id="chalFormTypeSelect" onchange="onChallengeTypeChange()">
+            <option value="">— Select a type —</option>
+            <option value="HABIT_STREAK">📅 Habit Streak</option>
+            <option value="BINGO_GRID">🎲 Bingo Grid</option>
+            <option value="BUDDY_READ">📖 Buddy Read</option>
+            <option value="COUNTRY_SPREAD">🌍 Around the World</option>
+            <option value="ALPHABET">🔤 Alphabet</option>
+            <option value="BOOK_COUNT">📚 Annual Book Count</option>
+            <option value="PAGE_COUNT">📄 Annual Page Count</option>
+          </select>
+      
+          <label for="chalFormTitleInput">Title *</label>
+          <input type="text" id="chalFormTitleInput" placeholder="e.g. Arka Book Bingo 2027" maxlength="120">
+      
+          <label for="chalFormDescInput">Description</label>
+          <textarea id="chalFormDescInput" rows="2" placeholder="What do members need to do?"></textarea>
+      
+          <div class="chal-form-row" style="margin-top:14px;">
+            <div>
+              <label for="chalFormStartDate">Start date *</label>
+              <input type="date" id="chalFormStartDate">
+            </div>
+            <div>
+              <label for="chalFormEndDate">End date <span style="font-weight:400;text-transform:none;">(blank = open-ended)</span></label>
+              <input type="date" id="chalFormEndDate">
+            </div>
+          </div>
+      
+          <label for="chalFormSeriesTag">Series tag <span style="font-weight:400;text-transform:none;">(blank = one-off)</span></label>
+          <input type="text" id="chalFormSeriesTag" list="chalSeriesTagList"
+                placeholder="e.g. BOOK_BINGO — links editions across years">
+          <datalist id="chalSeriesTagList">
+            <!-- Options injected by openChallengeFormSheet() from existing series tags -->
+          </datalist>
+      
+          <!-- ── Type-specific config sections ──────────────────────────────────── -->
+      
+          <!-- HABIT_STREAK -->
+          <div id="chalConfig-HABIT_STREAK" class="chal-type-section">
+            <div class="chal-section-divider">Streak rules</div>
+            <label for="chalStreak-minPages">Minimum pages per day to keep streak alive</label>
+            <input type="number" id="chalStreak-minPages" value="10" min="1" max="999">
+            <div class="chal-toggle-row" style="margin-top:12px;">
+              <div>
+                <div class="chal-toggle-label">Reset streak on missed day</div>
+                <div class="chal-toggle-sub">Off = missed days are recorded but streak continues</div>
+              </div>
+              <div id="chalStreak-resetToggle" class="toggle-pill on" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+      
+          <!-- BINGO_GRID -->
+          <div id="chalConfig-BINGO_GRID" class="chal-type-section">
+            <div class="chal-section-divider">Grid settings</div>
+            <label for="chalBingo-gridSize">Grid size</label>
+            <select id="chalBingo-gridSize" onchange="renderBingoCellBuilder()">
+              <option value="3">3 × 3  (9 cells)</option>
+              <option value="4">4 × 4  (16 cells)</option>
+              <option value="5">5 × 5  (25 cells)</option>
+            </select>
+            <label for="chalBingo-winCondition">Win condition (Winner badge)</label>
+            <select id="chalBingo-winCondition">
+              <option value="ALL_CELLS">All cells completed</option>
+              <option value="ANY_LINE">Any row, column, or diagonal</option>
+            </select>
+            <label for="chalBingo-finisherCondition">Finisher condition (Finisher badge)</label>
+            <select id="chalBingo-finisherCondition">
+              <option value="ANY_LINE">Any row, column, or diagonal</option>
+              <option value="HALF_CELLS">Half the cells completed</option>
+            </select>
+            <div class="chal-section-divider">Cell prompts</div>
+            <div id="chalBingo-cellBuilder" class="bingo-cell-grid" style="grid-template-columns: 1fr;"></div>
+            <p style="font-size:0.75rem;color:#7f8c8d;margin-top:6px;">
+              Centre cell is auto-set to FREE. Edit any prompt above.
+            </p>
+          </div>
+      
+          <!-- BUDDY_READ -->
+          <div id="chalConfig-BUDDY_READ" class="chal-type-section">
+            <div class="chal-section-divider">Book & event</div>
+            <label for="chalBuddy-bookTitle">Book title</label>
+            <input type="text" id="chalBuddy-bookTitle" list="chalBuddyBookList"
+                  placeholder="Type to search Arka Library…">
+            <datalist id="chalBuddyBookList">
+              <!-- Injected by openChallengeFormSheet() -->
+            </datalist>
+            <input type="hidden" id="chalBuddy-bookId">
+            <label for="chalBuddy-linkedEvent">Linked club event <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+            <select id="chalBuddy-linkedEvent">
+              <option value="">— Not linked to any event —</option>
+              <!-- Options injected by openChallengeFormSheet() from globalEventsDB -->
+            </select>
+          </div>
+      
+          <!-- COUNTRY_SPREAD -->
+          <div id="chalConfig-COUNTRY_SPREAD" class="chal-type-section">
+            <div class="chal-section-divider">Country goal</div>
+            <label for="chalCountry-goalValue">Number of distinct countries to reach</label>
+            <input type="number" id="chalCountry-goalValue" value="10" min="2" max="195">
+            <label for="chalCountry-qualRule">Qualification rule</label>
+            <select id="chalCountry-qualRule">
+              <option value="BOOK_SETTING_OR_AUTHOR">Book setting OR author nationality (either counts)</option>
+              <option value="BOOK_SETTING_ONLY">Book setting only</option>
+              <option value="AUTHOR_NATIONALITY_ONLY">Author nationality only</option>
+            </select>
+          </div>
+      
+          <!-- ALPHABET -->
+          <div id="chalConfig-ALPHABET" class="chal-type-section">
+            <div class="chal-section-divider">Letter rules</div>
+            <label for="chalAlpha-matchRule">Match rule</label>
+            <select id="chalAlpha-matchRule">
+              <option value="TITLE_FIRST_WORD">First meaningful word of title</option>
+              <option value="TITLE_ANY_WORD">Any word in the title</option>
+              <option value="AUTHOR_LASTNAME">Author's last name</option>
+            </select>
+            <div class="chal-toggle-row" style="margin-top:12px;">
+              <div>
+                <div class="chal-toggle-label">Skip articles (The, A, An)</div>
+                <div class="chal-toggle-sub">"The Kite Runner" qualifies for K, not T</div>
+              </div>
+              <div id="chalAlpha-skipToggle" class="toggle-pill on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <label for="chalAlpha-optionalLetters">Optional letters — members may skip these</label>
+            <input type="text" id="chalAlpha-optionalLetters" value="Q, X, Z"
+                  placeholder="Comma-separated e.g. Q, X, Z">
+          </div>
+      
+          <!-- BOOK_COUNT -->
+          <div id="chalConfig-BOOK_COUNT" class="chal-type-section">
+            <div class="chal-section-divider">Book goal</div>
+            <label for="chalBookCount-default">Default goal (books) — used if member doesn't set their own</label>
+            <input type="number" id="chalBookCount-default" value="24" min="1" max="999">
+            <div class="chal-toggle-row" style="margin-top:12px;">
+              <div>
+                <div class="chal-toggle-label">Allow personal goal per member</div>
+                <div class="chal-toggle-sub">Each member sets their own target on enrolment</div>
+              </div>
+              <div id="chalBookCount-personalToggle" class="toggle-pill on" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+      
+          <!-- PAGE_COUNT -->
+          <div id="chalConfig-PAGE_COUNT" class="chal-type-section">
+            <div class="chal-section-divider">Page goal</div>
+            <label for="chalPageCount-default">Default goal (pages) — used if member doesn't set their own</label>
+            <input type="number" id="chalPageCount-default" value="5000" min="100" max="99999" step="100">
+            <div class="chal-toggle-row" style="margin-top:12px;">
+              <div>
+                <div class="chal-toggle-label">Allow personal goal per member</div>
+                <div class="chal-toggle-sub">Each member sets their own target on enrolment</div>
+              </div>
+              <div id="chalPageCount-personalToggle" class="toggle-pill on" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+
+          <div class="chal-section-divider">Points</div>
+ 
+          <p style="font-size:0.78rem; color:#7f8c8d; margin-bottom:12px; line-height:1.5;">
+            ☀️ points awarded at each stage. Set Win Points to 0 for personal challenges
+            (Book Count, Page Count) — those are already rewarded per book/page read.
+          </p>
+          
+          <div class="chal-form-row">
+            <div>
+              <label for="chalFormEnrollPoints">Enrol points ☀️</label>
+              <input type="number" id="chalFormEnrollPoints" value="100" min="0" step="50"
+                    placeholder="e.g. 100">
+            </div>
+            <div>
+              <label for="chalFormFinishPoints">Finish points ☀️</label>
+              <input type="number" id="chalFormFinishPoints" value="500" min="0" step="50"
+                    placeholder="e.g. 500">
+            </div>
+          </div>
+          
+          <div style="margin-top:10px;">
+            <label for="chalFormWinPoints">Win points ☀️ <span style="font-weight:400;text-transform:none;">(0 = no winner concept)</span></label>
+            <input type="number" id="chalFormWinPoints" value="1500" min="0" step="100"
+                  placeholder="e.g. 1500">
+          </div>
+      
+          <!-- ── Common toggles ─────────────────────────────────────────────────── -->
+          <div class="chal-section-divider">Visibility</div>
+      
+          <div class="chal-toggle-row">
+            <div>
+              <div class="chal-toggle-label">📌 Pin to challenges list</div>
+              <div class="chal-toggle-sub">Pinned challenges appear at the top for all members</div>
+            </div>
+            <div id="chalFormPinToggle" class="toggle-pill" onclick="this.classList.toggle('on')"></div>
+          </div>
+      
+          <div class="chal-toggle-row">
+            <div>
+              <div class="chal-toggle-label">🏆 Show club leaderboard tab</div>
+              <div class="chal-toggle-sub">Off for personal challenges (Book Count, Page Count)</div>
+            </div>
+            <div id="chalFormCompetitiveToggle" class="toggle-pill on" onclick="this.classList.toggle('on')"></div>
+          </div>
+      
+          <label for="chalFormStatusSelect" style="margin-top:14px;">Status</label>
+          <select id="chalFormStatusSelect">
+            <option value="Active">Active</option>
+            <option value="Upcoming">Upcoming</option>
+            <option value="Completed">Completed</option>
+          </select>
+      
+          <!-- Action buttons -->
+          <div style="display:flex; gap:10px; margin-top:20px;">
+            <button id="chalFormSaveBtn" class="btn-primary" style="flex:1;"
+                    onclick="saveChallengeFromForm()">Save Challenge</button>
+            <button class="btn-outline" style="flex:0 0 auto; width:auto; padding:12px 18px;"
+                    onclick="closeChallengeFormSheet()">Cancel</button>
+          </div>
+      
+        </div>
+      </div>
+
+      <!-- ── Enrol confirmation bottom sheet ──────────────────────────────────────── -->
+      <div id="chalEnrolModal" class="drawer-overlay" onclick="closeChalEnrolSheet()">
+        <div class="bottom-drawer" id="chalEnrolDrawer"
+            style="max-height: 70vh; overflow-y: auto;"
+            onclick="event.stopPropagation()">
+      
+          <div style="width:36px; height:4px; background:#ecf0f1; border-radius:2px; margin:0 auto 14px;"></div>
+      
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
+            <div>
+              <div class="enrol-challenge-title" id="chalEnrolTitle">Join Challenge</div>
+              <div class="enrol-challenge-meta"  id="chalEnrolMeta"></div>
+            </div>
+            <i class="fa-solid fa-xmark" onclick="closeChalEnrolSheet()"
+              style="font-size:1.3rem; color:#7f8c8d; cursor:pointer; padding:4px; flex-shrink:0;"></i>
+          </div>
+      
+          <!-- Personal goal input — shown only for BOOK_COUNT and PAGE_COUNT -->
+          <div id="chalEnrolGoalSection" class="enrol-goal-section" style="display:none;">
+            <div class="enrol-goal-label" id="chalEnrolGoalLabel">Your personal goal</div>
+            <input type="number" id="chalEnrolGoalInput" class="enrol-goal-input"
+                  min="1" placeholder="e.g. 20">
+            <div class="enrol-goal-hint" id="chalEnrolGoalHint"></div>
+          </div>
+      
+          <!-- What you'll earn by joining -->
+          <div id="chalEnrolPointsNotice" style="background:#EEEDFE; border-radius:8px;
+                padding:10px 14px; margin-bottom:16px; font-size:0.82rem; color:#534AB7;
+                line-height:1.5;">
+            <!-- Filled dynamically by openChalEnrolSheet() -->
+          </div>
+      
+          <div style="display:flex; gap:10px;">
+            <button id="chalEnrolConfirmBtn" class="btn-primary" style="flex:1;"
+                    onclick="submitEnrolment()">Join Challenge</button>
+            <button class="btn-outline" style="flex:0 0 auto; width:auto; padding:12px 18px;"
+                    onclick="closeChalEnrolSheet()">Cancel</button>
+          </div>
+      
+          <input type="hidden" id="chalEnrolChallengeId">
+        </div>
+      </div>
+
+
       
       <!-- Admin FAB — fixed position, shown only when admin is on Notices tab ──── -->
       <div id="annCreateFab" onclick="openAnnouncementFormSheet(null)" title="Create Announcement">
@@ -2451,6 +2923,7 @@
       
       <div class="drawer-item" onclick="openMyProfile()">👤 My Profile</div>
       <div class="drawer-item" onclick="openEventsAndAnnouncementsView()">📅 Events & Announcements</div>
+      <div class="drawer-item" onclick="openChallengesView()">🏆 Challenges</div>
       <div class="drawer-item" onclick="openTenPagesChallenge()">🎯 10 Pages A Day Challenge</div>
       <div class="drawer-item" onclick="openBookBingo()">🎲 Book Bingo</div>
       <div class="drawer-item" onclick="openBadgeGallery()">🏅 Badges</div>
@@ -3442,8 +3915,10 @@
         //    only when the Events & Announcements view is the target.
         const annFabEl = document.getElementById('annCreateFab');
         const evtFabEl = document.getElementById('evtCreateFab');
+        const chalFabEl = document.getElementById('chalCreateFab');
         if (annFabEl) annFabEl.style.display = 'none';
         if (evtFabEl) evtFabEl.style.display = 'none';
+        if (chalFabEl) chalFabEl.style.display = 'none';
 
         // 2. Hide ALL top-level views completely
         document.getElementById('homeView').style.display = "none";
@@ -3460,6 +3935,7 @@
         document.getElementById('badgesView').style.display = 'none';
         document.getElementById('eventsAndAnnouncementsView').style.display = 'none';
         document.getElementById('eventDetailView').style.display = 'none';
+        document.getElementById('challengesView').style.display = 'none';
 
         // 3. Force reset all nested sub-views so we don't get overlapping cards
         document.getElementById('libAddBookWorkspace').style.display = 'none';
@@ -3526,6 +4002,10 @@
           // loadEventsData() shows a spinner only on first load; subsequent calls
           // are silent background refreshes that update the list when complete.
           loadEventsData();
+        }
+        if (tabName === 'challenges') {
+          refreshChallengesViewFabVisibility();
+          renderChallengesView();
         }
         
         // 8. Snap to the top of the page so it feels like a fresh screen load
@@ -10547,6 +11027,954 @@
           })
           .withFailureHandler(function() { showToast('Remove failed. Try again.'); })
           .removeEventAsset({ eventId, assetId });
+      }
+
+      // ==========================================================================
+      // CHALLENGES MODULE — Frontend Logic
+      // ==========================================================================
+    
+      /**
+       * Tracks which sub-tab is active inside the Challenges view.
+       * Values: 'all' | 'mine' | 'upcoming' | 'archived'
+       * Declared in Part 1 as currentChallengesSubTab — already defined.
+       */
+    
+      /** Tracks which challenge is open in the edit form (null = create mode). */
+      let currentEditingChallengeId = null;
+    
+    
+      // ── Navigation ──────────────────────────────────────────────────────────────
+    
+      /**
+        * Opens the Challenges view from the More drawer.
+        * Fires a lightweight backend refresh of ChallengeEnrollmentDB so
+        * enrolled counts are always current — not stale from the Big Gulp.
+        */
+      function openChallengesView() {
+        toggleDrawer(false);
+        switchTab('challenges');
+        // Silently refresh enrollment counts in the background.
+        // renderChallengesView() runs immediately from the route handler in switchTab(),
+        // showing the Big Gulp data instantly. This call then overwrites with fresh data.
+        refreshChallengeEnrollments();
+      }
+
+      /**
+        * Fetches the latest ChallengeEnrollmentDB rows from the backend and
+        * rebuilds globalChallengeEnrollmentsDB, myEnrollmentsMap, and the
+        * rendered list — all silently without any loading indicator.
+        * Called every time the Challenges view is opened.
+        */
+      function refreshChallengeEnrollments() {
+        google.script.run
+          .withSuccessHandler(function(freshEnrollments) {
+            if (!freshEnrollments || !freshEnrollments.length) return;
+  
+            // Replace the full array with fresh data from the sheet
+            globalChallengeEnrollmentsDB = freshEnrollments;
+  
+            // Rebuild the per-user map
+            myEnrollmentsMap = new Map();
+            globalChallengeEnrollmentsDB
+              .filter(function(e) { return e.memberId === currentUser; })
+              .forEach(function(e) { myEnrollmentsMap.set(e.challengeId, e); });
+  
+            // Re-render the currently visible tab silently
+            // (user sees updated counts without any spinner or flash)
+            renderChallengeList(currentChallengesSubTab);
+          })
+          .withFailureHandler(function() {
+            // Fail silently — Big Gulp data already showing, this is just a refresh
+            console.warn('Challenge enrollment refresh failed — showing cached data.');
+          })
+          .getLatestChallengeEnrollments();
+      }
+
+    
+      /**
+       * Shows/hides the admin FAB based on whether the current user is an admin
+       * and the challengesView is the active view.
+       */
+      function refreshChallengesViewFabVisibility() {
+        const fab = document.getElementById('chalCreateFab');
+        if (!fab) return;
+        const isAdmin = ADMIN_MEMBER_IDS.includes(currentUser);
+        if (isAdmin) {
+          fab.style.display = 'flex';
+    
+          // Show extra admin sub-tabs
+          const upcomingTab = document.getElementById('tabChalUpcoming');
+          const archivedTab = document.getElementById('tabChalArchived');
+          if (upcomingTab) upcomingTab.style.display = '';
+          if (archivedTab) archivedTab.style.display = '';
+        } else {
+          fab.style.display = 'none';
+        }
+      }
+    
+      /**
+       * Switches between sub-tabs inside the Challenges view.
+       * @param {'all'|'mine'|'upcoming'|'archived'} tabName
+       */
+      function switchChallengesTab(tabName) {
+        currentChallengesSubTab = tabName;
+    
+        // Update active styling on tabs
+        ['all', 'mine', 'upcoming', 'archived'].forEach(function(t) {
+          const tabEl = document.getElementById('tabChal' + t.charAt(0).toUpperCase() + t.slice(1));
+          if (tabEl) tabEl.classList.toggle('active', t === tabName);
+        });
+    
+        // Show/hide content panels
+        const panels = {
+          all      : document.getElementById('chalAllContent'),
+          mine     : document.getElementById('chalMineContent'),
+          upcoming : document.getElementById('chalUpcomingContent'),
+          archived : document.getElementById('chalArchivedContent')
+        };
+        Object.entries(panels).forEach(function(entry) {
+          if (entry[1]) entry[1].style.display = entry[0] === tabName ? 'block' : 'none';
+        });
+    
+        // Render the relevant list
+        if (tabName === 'all')      renderChallengeList('all');
+        if (tabName === 'mine')     renderChallengeList('mine');
+        if (tabName === 'upcoming') renderChallengeList('upcoming');
+        if (tabName === 'archived') renderChallengeList('archived');
+      }
+    
+    
+      // ── List Rendering ───────────────────────────────────────────────────────────
+    
+      /**
+       * Entry point called by switchTab('challenges').
+       * Renders the currently active sub-tab.
+       */
+      function renderChallengesView() {
+        switchChallengesTab(currentChallengesSubTab || 'all');
+      }
+    
+      /**
+       * Builds and injects the challenge card list for a given tab.
+       * Derives enrolled counts from globalChallengeEnrollmentsDB at render time —
+       * no extra backend call needed.
+       *
+       * @param {'all'|'mine'|'upcoming'|'archived'} tab
+       */
+      function renderChallengeList(tab) {
+        const containerId = 'chal' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'List';
+        const container   = document.getElementById(containerId);
+        if (!container) return;
+    
+        if (!isAppDataLoaded) {
+          container.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:20px 0;font-style:italic;">Loading...</p>';
+          return;
+        }
+    
+        const isAdmin = ADMIN_MEMBER_IDS.includes(currentUser);
+    
+        // Filter challenges by tab
+        let challenges = globalChallengesDB.filter(function(c) {
+          if (tab === 'all')      return c.status === 'Active';
+          if (tab === 'mine')     return myEnrollmentsMap.has(c.challengeId) && c.status === 'Active';
+          if (tab === 'upcoming') return c.status === 'Upcoming';
+          if (tab === 'archived') return c.status === 'Archived' || c.status === 'Completed';
+          return false;
+        });
+    
+        // Sort: pinned first, then alphabetical by title
+        challenges = challenges.sort(function(a, b) {
+          if (a.isPinned && !b.isPinned) return -1;
+          if (!a.isPinned && b.isPinned) return 1;
+          return a.title.localeCompare(b.title);
+        });
+    
+        if (challenges.length === 0) {
+          const emptyMessages = {
+            all      : 'No active challenges yet.',
+            mine     : 'You haven\'t enrolled in any challenges yet. Check the All tab!',
+            upcoming : 'No upcoming challenges.',
+            archived : 'No archived challenges.'
+          };
+          container.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:20px 0;font-style:italic;">' + (emptyMessages[tab] || '') + '</p>';
+          return;
+        }
+    
+        // Pre-compute enrolled counts: challengeId → count of Active/Winner/Finisher enrollments
+        const enrolledCountMap = {};
+        globalChallengeEnrollmentsDB.forEach(function(enr) {
+          if (enr.enrollmentStatus === 'Dropped') return;
+          enrolledCountMap[enr.challengeId] = (enrolledCountMap[enr.challengeId] || 0) + 1;
+        });
+    
+        let html = '';
+        challenges.forEach(function(c) {
+          const enrolledCount = enrolledCountMap[c.challengeId] || 0;
+          const isEnrolled    = myEnrollmentsMap.has(c.challengeId);
+          const pinnedClass   = c.isPinned ? ' chal-card-pinned' : '';
+          const pinBadge      = c.isPinned ? '<span style="font-size:0.7rem;color:#A984BA;margin-right:6px;">📌</span>' : '';
+    
+          // Date display
+          const dateStr = c.endDate
+            ? c.startDate + ' – ' + c.endDate
+            : c.startDate + ' · Open-ended';
+    
+          // Enrolled badge for member (shows their enrolment status)
+          let enrollBadge = '';
+          if (isEnrolled) {
+            const myEnr = myEnrollmentsMap.get(c.challengeId);
+            const statusColours = {
+              Active   : 'background:#EAF3DE;color:#27500A;',
+              Winner   : 'background:#FAEEDA;color:#633806;',
+              Finisher : 'background:#E1F5EE;color:#085041;'
+            };
+            const style = statusColours[myEnr.enrollmentStatus] || 'background:#ecf0f1;color:#7f8c8d;';
+            enrollBadge = '<span style="font-size:0.7rem;padding:2px 8px;border-radius:20px;' + style + 'margin-left:6px;">✓ ' + myEnr.enrollmentStatus + '</span>';
+          }
+    
+          // Admin action strip
+          let adminStrip = '';
+          if (isAdmin) {
+            adminStrip = `
+              <div class="chal-card-admin-strip">
+                <button class="chal-admin-btn" onclick="openChallengeFormSheet('${c.challengeId}')">✏️ Edit</button>
+                <button class="chal-admin-btn chal-admin-btn--archive"
+                        onclick="archiveChallengeFromUI('${c.challengeId}', '${escapeHtml(c.title)}')">🗄 Archive</button>
+              </div>`;
+          }
+    
+          html += `
+            <div class="chal-card${pinnedClass}">
+
+              <div class="chal-card-header">
+                <div style="flex:1;">
+                  <div class="chal-card-title">${pinBadge}${escapeHtml(c.title)}${enrollBadge}</div>
+                  <div style="margin-top:4px;">
+                    <span class="chal-type-badge chal-type-${c.challengeType}">${c.challengeType.replace(/_/g,' ')}</span>
+                  </div>
+                  <div class="chal-card-meta">${dateStr}</div>
+                  ${c.description ? '<div class="chal-card-meta" style="margin-top:3px;">' + escapeHtml(c.description) + '</div>' : ''}
+                </div>
+                <div class="chal-card-enroll-count">${enrolledCount} enrolled</div>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+                ${isEnrolled && myEnrollmentsMap.get(c.challengeId).enrollmentStatus === 'Active'
+                  ? '<button class="chal-drop-btn" onclick="openDropChallengeConfirm(\'' + c.challengeId + '\', \'' + escapeHtml(c.title) + '\')">Drop</button>'
+                  : (!isEnrolled ? '<button class="chal-enrol-btn" onclick="openChalEnrolSheet(\'' + c.challengeId + '\')">Enrol →</button>' : '')
+                }
+              </div>
+
+              ${adminStrip}
+            </div>`;
+        });
+    
+        container.innerHTML = html;
+      }
+    
+    
+      // ── Admin: Archive ───────────────────────────────────────────────────────────
+    
+      /**
+       * Prompts for confirmation then archives a challenge.
+       * Updates local state and re-renders immediately on success.
+       *
+       * @param {string} challengeId - ARKA_CHAL_X to archive
+       * @param {string} title       - Display name for the confirmation message
+       */
+      function archiveChallengeFromUI(challengeId, title) {
+        if (!confirm('Archive "' + title + '"?\n\nIt will no longer appear in the app but remains in the sheet. Existing enrollments are preserved.')) return;
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') { showToast('Error: ' + res.message); return; }
+    
+            // Update local array
+            const challenge = globalChallengesDB.find(function(c) { return c.challengeId === challengeId; });
+            if (challenge) challenge.status = 'Archived';
+    
+            showToast('Challenge archived.');
+            renderChallengeList(currentChallengesSubTab);
+          })
+          .withFailureHandler(function() { showToast('Archive failed. Please try again.'); })
+          .archiveChallenge(challengeId);
+      }
+
+      // ── Enrol flow ───────────────────────────────────────────────────────────────
+    
+      /**
+       * Opens the enrolment confirmation sheet for a challenge.
+       * For BOOK_COUNT and PAGE_COUNT, shows a personal goal input.
+       *
+       * @param {string} challengeId - ARKA_CHAL_X to enrol in
+       */
+      function openChalEnrolSheet(challengeId) {
+        const challenge = challengesMap.get(challengeId);
+        if (!challenge) { showToast('Challenge not found.'); return; }
+    
+        // Populate sheet fields
+        document.getElementById('chalEnrolChallengeId').value = challengeId;
+        document.getElementById('chalEnrolTitle').textContent = challenge.title;
+
+        // Build meta line: type + date range
+        const dateStr = challenge.endDate
+          ? challenge.startDate + ' – ' + challenge.endDate
+          : challenge.startDate + ' · Open-ended';
+        document.getElementById('chalEnrolMeta').textContent =
+          challenge.challengeType.replace(/_/g, ' ') + '  ·  ' + dateStr;
+
+        // Build per-challenge points notice
+        const noticeEl = document.getElementById('chalEnrolPointsNotice');
+        if (noticeEl) {
+          const enrolPts  = challenge.enrollPoints  || 0;
+          const finishPts = challenge.finishPoints || 0;
+          const winPts    = challenge.winPoints    || 0;
+    
+          let noticeLines = [];
+          if (enrolPts  > 0) noticeLines.push('🎯 <strong>' + enrolPts.toLocaleString()  + ' ☀️</strong> for joining');
+          if (finishPts > 0) noticeLines.push('✅ <strong>' + finishPts.toLocaleString() + ' ☀️</strong> for finishing');
+          if (winPts    > 0) noticeLines.push('🏆 <strong>' + winPts.toLocaleString()    + ' ☀️</strong> for winning');
+    
+          noticeEl.innerHTML = noticeLines.length > 0
+            ? noticeLines.join(' &nbsp;·&nbsp; ')
+            : 'No points are awarded for this challenge.';
+    
+          // Hide the notice entirely if the challenge awards 0 for everything
+          noticeEl.style.display = (enrolPts + finishPts + winPts > 0) ? 'block' : 'none';
+        }
+
+    
+        // Personal goal section: visible only for BOOK_COUNT and PAGE_COUNT
+        const personalGoalTypes = ['BOOK_COUNT', 'PAGE_COUNT'];
+        const goalSection = document.getElementById('chalEnrolGoalSection');
+        const goalInput   = document.getElementById('chalEnrolGoalInput');
+        const goalHint    = document.getElementById('chalEnrolGoalHint');
+        const goalLabel   = document.getElementById('chalEnrolGoalLabel');
+    
+        if (personalGoalTypes.includes(challenge.challengeType)) {
+          goalSection.style.display = 'block';
+    
+          let config = {};
+          try { config = JSON.parse(challenge.goalConfigJson || '{}'); } catch (e) {}
+    
+          if (challenge.challengeType === 'BOOK_COUNT') {
+            goalLabel.textContent     = 'Your personal book goal for the year';
+            goalInput.value           = config.defaultGoal || 24;
+            goalInput.min             = 1;
+            goalInput.step            = 1;
+            goalInput.placeholder     = 'e.g. 24';
+            goalHint.textContent      = 'Club default is ' + (config.defaultGoal || 24) + ' books. Change it to your own target.';
+          } else {
+            goalLabel.textContent     = 'Your personal page goal for the year';
+            goalInput.value           = config.defaultGoal || 5000;
+            goalInput.min             = 100;
+            goalInput.step            = 100;
+            goalInput.placeholder     = 'e.g. 5000';
+            goalHint.textContent      = 'Club default is ' + ((config.defaultGoal || 5000).toLocaleString()) + ' pages. Change it to your own target.';
+          }
+        } else {
+          goalSection.style.display = 'none';
+        }
+    
+        // Reset button
+        const btn = document.getElementById('chalEnrolConfirmBtn');
+        if (btn) { btn.disabled = false; btn.innerText = 'Join Challenge'; }
+    
+        document.getElementById('chalEnrolModal').style.display = 'flex';
+        setTimeout(function() {
+          document.getElementById('chalEnrolDrawer').classList.add('open');
+        }, 10);
+      }
+    
+      /**
+       * Closes the enrolment confirmation sheet with slide-down animation.
+       */
+      function closeChalEnrolSheet() {
+        const drawer = document.getElementById('chalEnrolDrawer');
+        if (drawer) drawer.classList.remove('open');
+        setTimeout(function() {
+          const modal = document.getElementById('chalEnrolModal');
+          if (modal) modal.style.display = 'none';
+        }, 300);
+      }
+    
+      /**
+       * Reads the enrolment sheet, validates, and calls enrollInChallenge() on the backend.
+       */
+      function submitEnrolment() {
+        const btn         = document.getElementById('chalEnrolConfirmBtn');
+        const challengeId = document.getElementById('chalEnrolChallengeId').value;
+        const challenge   = challengesMap.get(challengeId);
+        if (!challenge) { showToast('Challenge not found.'); return; }
+    
+        // Read personal goal if the input is visible
+        let personalGoal = 0;
+        const personalGoalTypes = ['BOOK_COUNT', 'PAGE_COUNT'];
+        if (personalGoalTypes.includes(challenge.challengeType)) {
+          personalGoal = parseInt(document.getElementById('chalEnrolGoalInput').value) || 0;
+          if (personalGoal < 1) {
+            showToast('Please enter a valid goal (minimum 1).');
+            document.getElementById('chalEnrolGoalInput').focus();
+            return;
+          }
+        }
+    
+        btn.disabled  = true;
+        btn.innerText = 'Joining…';
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') {
+              showToast('Error: ' + res.message);
+              btn.disabled  = false;
+              btn.innerText = 'Join Challenge';
+              return;
+            }
+    
+            // 1. Add to local enrollment arrays
+            globalChallengeEnrollmentsDB.push(res.enrollment);
+    
+            // 2. Update myEnrollmentsMap so the card re-renders with ✓ status
+            myEnrollmentsMap.set(challengeId, res.enrollment);
+    
+            closeChalEnrolSheet();
+            showToast('You\'ve joined "' + challenge.title + '"! 🏆');
+    
+            // 3. Re-render the current tab so the Enrol button becomes a Drop button
+            renderChallengeList(currentChallengesSubTab);
+          })
+          .withFailureHandler(function() {
+            showToast('Enrolment failed. Please try again.');
+            btn.disabled  = false;
+            btn.innerText = 'Join Challenge';
+          })
+          .enrollInChallenge({
+            challengeId         : challengeId,
+            personalGoal        : personalGoal,
+            activityPointsMap   : globalActivityPointsMap
+          });
+      }
+    
+    
+      // ── Drop flow ────────────────────────────────────────────────────────────────
+    
+      /**
+       * Prompts for confirmation then drops the member from a challenge.
+       * Uses the native confirm() dialog — consistent with archive and revoke patterns
+       * elsewhere in the app.
+       *
+       * @param {string} challengeId - ARKA_CHAL_X to drop from
+       * @param {string} title       - Challenge display name for the confirmation message
+       */
+      function openDropChallengeConfirm(challengeId, title) {
+        if (!confirm('Drop from "' + title + '"?\n\nYour progress will be saved but you will no longer appear on the leaderboard. You can re-enrol later.')) return;
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') { showToast('Error: ' + res.message); return; }
+    
+            // 1. Update local enrollment record
+            const enrollment = myEnrollmentsMap.get(challengeId);
+            if (enrollment) enrollment.enrollmentStatus = 'Dropped';
+    
+            // 2. Also update globalChallengeEnrollmentsDB so enrolled count re-computes
+            const globalEnr = globalChallengeEnrollmentsDB.find(function(e) {
+              return e.challengeId === challengeId && e.memberId === enrollment.memberId;
+            });
+            if (globalEnr) globalEnr.enrollmentStatus = 'Dropped';
+    
+            showToast('You\'ve dropped from "' + title + '".');
+            renderChallengeList(currentChallengesSubTab);
+          })
+          .withFailureHandler(function() { showToast('Drop failed. Please try again.'); })
+          .dropFromChallenge(challengeId);
+      }
+
+    
+    
+      // ── Admin: Create / Edit Form ─────────────────────────────────────────────────
+    
+      /**
+       * Opens the challenge creation/edit bottom sheet.
+       * Create mode: challengeId = null → blank form.
+       * Edit mode:   challengeId = ARKA_CHAL_X → pre-fills all fields.
+       *
+       * @param {string|null} challengeId
+       */
+      function openChallengeFormSheet(challengeId) {
+        currentEditingChallengeId = challengeId || null;
+    
+        const titleEl  = document.getElementById('chalFormTitle');
+        const saveBtn  = document.getElementById('chalFormSaveBtn');
+    
+        // Inject series tag datalist from existing challenges
+        const seriesTags = [...new Set(
+          globalChallengesDB.map(function(c) { return c.seriesTag; }).filter(Boolean)
+        )].sort();
+        const datalist = document.getElementById('chalSeriesTagList');
+        if (datalist) {
+          datalist.innerHTML = seriesTags
+            .map(function(t) { return '<option value="' + escapeHtml(t) + '">'; })
+            .join('');
+        }
+    
+        // Inject book options into buddy read datalist
+        const bookDatalist = document.getElementById('chalBuddyBookList');
+        if (bookDatalist) {
+          bookDatalist.innerHTML = globalBooksDB
+            .map(function(b) {
+              return '<option value="' + escapeHtml(b.title) + ' — ' + escapeHtml(b.author) + '" data-id="' + b.id + '">';
+            })
+            .join('');
+        }
+    
+        // Inject upcoming/active events into buddy read linked event select
+        const eventSelect = document.getElementById('chalBuddy-linkedEvent');
+        if (eventSelect && globalEventsDB && globalEventsDB.length) {
+          const upcomingEvents = globalEventsDB.filter(function(e) {
+            return e.status === 'Active';
+          });
+          let eventOptions = '<option value="">— Not linked to any event —</option>';
+          upcomingEvents.forEach(function(e) {
+            eventOptions += '<option value="' + e.eventId + '">' + escapeHtml(e.title) + ' · ' + e.startDate + '</option>';
+          });
+          eventSelect.innerHTML = eventOptions;
+        }
+    
+        if (challengeId) {
+          // ── Edit mode ──────────────────────────────────────────────────────────
+          const c = globalChallengesDB.find(function(ch) { return ch.challengeId === challengeId; });
+          if (!c) { showToast('Challenge not found.'); return; }
+    
+          if (titleEl) titleEl.textContent = 'Edit Challenge';
+    
+          document.getElementById('chalFormTypeSelect').value    = c.challengeType;
+          document.getElementById('chalFormTypeSelect').disabled = true; // Type locked on edit
+          document.getElementById('chalFormTitleInput').value    = c.title;
+          document.getElementById('chalFormDescInput').value     = c.description || '';
+          document.getElementById('chalFormStartDate').value     = convertToInputDateFormat(c.startDate);
+          document.getElementById('chalFormEndDate').value       = convertToInputDateFormat(c.endDate);
+          document.getElementById('chalFormSeriesTag').value     = c.seriesTag || '';
+          document.getElementById('chalFormStatusSelect').value  = c.status;
+    
+          const pinToggle  = document.getElementById('chalFormPinToggle');
+          const compToggle = document.getElementById('chalFormCompetitiveToggle');
+          if (pinToggle)  pinToggle.classList.toggle('on', c.isPinned);
+          if (compToggle) compToggle.classList.toggle('on', c.isCompetitive);
+          const enrolEl  = document.getElementById('chalFormEnrollPoints');
+          const finishEl = document.getElementById('chalFormFinishPoints');
+          const winEl    = document.getElementById('chalFormWinPoints');
+          if (enrolEl)  enrolEl.value  = c.enrollPoints  || 0;
+          if (finishEl) finishEl.value = c.finishPoints || 0;
+          if (winEl)    winEl.value    = c.winPoints    || 0;
+    
+          // Show the correct type-specific section and pre-fill it
+          showChallengeTypeSection(c.challengeType);
+          prefillTypeSpecificFields(c);
+    
+        } else {
+          // ── Create mode ────────────────────────────────────────────────────────
+          if (titleEl) titleEl.textContent = 'New Challenge';
+    
+          document.getElementById('chalFormTypeSelect').value    = '';
+          document.getElementById('chalFormTypeSelect').disabled = false;
+          document.getElementById('chalFormTitleInput').value    = '';
+          document.getElementById('chalFormDescInput').value     = '';
+          document.getElementById('chalFormStartDate').value     = '';
+          document.getElementById('chalFormEndDate').value       = '';
+          document.getElementById('chalFormSeriesTag').value     = '';
+          document.getElementById('chalFormStatusSelect').value  = 'Active';
+    
+          document.getElementById('chalFormPinToggle').classList.remove('on');
+          document.getElementById('chalFormCompetitiveToggle').classList.add('on');
+    
+          // Hide all type sections
+          document.querySelectorAll('.chal-type-section').forEach(function(el) {
+            el.classList.remove('visible');
+          });
+        }
+    
+        if (saveBtn) {
+          saveBtn.disabled  = false;
+          saveBtn.innerText = 'Save Challenge';
+        }
+    
+        document.getElementById('chalFormModal').style.display = 'flex';
+        setTimeout(function() {
+          document.getElementById('chalFormDrawer').classList.add('open');
+        }, 10);
+      }
+    
+      /**
+       * Closes the challenge form bottom sheet with slide-down animation.
+       */
+      function closeChallengeFormSheet() {
+        const drawer = document.getElementById('chalFormDrawer');
+        if (drawer) drawer.classList.remove('open');
+        setTimeout(function() {
+          const modal = document.getElementById('chalFormModal');
+          if (modal) modal.style.display = 'none';
+        }, 300);
+        currentEditingChallengeId = null;
+      }
+    
+      /**
+       * Called when the challengeType select changes.
+       * Shows the relevant type-specific config section and sets
+       * sensible isCompetitive defaults per type.
+       */
+      function onChallengeTypeChange() {
+        const selectedType = document.getElementById('chalFormTypeSelect').value;
+        showChallengeTypeSection(selectedType);
+
+        // Auto-set sensible point defaults per type
+        const pointDefaults = {
+          HABIT_STREAK   : { enrol: 100, finish: 1500, win: 3000 },
+          BINGO_GRID     : { enrol: 50, finish: 1000,  win: 3000 },
+          BUDDY_READ     : { enrol: 30,  finish: 200,  win: 0    },
+          COUNTRY_SPREAD : { enrol: 100, finish: 1500,  win: 3000 },
+          ALPHABET       : { enrol: 100, finish: 1500,  win: 5000 },
+          BOOK_COUNT     : { enrol: 30,  finish: 100,    win: 0    },
+          PAGE_COUNT     : { enrol: 30,  finish: 100,    win: 0    }
+        };
+        const pts = pointDefaults[selectedType];
+        if (pts) {
+          const enrolEl  = document.getElementById('chalFormEnrollPoints');
+          const finishEl = document.getElementById('chalFormFinishPoints');
+          const winEl    = document.getElementById('chalFormWinPoints');
+          if (enrolEl)  enrolEl.value  = pts.enrol;
+          if (finishEl) finishEl.value = pts.finish;
+          if (winEl)    winEl.value    = pts.win;
+        }
+    
+        // Set isCompetitive default: off for personal goal types
+        const nonCompetitiveTypes = ['BOOK_COUNT', 'PAGE_COUNT'];
+        const compToggle = document.getElementById('chalFormCompetitiveToggle');
+        if (compToggle) {
+          compToggle.classList.toggle('on', !nonCompetitiveTypes.includes(selectedType));
+        }
+    
+        // Build bingo cell grid when BINGO_GRID is selected
+        if (selectedType === 'BINGO_GRID') renderBingoCellBuilder();
+      }
+    
+      /**
+       * Shows the type-specific config section for the given type,
+       * hiding all others.
+       * @param {string} challengeType
+       */
+      function showChallengeTypeSection(challengeType) {
+        document.querySelectorAll('.chal-type-section').forEach(function(el) {
+          el.classList.remove('visible');
+        });
+        const target = document.getElementById('chalConfig-' + challengeType);
+        if (target) target.classList.add('visible');
+      }
+    
+      /**
+       * Builds the dynamic bingo cell input grid based on the selected grid size.
+       * Called on type change and on gridSize select change.
+       */
+      function renderBingoCellBuilder() {
+        const gridSize   = parseInt(document.getElementById('chalBingo-gridSize').value) || 3;
+        const totalCells = gridSize * gridSize;
+        const centreIdx  = Math.floor(totalCells / 2);
+        const container  = document.getElementById('chalBingo-cellBuilder');
+        if (!container) return;
+    
+        container.style.gridTemplateColumns = 'repeat(' + gridSize + ', 1fr)';
+        let html = '';
+        for (let i = 0; i < totalCells; i++) {
+          const isFree = (totalCells % 2 !== 0) && (i === centreIdx);
+          html += '<div>';
+          html += '<div class="bingo-cell-label">Cell ' + (i + 1) + (isFree ? ' (FREE)' : '') + '</div>';
+          if (isFree) {
+            html += '<input class="bingo-cell-input is-free" id="chalBingo-cell-' + i + '" value="FREE — any book you loved" readonly>';
+          } else {
+            html += '<input class="bingo-cell-input" id="chalBingo-cell-' + i + '" placeholder="Reading prompt…">';
+          }
+          html += '</div>';
+        }
+        container.innerHTML = html;
+      }
+    
+      /**
+       * Pre-fills type-specific form fields when opening an existing challenge in edit mode.
+       * Parses goalConfigJson and maps values back to the appropriate inputs.
+       *
+       * @param {ChallengeRecord} challenge
+       */
+      function prefillTypeSpecificFields(challenge) {
+        let config = {};
+        try { config = JSON.parse(challenge.goalConfigJson || '{}'); } catch (e) { config = {}; }
+    
+        const t = challenge.challengeType;
+    
+        if (t === 'HABIT_STREAK') {
+          const el = document.getElementById('chalStreak-minPages');
+          if (el) el.value = config.minPagesPerDay || 10;
+          const tog = document.getElementById('chalStreak-resetToggle');
+          if (tog) tog.classList.toggle('on', config.streakResetOnMiss !== false);
+        }
+    
+        if (t === 'BINGO_GRID') {
+          const sizeEl = document.getElementById('chalBingo-gridSize');
+          if (sizeEl) sizeEl.value = config.gridSize || 3;
+          renderBingoCellBuilder();
+          const winEl = document.getElementById('chalBingo-winCondition');
+          if (winEl) winEl.value = config.winCondition || 'ALL_CELLS';
+          const finEl = document.getElementById('chalBingo-finisherCondition');
+          if (finEl) finEl.value = config.finisherCondition || 'ANY_LINE';
+          // Pre-fill cell prompts
+          if (config.cells && Array.isArray(config.cells)) {
+            config.cells.forEach(function(cell, idx) {
+              const input = document.getElementById('chalBingo-cell-' + idx);
+              if (input && !input.readOnly) input.value = cell.prompt || '';
+            });
+          }
+        }
+    
+        if (t === 'BUDDY_READ') {
+          const bookEl = document.getElementById('chalBuddy-bookTitle');
+          if (bookEl) bookEl.value = config.bookTitle || '';
+          const bookIdEl = document.getElementById('chalBuddy-bookId');
+          if (bookIdEl) bookIdEl.value = config.bookId || '';
+          const evtEl = document.getElementById('chalBuddy-linkedEvent');
+          if (evtEl && config.linkedEventId) evtEl.value = config.linkedEventId;
+        }
+    
+        if (t === 'COUNTRY_SPREAD') {
+          const goalEl = document.getElementById('chalCountry-goalValue');
+          if (goalEl) goalEl.value = challenge.goalValue || 10;
+          const ruleEl = document.getElementById('chalCountry-qualRule');
+          if (ruleEl) ruleEl.value = config.qualificationRule || 'BOOK_SETTING_OR_AUTHOR';
+        }
+    
+        if (t === 'ALPHABET') {
+          const ruleEl = document.getElementById('chalAlpha-matchRule');
+          if (ruleEl) ruleEl.value = config.matchRule || 'TITLE_FIRST_WORD';
+          const skipTog = document.getElementById('chalAlpha-skipToggle');
+          if (skipTog) skipTog.classList.toggle('on', config.skipArticles !== false);
+          const optEl = document.getElementById('chalAlpha-optionalLetters');
+          if (optEl) optEl.value = (config.optionalLetters || ['Q','X','Z']).join(', ');
+        }
+    
+        if (t === 'BOOK_COUNT') {
+          const defEl = document.getElementById('chalBookCount-default');
+          if (defEl) defEl.value = config.defaultGoal || 24;
+          const tog = document.getElementById('chalBookCount-personalToggle');
+          if (tog) tog.classList.toggle('on', config.allowPersonalGoal !== false);
+        }
+    
+        if (t === 'PAGE_COUNT') {
+          const defEl = document.getElementById('chalPageCount-default');
+          if (defEl) defEl.value = config.defaultGoal || 5000;
+          const tog = document.getElementById('chalPageCount-personalToggle');
+          if (tog) tog.classList.toggle('on', config.allowPersonalGoal !== false);
+        }
+      }
+    
+      /**
+       * Reads type-specific form fields and assembles the goalConfigJson object.
+       * Returns the JSON as a string ready to write to the sheet.
+       *
+       * @param {string} challengeType
+       * @returns {{ goalConfigJson: string, goalValue: number, goalUnit: string }}
+       */
+      function buildChallengeGoalConfig(challengeType) {
+        let config    = {};
+        let goalValue = 0;
+        let goalUnit  = '';
+    
+        if (challengeType === 'HABIT_STREAK') {
+          const minPages = parseInt(document.getElementById('chalStreak-minPages').value) || 10;
+          goalValue  = minPages;
+          goalUnit   = 'pages';
+          config = {
+            minPagesPerDay      : minPages,
+            streakResetOnMiss   : document.getElementById('chalStreak-resetToggle').classList.contains('on'),
+            countTowardsSource  : ['ArkaClubApp']
+          };
+        }
+    
+        if (challengeType === 'BINGO_GRID') {
+          const gridSize         = parseInt(document.getElementById('chalBingo-gridSize').value) || 3;
+          const totalCells       = gridSize * gridSize;
+          const centreIdx        = Math.floor(totalCells / 2);
+          const cells            = [];
+    
+          for (let i = 0; i < totalCells; i++) {
+            const input   = document.getElementById('chalBingo-cell-' + i);
+            const row     = Math.floor(i / gridSize);
+            const col     = i % gridSize;
+            const isFree  = (totalCells % 2 !== 0) && (i === centreIdx);
+            cells.push({
+              cellId   : 'C' + (i + 1),
+              position : [row, col],
+              prompt   : input ? input.value.trim() : ''
+            });
+          }
+    
+          goalValue = totalCells;
+          goalUnit  = 'cells';
+          config = {
+            gridSize           : gridSize,
+            winCondition       : document.getElementById('chalBingo-winCondition').value,
+            finisherCondition  : document.getElementById('chalBingo-finisherCondition').value,
+            cells              : cells
+          };
+        }
+    
+        if (challengeType === 'BUDDY_READ') {
+          const bookTitleInput = document.getElementById('chalBuddy-bookTitle');
+          const bookTitle      = bookTitleInput ? bookTitleInput.value.split(' — ')[0].trim() : '';
+          const linkedEventId  = document.getElementById('chalBuddy-linkedEvent').value;
+    
+          // Try to resolve bookId from booksDB by title match
+          const matchedBook = globalBooksDB.find(function(b) {
+            return b.title.toLowerCase() === bookTitle.toLowerCase();
+          });
+    
+          goalValue = matchedBook ? (matchedBook.pages || 0) : 0;
+          goalUnit  = 'pages';
+          config = {
+            bookId                : matchedBook ? matchedBook.id : '',
+            bookTitle             : bookTitle,
+            linkedEventId         : linkedEventId || '',
+            countPagesFromShelfLog: true
+          };
+        }
+    
+        if (challengeType === 'COUNTRY_SPREAD') {
+          goalValue = parseInt(document.getElementById('chalCountry-goalValue').value) || 10;
+          goalUnit  = 'countries';
+          config = {
+            qualificationRule    : document.getElementById('chalCountry-qualRule').value,
+            requireUniqueCountries: true
+          };
+        }
+    
+        if (challengeType === 'ALPHABET') {
+          const optRaw        = document.getElementById('chalAlpha-optionalLetters').value;
+          const optionalLetters = optRaw.split(',').map(function(s) { return s.trim().toUpperCase(); }).filter(Boolean);
+          goalValue = 26 - optionalLetters.length;
+          goalUnit  = 'letters';
+          config = {
+            matchRule       : document.getElementById('chalAlpha-matchRule').value,
+            skipArticles    : document.getElementById('chalAlpha-skipToggle').classList.contains('on'),
+            optionalLetters : optionalLetters,
+            allLetters      : 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+          };
+        }
+    
+        if (challengeType === 'BOOK_COUNT') {
+          goalValue = parseInt(document.getElementById('chalBookCount-default').value) || 24;
+          goalUnit  = 'books';
+          config = {
+            allowPersonalGoal : document.getElementById('chalBookCount-personalToggle').classList.contains('on'),
+            defaultGoal       : goalValue,
+            countOnlyStatus   : 'Finished'
+          };
+        }
+    
+        if (challengeType === 'PAGE_COUNT') {
+          goalValue = parseInt(document.getElementById('chalPageCount-default').value) || 5000;
+          goalUnit  = 'pages';
+          config = {
+            allowPersonalGoal : document.getElementById('chalPageCount-personalToggle').classList.contains('on'),
+            defaultGoal       : goalValue,
+            sourceFilter      : ['ArkaClubApp']
+          };
+        }
+    
+        return {
+          goalConfigJson : JSON.stringify(config),
+          goalValue      : goalValue,
+          goalUnit       : goalUnit
+        };
+      }
+    
+      /**
+       * Validates the form, assembles the payload, and calls saveChallenge() on the backend.
+       * Handles both create and edit paths via currentEditingChallengeId.
+       */
+      function saveChallengeFromForm() {
+        const btn           = document.getElementById('chalFormSaveBtn');
+        const challengeType = document.getElementById('chalFormTypeSelect').value;
+        const title         = (document.getElementById('chalFormTitleInput').value || '').trim();
+        const description   = (document.getElementById('chalFormDescInput').value  || '').trim();
+        const startDate     = document.getElementById('chalFormStartDate').value;
+        const endDate       = document.getElementById('chalFormEndDate').value;
+        const seriesTag     = (document.getElementById('chalFormSeriesTag').value || '').trim().toUpperCase();
+        const isPinned      = document.getElementById('chalFormPinToggle').classList.contains('on');
+        const isCompetitive = document.getElementById('chalFormCompetitiveToggle').classList.contains('on');
+        const status        = document.getElementById('chalFormStatusSelect').value;
+    
+        // Frontend validation
+        if (!challengeType) { showToast('Please select a challenge type.');       return; }
+        if (!title)         { showToast('Please enter a challenge title.');        document.getElementById('chalFormTitleInput').focus(); return; }
+        if (!startDate)     { showToast('Please set a start date.');               return; }
+    
+        // Build type-specific config
+        const { goalConfigJson, goalValue, goalUnit } = buildChallengeGoalConfig(challengeType);
+    
+        // Convert dates from yyyy-MM-dd (input format) → dd-MMM-yyyy (storage format)
+        const startDateForStorage = startDate ? convertFromInputDateFormat(startDate) : '';
+        const endDateForStorage   = endDate   ? convertFromInputDateFormat(endDate)   : '';
+    
+        const payload = {
+          challengeId    : currentEditingChallengeId || null,
+          challengeType  : challengeType,
+          title          : title,
+          description    : description,
+          startDate      : startDateForStorage,
+          endDate        : endDateForStorage,
+          goalValue      : goalValue,
+          goalUnit       : goalUnit,
+          goalConfigJson : goalConfigJson,
+          status         : status,
+          isCompetitive  : isCompetitive,
+          seriesTag      : seriesTag,
+          isPinned       : isPinned,
+          enrollPoints  : parseInt(document.getElementById('chalFormEnrollPoints').value)  || 0,
+          finishPoints  : parseInt(document.getElementById('chalFormFinishPoints').value) || 0,
+          winPoints     : parseInt(document.getElementById('chalFormWinPoints').value)    || 0
+        };
+    
+        btn.disabled  = true;
+        btn.innerText = 'Saving…';
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') {
+              showToast('Error: ' + res.message);
+              btn.disabled  = false;
+              btn.innerText = 'Save Challenge';
+              return;
+            }
+    
+            // Update local state immediately — no re-fetch needed
+            if (res.isUpdate) {
+              const idx = globalChallengesDB.findIndex(function(c) { return c.challengeId === res.challenge.challengeId; });
+              if (idx > -1) globalChallengesDB[idx] = res.challenge;
+              else           globalChallengesDB.push(res.challenge);
+            } else {
+              globalChallengesDB.push(res.challenge);
+            }
+    
+            // Rebuild challengesMap
+            challengesMap = new Map(globalChallengesDB.map(function(c) { return [c.challengeId, c]; }));
+    
+            closeChallengeFormSheet();
+            showToast(res.isUpdate ? 'Challenge updated! ✓' : 'Challenge created! 🏆');
+            renderChallengeList(currentChallengesSubTab);
+          })
+          .withFailureHandler(function() {
+            showToast('Save failed. Please try again.');
+            btn.disabled  = false;
+            btn.innerText = 'Save Challenge';
+          })
+          .saveChallenge(payload);
       }
 
     </script>
