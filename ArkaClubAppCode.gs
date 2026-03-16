@@ -3453,4 +3453,3 @@ function removeEventAsset(data) {
  
   return { status: 'success', updatedAssetsJson };
 }
- 
