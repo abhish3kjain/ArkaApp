@@ -38,6 +38,15 @@ const AUDIT_TYPES = {
   ]
 };
 
+// Activity types whose cpAwarded is set per-challenge in ChallengeDB,
+// not by the ActivityTypeDB multiplier. Rule 5 must skip these types
+// to avoid incorrectly flagging legitimate variable-point awards.
+const VARIABLE_POINT_TYPES = new Set([
+  'ARKA_ACTTYP_CHALLENGE_ENROLL',
+  'ARKA_ACTTYP_CHALLENGE_FINISH',
+  'ARKA_ACTTYP_CHALLENGE_WIN'
+]);
+
 // --- MILESTONE DEFINITIONS ---
 const PAGE_MILESTONES = [
   { threshold: 1000, points: 100 },
@@ -248,7 +257,7 @@ function generateCorrections(activityData, activityDate, startingActNum, multipl
       // For activity types not present in ActivityTypeDB (unknown types),
       // we pass through without correction — this covers new types added
       // to the app before the DB is updated.
-      if (multiplierMap[type] !== undefined) {
+      if (multiplierMap[type] !== undefined && !VARIABLE_POINT_TYPES.has(type)) {
         // The app caps at MAX_CP_PER_ACTION before writing, so we apply the
         // same cap here. An entry equal to MAX_CP_PER_ACTION is always valid
         // even if the raw DB multiplier is higher.
