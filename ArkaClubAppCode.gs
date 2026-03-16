@@ -2483,6 +2483,650 @@ function dropFromChallenge(challengeId) {
  
   return { status: 'error', message: 'Active enrollment not found.' };
 }
+
+/**
+ * Saves updated challenge progress for the current user.
+ *
+ * Handles all challenge types. The frontend sends the full updated
+ * progressStateJson and the engine:
+ *   1. Writes the updated state to ChallengeEnrollmentDB
+ *   2. Runs completion detection for the challenge type
+ *   3. If newly Finished or Won, updates enrollmentStatus and logs points
+ *
+ * Column write positions (1-based for getRange):
+ *   E=5  enrollmentStatus     F=6  currentProgressValue
+ *   G=7  progressStateJson    H=8  lastProgressUpdate   I=9  completedOn
+ *
+ * @param {Object}  data
+ * @param {string}  data.enrollmentId        - ARKA_ENRL_X to update
+ * @param {number}  data.currentProgressValue - Updated integer progress metric
+ * @param {string}  data.progressStateJson    - Full updated state as JSON string
+ * @param {Object}  [data.activityPointsMap]  - Client-side points map
+ * @returns {{ status: string, updatedEnrollment?: Object, message?: string }}
+ */
+function saveChallengeProgress(data) {
+ 
+  // ── Auth ─────────────────────────────────────────────────────────────────
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
+ 
+  if (!data.enrollmentId)       return { status: 'error', message: 'Enrollment ID is required.' };
+  if (!data.progressStateJson)  return { status: 'error', message: 'Progress state is required.' };
+ 
+  // Validate JSON
+  try { JSON.parse(data.progressStateJson); } catch (e) {
+    return { status: 'error', message: 'progressStateJson is not valid JSON.' };
+  }
+ 
+  const ss              = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const enrollmentSheet = ss.getSheetByName(CHALLENGE_ENROLLMENT_SHEET);
+  if (!enrollmentSheet) return { status: 'error', message: 'ChallengeEnrollmentDB not found.' };
+ 
+  const enrollmentRows = enrollmentSheet.getDataRange().getValues();
+  let   targetRowIndex = -1;
+  let   existingRow    = null;
+ 
+  for (let i = 1; i < enrollmentRows.length; i++) {
+    if (enrollmentRows[i][0].toString() !== data.enrollmentId.toString()) continue;
+    // Security: verify the row belongs to the calling member
+    if (enrollmentRows[i][2].toString() !== currentMemberId) {
+      return { status: 'error', message: 'You can only update your own progress.' };
+    }
+    targetRowIndex = i + 1; // 1-based for getRange
+    existingRow    = enrollmentRows[i];
+    break;
+  }
+ 
+  if (targetRowIndex === -1) return { status: 'error', message: 'Enrollment not found.' };
+ 
+  const challengeId       = existingRow[1].toString();
+  const currentStatus     = existingRow[4].toString();
+ 
+  // Don't update progress on already-completed or dropped enrollments
+  if (currentStatus === 'Dropped') {
+    return { status: 'error', message: 'Cannot update progress on a dropped enrollment.' };
+  }
+ 
+  // ── Fetch challenge for completion rules ─────────────────────────────────
+  const challengeSheet = ss.getSheetByName(CHALLENGE_SHEET);
+  if (!challengeSheet) return { status: 'error', message: 'ChallengeDB not found.' };
+ 
+  const challengeRows = challengeSheet.getDataRange().getValues();
+  let   challenge     = null;
+ 
+  for (let i = 1; i < challengeRows.length; i++) {
+    if (challengeRows[i][0].toString() !== challengeId) continue;
+    challenge = {
+      challengeType  : challengeRows[i][1].toString(),
+      goalValue      : Number(challengeRows[i][6]) || 0,
+      goalConfigJson : challengeRows[i][8].toString(),
+      isCompetitive  : challengeRows[i][10].toString().toUpperCase() === 'TRUE',
+      finishPoints   : Number(challengeRows[i][16]) || 0,  // Col Q
+      winPoints      : Number(challengeRows[i][17]) || 0   // Col R
+    };
+    break;
+  }
+ 
+  if (!challenge) return { status: 'error', message: 'Challenge not found.' };
+ 
+  // ── Run completion detection ──────────────────────────────────────────────
+  let config = {};
+  try { config = JSON.parse(challenge.goalConfigJson || '{}'); } catch (e) {}
+ 
+  const newProgressValue = Number(data.currentProgressValue) || 0;
+  const completionResult = detectChallengeCompletion(
+    challenge.challengeType,
+    config,
+    challenge.goalValue,
+    data.progressStateJson,
+    currentStatus
+  );
+ 
+  // completionResult: { newStatus: 'Active'|'Finisher'|'Winner', isNewCompletion: bool }
+  const newStatus      = completionResult.newStatus;
+  const isNewFinish    = completionResult.isNewCompletion && newStatus === 'Finisher';
+  const isNewWin       = completionResult.isNewCompletion && newStatus === 'Winner';
+  const timestamp      = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z');
+  const completedOnVal = (isNewFinish || isNewWin) ? timestamp : existingRow[8].toString();
+ 
+  // ── Write updated row columns E–I in one range call ──────────────────────
+  enrollmentSheet.getRange(targetRowIndex, 5, 1, 5).setValues([[
+    newStatus,              // E — enrollmentStatus
+    newProgressValue,       // F — currentProgressValue
+    data.progressStateJson, // G — progressStateJson
+    timestamp,              // H — lastProgressUpdate
+    completedOnVal          // I — completedOn
+  ]]);
+ 
+  // ── Log finish / win activity with per-challenge points ──────────────────
+  if (isNewFinish && challenge.finishPoints > 0) {
+    try {
+      logActivityBatch(currentMemberId, [{
+        typeId  : 'ARKA_ACTTYP_CHALLENGE_FINISH',
+        val     : 1,
+        desc    : data.enrollmentId,
+        directCp: challenge.finishPoints
+      }], 1, '', data.activityPointsMap || {});
+    } catch (e) { console.error('Finish activity log failed (non-fatal):', e); }
+  }
+ 
+  if (isNewWin && challenge.winPoints > 0) {
+    try {
+      logActivityBatch(currentMemberId, [{
+        typeId  : 'ARKA_ACTTYP_CHALLENGE_WIN',
+        val     : 1,
+        desc    : data.enrollmentId,
+        directCp: challenge.winPoints
+      }], 1, '', data.activityPointsMap || {});
+    } catch (e) { console.error('Win activity log failed (non-fatal):', e); }
+  }
+ 
+  const updatedEnrollment = {
+    enrollmentId         : data.enrollmentId,
+    challengeId          : challengeId,
+    memberId             : currentMemberId,
+    enrolledOn           : existingRow[3].toString(),
+    enrollmentStatus     : newStatus,
+    currentProgressValue : newProgressValue,
+    progressStateJson    : data.progressStateJson,
+    lastProgressUpdate   : timestamp,
+    completedOn          : completedOnVal
+  };
+ 
+  return {
+    status            : 'success',
+    updatedEnrollment : updatedEnrollment,
+    isNewFinish       : isNewFinish,
+    isNewWin          : isNewWin
+  };
+}
+
+/**
+ * Recalculates and syncs progress for all active BOOK_COUNT and PAGE_COUNT
+ * challenge enrollments belonging to a given member.
+ *
+ * Uses ABSOLUTE recalculation from source data — counts finished books from
+ * MemberShelfDB and sums pages from PageLogDB since the challenge startDate.
+ * Never uses deltas so drift is impossible.
+ *
+ * Called automatically after:
+ *   - A book is marked 'Finished' in updateMemberShelf()
+ *   - Pages are logged to PageLogDB
+ *
+ * @param {string} memberId - ARKA_MEMBER_X whose enrollments to sync
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Open spreadsheet instance
+ */
+function syncCountChallengeProgress(memberId, ss) {
+  try {
+    const enrollmentSheet = ss.getSheetByName(CHALLENGE_ENROLLMENT_SHEET);
+    const challengeSheet  = ss.getSheetByName(CHALLENGE_SHEET);
+    if (!enrollmentSheet || !challengeSheet) return;
+ 
+    const enrollmentRows = enrollmentSheet.getDataRange().getValues();
+    const challengeRows  = challengeSheet.getDataRange().getValues();
+ 
+    // Build a quick challenge lookup: challengeId → challenge object
+    const challengeLookup = {};
+    for (let i = 1; i < challengeRows.length; i++) {
+      const row = challengeRows[i];
+      if (!row[0]) continue;
+      challengeLookup[row[0].toString()] = {
+        challengeId   : row[0].toString(),
+        challengeType : row[1].toString(),
+        goalValue     : Number(row[6]) || 0,
+        goalConfigJson: row[8].toString(),
+        startDate     : row[4] instanceof Date
+          ? Utilities.formatDate(row[4], Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+          : String(row[4] || ''),
+        finishPoints  : Number(row[16]) || 0,  // Col Q
+        winPoints     : Number(row[17]) || 0   // Col R
+      };
+    }
+ 
+    // Find active BOOK_COUNT and PAGE_COUNT enrollments for this member
+    const countTypes = new Set(['BOOK_COUNT', 'PAGE_COUNT']);
+    let   rowsToSync = [];
+ 
+    for (let i = 1; i < enrollmentRows.length; i++) {
+      const row = enrollmentRows[i];
+      if (!row[0]) continue;
+      if (row[2].toString() !== memberId) continue;
+      if (row[4].toString() === 'Dropped' || row[4].toString() === 'Winner') continue;
+ 
+      const challenge = challengeLookup[row[1].toString()];
+      if (!challenge || !countTypes.has(challenge.challengeType)) continue;
+ 
+      rowsToSync.push({ rowIndex: i + 1, enrollmentRow: row, challenge: challenge });
+    }
+ 
+    if (rowsToSync.length === 0) return; // Nothing to sync
+ 
+    // Read source data once for all enrollments
+    const shelfSheet   = ss.getSheetByName(SHELF_SHEET);
+    const pageLogSheet = ss.getSheetByName(PAGELOG_SHEET);
+    const shelfRows    = shelfSheet   ? shelfSheet.getDataRange().getValues()   : [];
+    const pageLogRows  = pageLogSheet ? pageLogSheet.getDataRange().getValues() : [];
+ 
+    const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z');
+ 
+    rowsToSync.forEach(function(item) {
+      const challenge   = item.challenge;
+      const enrollment  = item.enrollmentRow;
+      const currentStatus = enrollment[4].toString();
+ 
+      let config = {};
+      try { config = JSON.parse(challenge.goalConfigJson || '{}'); } catch (e) {}
+ 
+      // Parse start date to a comparable number (ms since epoch)
+      const startDateMs = parseChallengeStartDate(challenge.startDate);
+ 
+      let newProgressValue = 0;
+      let updatedState     = {};
+      try { updatedState = JSON.parse(enrollment[6].toString() || '{}'); } catch (e) {}
+ 
+      // ── BOOK_COUNT: count Finished books since challenge start ─────────────
+      if (challenge.challengeType === 'BOOK_COUNT') {
+        const booksRead    = [];
+        const monthlyBreakdown = {};
+ 
+        for (let j = 1; j < shelfRows.length; j++) {
+          const sRow = shelfRows[j];
+          if (!sRow[0]) continue;
+          if (sRow[1].toString() !== memberId) continue;      // wrong member
+          if (sRow[3].toString() !== 'Finished') continue;    // not finished
+ 
+          // Use dateFinished (Col I) if available, else dateUpdated (Col H)
+          const rawFinished = sRow[8] || sRow[7];
+          const finishedMs  = rawFinished instanceof Date
+            ? rawFinished.getTime()
+            : new Date(rawFinished).getTime();
+ 
+          if (isNaN(finishedMs) || finishedMs < startDateMs) continue;
+ 
+          const bookId     = sRow[2].toString();
+          const finishedOn = rawFinished instanceof Date
+            ? Utilities.formatDate(rawFinished, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            : String(rawFinished);
+ 
+          // Get book title from globalBooksDB equivalent — just store bookId
+          booksRead.push({ bookId: bookId, title: bookId, finishedOn: finishedOn });
+ 
+          // Monthly breakdown key: 'Jan', 'Feb', etc.
+          const monthKey = ['Jan','Feb','Mar','Apr','May','Jun',
+                            'Jul','Aug','Sep','Oct','Nov','Dec'][
+            (rawFinished instanceof Date ? rawFinished : new Date(rawFinished)).getMonth()
+          ] || '?';
+          monthlyBreakdown[monthKey] = (monthlyBreakdown[monthKey] || 0) + 1;
+        }
+ 
+        newProgressValue = booksRead.length;
+        const personalGoal = updatedState.personalGoal || config.defaultGoal || challenge.goalValue || 24;
+ 
+        // Calculate pacing projection
+        const pacingProjection = calculatePacingProjection(
+          newProgressValue, challenge.startDate, new Date()
+        );
+ 
+        updatedState = {
+          personalGoal     : personalGoal,
+          booksRead        : booksRead,
+          totalBooks       : newProgressValue,
+          pacingProjection : pacingProjection,
+          monthlyBreakdown : monthlyBreakdown
+        };
+      }
+ 
+      // ── PAGE_COUNT: sum all page logs since challenge start ────────────────
+      if (challenge.challengeType === 'PAGE_COUNT') {
+        let   totalPages       = 0;
+        const monthlyBreakdown = {};
+        const weeklyBreakdown  = {};
+ 
+        for (let j = 1; j < pageLogRows.length; j++) {
+          const pRow = pageLogRows[j];
+          if (!pRow[0]) continue;
+          if (pRow[2].toString() !== memberId) continue;
+ 
+          const rawTs  = pRow[1];
+          const logMs  = rawTs instanceof Date
+            ? rawTs.getTime()
+            : new Date(rawTs).getTime();
+ 
+          if (isNaN(logMs) || logMs < startDateMs) continue;
+ 
+          const pages = Number(pRow[4]) || 0;
+          if (pages <= 0) continue;
+ 
+          totalPages += pages;
+ 
+          const logDate = rawTs instanceof Date ? rawTs : new Date(rawTs);
+          const monthKey = ['Jan','Feb','Mar','Apr','May','Jun',
+                            'Jul','Aug','Sep','Oct','Nov','Dec'][logDate.getMonth()] || '?';
+          monthlyBreakdown[monthKey] = (monthlyBreakdown[monthKey] || 0) + pages;
+ 
+          const weekNum = getISOWeekNumber(logDate);
+          const weekKey = 'W' + String(weekNum).padStart(2, '0');
+          weeklyBreakdown[weekKey] = (weeklyBreakdown[weekKey] || 0) + pages;
+        }
+ 
+        newProgressValue = totalPages;
+        const personalGoal = updatedState.personalGoal || config.defaultGoal || challenge.goalValue || 5000;
+        const pacingProjection = calculatePacingProjection(
+          newProgressValue, challenge.startDate, new Date()
+        );
+ 
+        const aheadBehind = buildAheadBehindLabel(
+          newProgressValue, personalGoal, challenge.startDate, new Date()
+        );
+ 
+        updatedState = {
+          personalGoal      : personalGoal,
+          totalPages        : totalPages,
+          monthlyBreakdown  : monthlyBreakdown,
+          weeklyBreakdown   : weeklyBreakdown,
+          pacingProjection  : pacingProjection,
+          aheadBehindTarget : aheadBehind
+        };
+      }
+ 
+      // ── Run completion detection ────────────────────────────────────────────
+      const completionResult = detectChallengeCompletion(
+        challenge.challengeType,
+        config,
+        challenge.goalValue,
+        JSON.stringify(updatedState),
+        currentStatus
+      );
+      const newStatus         = completionResult.newStatus;
+      const isNewFinish       = completionResult.isNewCompletion && newStatus === 'Finisher';
+      const completedOnVal    = isNewFinish ? timestamp : enrollment[8].toString();
+ 
+      // ── Write updated row columns E–I ─────────────────────────────────────
+      enrollmentSheet.getRange(item.rowIndex, 5, 1, 5).setValues([[
+        newStatus,
+        newProgressValue,
+        JSON.stringify(updatedState),
+        timestamp,
+        completedOnVal
+      ]]);
+ 
+      // ── Log finish activity if newly completed ──────────────────────────────
+      if (isNewFinish && challenge.finishPoints > 0) {
+        try {
+          logActivityBatch(memberId, [{
+            typeId  : 'ARKA_ACTTYP_CHALLENGE_FINISH',
+            val     : 1,
+            desc    : enrollment[0].toString(),
+            directCp: challenge.finishPoints
+          }], 1, '', {});
+        } catch (e) {
+          console.error('Count challenge finish log failed (non-fatal):', e);
+        }
+      }
+    });
+ 
+  } catch (e) {
+    // Never let challenge sync crash the calling function
+    console.error('syncCountChallengeProgress failed (non-fatal):', e);
+  }
+}
+
+// ============================================================================
+// PRIVATE HELPERS for syncCountChallengeProgress
+// ============================================================================
+ 
+/**
+ * Parses a dd-MMM-yyyy challenge startDate string to milliseconds.
+ * Returns 0 (epoch) if parsing fails — meaning all records qualify.
+ * @param {string} dateStr - e.g. '01-Jan-2026'
+ * @returns {number}
+ */
+function parseChallengeStartDate(dateStr) {
+  if (!dateStr) return 0;
+  try {
+    // dd-MMM-yyyy → JS Date
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return 0;
+    const months = { Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,
+                     Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11 };
+    const d = new Date(
+      parseInt(parts[2]),
+      months[parts[1]] !== undefined ? months[parts[1]] : 0,
+      parseInt(parts[0])
+    );
+    return isNaN(d.getTime()) ? 0 : d.getTime();
+  } catch (e) {
+    return 0;
+  }
+}
+ 
+/**
+ * Projects year-end total based on current pace.
+ * @param {number} currentTotal - Pages or books so far
+ * @param {string} startDateStr - Challenge start date dd-MMM-yyyy
+ * @param {Date}   now          - Current date
+ * @returns {number} Projected year-end total (rounded)
+ */
+function calculatePacingProjection(currentTotal, startDateStr, now) {
+  const startMs  = parseChallengeStartDate(startDateStr);
+  const elapsedDays = Math.max(1, (now.getTime() - startMs) / (1000 * 60 * 60 * 24));
+  const yearEnd  = new Date(now.getFullYear(), 11, 31);
+  const totalDays = Math.max(1, (yearEnd.getTime() - startMs) / (1000 * 60 * 60 * 24));
+  return Math.round((currentTotal / elapsedDays) * totalDays);
+}
+ 
+/**
+ * Returns a human-readable ahead/behind label for PAGE_COUNT.
+ * @param {number} currentTotal
+ * @param {number} personalGoal
+ * @param {string} startDateStr
+ * @param {Date}   now
+ * @returns {string} e.g. '+340 pages ahead of pace' or '120 pages behind pace'
+ */
+function buildAheadBehindLabel(currentTotal, personalGoal, startDateStr, now) {
+  const startMs     = parseChallengeStartDate(startDateStr);
+  const yearEnd     = new Date(now.getFullYear(), 11, 31);
+  const totalDays   = Math.max(1, (yearEnd.getTime() - startMs) / (1000 * 60 * 60 * 24));
+  const elapsedDays = Math.max(1, (now.getTime() - startMs) / (1000 * 60 * 60 * 24));
+  const expectedByNow = Math.round(personalGoal * (elapsedDays / totalDays));
+  const diff = currentTotal - expectedByNow;
+  if (diff === 0) return 'exactly on pace';
+  return (diff > 0 ? '+' : '') + diff.toLocaleString() + ' pages ' + (diff > 0 ? 'ahead of' : 'behind') + ' pace';
+}
+ 
+/**
+ * Returns the ISO week number (1–53) for a given Date.
+ * Matches the getISOWeekNumber() function already used on the frontend.
+ * @param {Date} date
+ * @returns {number}
+ */
+function getISOWeekNumber(date) {
+  const d    = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day  = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+ 
+/**
+ * PRIVATE HELPER: Detects whether the updated progress state triggers
+ * a Finisher or Winner transition for the given challenge type.
+ *
+ * Only promotes status — never demotes (Winner stays Winner).
+ *
+ * @param {string} challengeType
+ * @param {Object} config          - Parsed goalConfigJson
+ * @param {number} goalValue       - Primary goal number from ChallengeDB
+ * @param {string} progressJsonStr - Updated progressStateJson string
+ * @param {string} currentStatus   - Existing enrollmentStatus
+ * @returns {{ newStatus: string, isNewCompletion: boolean }}
+ */
+function detectChallengeCompletion(challengeType, config, goalValue, progressJsonStr, currentStatus) {
+ 
+  // Already at terminal state — never demote
+  if (currentStatus === 'Winner') return { newStatus: 'Winner', isNewCompletion: false };
+ 
+  let state = {};
+  try { state = JSON.parse(progressJsonStr); } catch (e) {
+    return { newStatus: currentStatus, isNewCompletion: false };
+  }
+ 
+  let newStatus        = currentStatus;
+  let isNewCompletion  = false;
+ 
+  // ── HABIT_STREAK ─────────────────────────────────────────────────────────
+  // Win: reached 365 consecutive days. Finish: reached goalValue days total logged.
+  if (challengeType === 'HABIT_STREAK') {
+    const totalLogged   = state.totalDaysLogged  || 0;
+    const currentStreak = state.currentStreak    || 0;
+ 
+    if (currentStatus !== 'Winner' && currentStreak >= 365) {
+      newStatus       = 'Winner';
+      isNewCompletion = true;
+    } else if (currentStatus === 'Active' && totalLogged >= goalValue) {
+      newStatus       = 'Finisher';
+      isNewCompletion = true;
+    }
+  }
+ 
+  // ── BINGO_GRID ────────────────────────────────────────────────────────────
+  // Finisher: linesCompleted.length >= 1 (ANY_LINE) or half cells done (HALF_CELLS)
+  // Winner: ALL_CELLS completed OR ANY_LINE if that's the win condition
+  if (challengeType === 'BINGO_GRID') {
+    const cellsDone     = (state.cellsCompleted || []).length;
+    const linesCount    = (state.linesCompleted || []).length;
+    const winCond       = config.winCondition       || 'ALL_CELLS';
+    const finishCond    = config.finisherCondition  || 'ANY_LINE';
+    const gridSize      = config.gridSize           || 3;
+    const totalCells    = gridSize * gridSize;
+ 
+    const isWinner  = winCond === 'ALL_CELLS'
+      ? cellsDone >= totalCells
+      : linesCount >= 1;
+ 
+    const isFinisher = finishCond === 'ANY_LINE'
+      ? linesCount >= 1
+      : cellsDone >= Math.floor(totalCells / 2);
+ 
+    if (currentStatus !== 'Winner' && isWinner) {
+      newStatus = 'Winner'; isNewCompletion = true;
+    } else if (currentStatus === 'Active' && isFinisher) {
+      newStatus = 'Finisher'; isNewCompletion = true;
+    }
+  }
+ 
+  // ── BUDDY_READ ────────────────────────────────────────────────────────────
+  // Finish only: read all pages. Win concept not applicable (winPoints = 0).
+  if (challengeType === 'BUDDY_READ') {
+    if (currentStatus === 'Active' && (state.pagesRead || 0) >= goalValue && goalValue > 0) {
+      newStatus = 'Finisher'; isNewCompletion = true;
+    }
+  }
+ 
+  // ── COUNTRY_SPREAD ────────────────────────────────────────────────────────
+  // Finisher: reached goalValue countries. Winner: same goalValue (no separate bar).
+  if (challengeType === 'COUNTRY_SPREAD') {
+    const visited = state.totalCountries || 0;
+    if (currentStatus !== 'Winner' && visited >= goalValue) {
+      newStatus = 'Winner'; isNewCompletion = true;
+    }
+  }
+ 
+  // ── ALPHABET ─────────────────────────────────────────────────────────────
+  // Finish: completed all required letters (goalValue = 26 minus optional count).
+  // Win: completed ALL 26 including optional.
+  if (challengeType === 'ALPHABET') {
+    const required  = state.lettersCompleted         || 0;
+    const optional  = state.optionalLettersCompleted || 0;
+ 
+    if (currentStatus !== 'Winner' && (required + optional) >= 26) {
+      newStatus = 'Winner'; isNewCompletion = true;
+    } else if (currentStatus === 'Active' && required >= goalValue) {
+      newStatus = 'Finisher'; isNewCompletion = true;
+    }
+  }
+ 
+  // ── BOOK_COUNT ────────────────────────────────────────────────────────────
+  // Finisher only (winPoints = 0 for personal challenges).
+  if (challengeType === 'BOOK_COUNT') {
+    const goal  = state.personalGoal || goalValue || 1;
+    const total = state.totalBooks   || 0;
+    if (currentStatus === 'Active' && total >= goal) {
+      newStatus = 'Finisher'; isNewCompletion = true;
+    }
+  }
+ 
+  // ── PAGE_COUNT ────────────────────────────────────────────────────────────
+  // Finisher only.
+  if (challengeType === 'PAGE_COUNT') {
+    const goal  = state.personalGoal || goalValue || 1;
+    const total = state.totalPages   || 0;
+    if (currentStatus === 'Active' && total >= goal) {
+      newStatus = 'Finisher'; isNewCompletion = true;
+    }
+  }
+ 
+  return { newStatus, isNewCompletion };
+}
+
+/**
+ * On-demand sync + fetch for a single enrollment.
+ * Runs syncCountChallengeProgress() for the current user then returns the
+ * updated enrollment row so the frontend can refresh its local state.
+ *
+ * Only needed for BOOK_COUNT and PAGE_COUNT — other types update via
+ * saveChallengeProgress() which is always called explicitly by the frontend.
+ *
+ * @param {string} challengeId - ARKA_CHAL_X to sync and fetch
+ * @returns {{ status: string, enrollment?: ChallengeEnrollmentRecord }}
+ */
+function syncAndFetchEnrollment(challengeId) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized.' };
+  if (!challengeId)     return { status: 'error', message: 'Challenge ID required.' };
+ 
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+ 
+  // Run the sync — this updates the row in ChallengeEnrollmentDB
+  syncCountChallengeProgress(currentMemberId, ss);
+ 
+  // Now fetch the updated row and return it
+  const enrollmentSheet = ss.getSheetByName(CHALLENGE_ENROLLMENT_SHEET);
+  if (!enrollmentSheet) return { status: 'error', message: 'ChallengeEnrollmentDB not found.' };
+ 
+  const rows = enrollmentSheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (row[1].toString() !== challengeId) continue;
+    if (row[2].toString() !== currentMemberId) continue;
+    if (row[4].toString() === 'Dropped') continue;
+ 
+    const toStr = function(v) {
+      return v instanceof Date
+        ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z')
+        : String(v || '');
+    };
+ 
+    return {
+      status: 'success',
+      enrollment: {
+        enrollmentId         : row[0].toString(),
+        challengeId          : row[1].toString(),
+        memberId             : row[2].toString(),
+        enrolledOn           : toStr(row[3]),
+        enrollmentStatus     : row[4].toString(),
+        currentProgressValue : Number(row[5]) || 0,
+        progressStateJson    : row[6].toString(),
+        lastProgressUpdate   : toStr(row[7]),
+        completedOn          : toStr(row[8])
+      }
+    };
+  }
+ 
+  return { status: 'error', message: 'Enrollment not found.' };
+}
+
  
  
 /**
@@ -3453,3 +4097,4 @@ function removeEventAsset(data) {
  
   return { status: 'success', updatedAssetsJson };
 }
+ 
