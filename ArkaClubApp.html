@@ -1575,14 +1575,41 @@
       .chal-status-Winner   { background: #FAEEDA; color: #633806; }
       .chal-status-Finisher { background: #E1F5EE; color: #085041; }
 
-      /* ── Challenge Detail: header ──────────────────────────────────────────────── */
+      /* ── Challenge Detail: header  ───────────── */
+ 
       .chal-detail-header {
-        background: #2c3e50; color: white; padding: 14px 16px;
-        display: flex; align-items: center; gap: 12px;
+        background: #2c3e50;
+        color: white;
+        padding: 14px 16px 12px;
+        /* Break out of .container's 20px padding so header sits flush under app-header */
+        margin: -40px 0px 0;
       }
-      .chal-detail-back { background: none; border: none; color: white;
-        font-size: 0.9rem; cursor: pointer; padding: 0; font-family: inherit; }
-      .chal-detail-title { font-size: 1rem; font-weight: 600; flex: 1; line-height: 1.2; }
+    
+      .chal-detail-back {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.65);
+        font-size: 0.85rem;
+        padding: 0;
+        cursor: pointer;
+        font-family: inherit;
+        /* Fix: prevent global button { width:100% } from stretching this */
+        width: auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+      .chal-detail-back:hover { color: white; }
+    
+      /* Title sits below back button — no flex row fighting for space */
+      .chal-detail-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 3px;
+      }
+
       .chal-detail-status-badge {
         font-size: 0.68rem; font-weight: 600; padding: 3px 9px;
         border-radius: 20px; flex-shrink: 0;
@@ -1951,8 +1978,6 @@
 
           <button onclick="toggleEditMode(true)" style="margin-top: 20px;">✏️ Edit Profile</button>
         </div>
-
-        <div id="toastMessage" class="toast">Profile successfully updated!</div>
 
         <div id="profileEdit" class="card" style="display: none;">
           <h3>Edit Profile</h3>
@@ -2907,9 +2932,11 @@
  
         <!-- Sticky header -->
         <div class="chal-detail-header">
-          <button class="chal-detail-back" onclick="closeChallengeDetailView()">⬅</button>
-          <div class="chal-detail-title" id="chalDetailTitle">Challenge</div>
-          <span class="chal-detail-status-badge" id="chalDetailStatusBadge"></span>
+          <button class="chal-detail-back" onclick="closeChallengeDetailView()">⬅ Back</button>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <div class="chal-detail-title" id="chalDetailTitle">Challenge</div>
+            <span class="chal-detail-status-badge" id="chalDetailStatusBadge"></span>
+          </div>
         </div>
       
         <!-- My Progress / Club tabs -->
@@ -3225,8 +3252,18 @@
       </div>
     </div>
 
+    <div id="toastMessage" class="toast">Profile successfully updated!</div>
+
     <script>
-      let currentAppVersion = "v37"; 
+      /**
+       * T0: JS execution start time.
+       * Captured before any variable declarations so it is as close to
+       * true page-load start as possible. Used to measure BigGulpMs and TotalMs.
+       *
+       * const (not let) so it cannot be accidentally overwritten later.
+       */
+      const APP_LOAD_T0 = Date.now();
+      let currentAppVersion = "v38.3"; 
       let activeEmail = "";  
       let currentUser = ""; 
       /**
@@ -3261,6 +3298,9 @@
       let currentViewedEventId = null;          //ID of the event currently open in the detail view
       let currentEditingEventId = null;         //ID of the event currently open in the edit form (null = create mode)
       let isAppDataLoaded = false;
+      let isWave2Loaded = false;
+      let isWave3Loaded = false;
+      let isWave4Loaded = false;
       let lastViewBeforeDetails = 'library';    // Remembers how we got to a book detail view
       let currentFullShelfBooks = [];           // Holds the books for the currently viewed full shelf so search is instant
       let myYearlyChartInstance = null;         //Only for Me Tab of the user
@@ -3878,118 +3918,228 @@
       };
 
       /**
-       * Determines where to send the user based on their login status.
-       * @param {Object} response - Data returned from backend's initializeUser()
+       * Routes the user after initializeUser() responds.
+       *
+       * v38.3 FOUR-WAVE PROGRESSIVE LOADING:
+       *
+       *   Wave 1 (~1,500ms) — MemberDB + PageLogDB + LevelDB
+       *     → Me tab renders: profile, level bar, heatmap, streak, ghost chart
+       *
+       *   Wave 2 (~1,800ms) — ActivityLogDB + ChallengeDB + EnrollmentDB + AnnouncementDB
+       *     → My Challenges card, Home feed, announcement banner
+       *
+       *   Wave 3 (~2,000ms) — LibraryDB + ShelfDB + BadgeDB + BadgeAwardDB
+       *     → Me tab shelves + badges, Library view, Members leaderboard
+       *
+       *   Wave 4 (~1,400ms) — ActivityTypeDB
+       *     → globalActivityPointsMap for write operations
+       *
+       * @param {Object} response - Data from initializeUser()
        */
       function routeUser(response) {
         currentAppVersion = response.version;
-        const versionElement = document.getElementById('appVersionDisplay');
-        if (versionElement) versionElement.innerText = "Arka Readers Club App " + currentAppVersion;
-
-        if (response.status === "new") {
-          // If new, lock them in the Registration View
+        const versionEl = document.getElementById('appVersionDisplay');
+        if (versionEl) versionEl.innerText = 'Arka Readers Club App ' + currentAppVersion;
+    
+        if (response.status === 'new') {
           activeEmail = response.email;
           document.getElementById('userEmail').innerText = activeEmail;
-          document.getElementById('headerText').innerText = "ARKA READERS CLUB";
-          document.getElementById('registrationView').style.display = "block";
-        } else {
-          // If returning, show the main app
-          document.getElementById('headerText').innerText = "ARKA READERS CLUB";          
-          document.getElementById('bottomNav').style.display = "flex";
-          switchTab('me'); 
-          // 1. Fire a fast call just for the quote to give them something to read
-          google.script.run.withSuccessHandler(renderQuote).getRandomQuote();
-
-          // 2. Trigger the heavy lifting in the background
-          setTimeout(() => {
-            google.script.run.withSuccessHandler(function(masterData) {
-              // Populate local variables
-              globalMembersDB = masterData.membersDB;
-              globalBooksDB = masterData.booksDB;
-              globalShelvesDB = masterData.shelvesDB;
-              globalMemberLevelsDB = masterData.memberLevelsDB;
-              globalActivityLogDB = masterData.activityLogDB;
-              globalActivityTypeDB = masterData.activityTypeDB;
-              globalPageLogDB = masterData.pageLogDB;
-
+          document.getElementById('headerText').innerText = 'ARKA READERS CLUB';
+          document.getElementById('registrationView').style.display = 'block';
+          return;
+        }
+    
+        // Show app shell immediately
+        document.getElementById('headerText').innerText = 'ARKA READERS CLUB';
+        document.getElementById('bottomNav').style.display = 'flex';
+        switchTab('me');
+        google.script.run.withSuccessHandler(renderQuote).getRandomQuote();
+    
+        // ── WAVE 1 ───────────────────────────────────────────────────────────────
+        setTimeout(function() {
+          google.script.run
+            .withSuccessHandler(function(w1) {
+              if (!w1 || w1.status === 'error') { showToast('Load failed. Please refresh.'); return; }
+    
+              // Populate Wave 1 globals
+              currentUser          = response.memberID;
+              globalMembersDB      = w1.membersDB      || [];
+              globalMemberLevelsDB = w1.memberLevelsDB || [];
+              globalPageLogDB      = w1.pageLogDB      || [];
+    
+              // Build essential maps
+              membersMap = new Map(globalMembersDB.map(function(m) { return [m.id, m]; }));
+    
+              // Mark app as usable — Me tab can render
               isAppDataLoaded = true;
-              currentUser = response.memberID;
-
-              // Build O(1) lookup maps — one-time cost, saves repeated .find() calls in every render
-              membersMap  = new Map(globalMembersDB.map(m  => [m.id,             m]));
-              booksMap    = new Map(globalBooksDB.map(b   => [b.id,             b]));
-              shelvesMap  = new Map(globalShelvesDB.map(s  => [s.shelfId,       s]));
-              actTypeMap  = new Map(globalActivityTypeDB.map(a => [a.activityTypeID, a]));
-              globalBadgesDB      = masterData.badgesDB      || [];
-              globalBadgeAwardsDB = masterData.badgeAwardsDB || [];
- 
-              // Build O(1) badge lookup map
-              badgesMap = new Map(globalBadgesDB.map(b => [b.id, b]));
- 
-              // Build per-member badge index (Active awards only)
-              memberBadgeIndex = new Map();
-              globalBadgeAwardsDB.forEach(award => {
-                if (award.status !== 'Active') return;
-                if (!memberBadgeIndex.has(award.memberId)) {
-                  memberBadgeIndex.set(award.memberId, []);
-                }
-                memberBadgeIndex.get(award.memberId).push(award);
-              });
-
-              globalAnnouncementsDB = masterData.announcementsDB || [];
-              // Render banner now if the user is already looking at the Home feed
-              renderAnnouncementsBanner();
-              globalActivityPointsMap = Object.fromEntries(
-                [...actTypeMap.entries()].map(([id, obj]) => [id, obj.activityClubPoints || 0])
-              );
-
-              myShelfIndexByBook = new Map();
-              globalShelvesDB.forEach(s => {
-                if (s.memberId === currentUser) {
-                  if (!myShelfIndexByBook.has(s.bookId)) myShelfIndexByBook.set(s.bookId, []);
-                  myShelfIndexByBook.get(s.bookId).push(s);
-                }
-              });
-
-              // Populate challenge globals from master data
-              globalChallengesDB           = masterData.challengesDB           || [];
-              globalChallengeEnrollmentsDB = masterData.challengeEnrollmentsDB || [];
-            
-              // Build O(1) challenge lookup map — keyed by challengeId
-              challengesMap = new Map(globalChallengesDB.map(c => [c.challengeId, c]));
-            
-              // Build per-user enrollment map — keyed by challengeId, current user only.
-              //    This is what the Me tab card reads to show "your" progress instantly.
-              //    NOTE: currentUser is already set by this point in the handler.
-              myEnrollmentsMap = new Map();
-              globalChallengeEnrollmentsDB
-                .filter(function(enrollment) { return enrollment.memberId === currentUser; })
-                .forEach(function(enrollment) {
-                  myEnrollmentsMap.set(enrollment.challengeId, enrollment);
-                });
-
-              
-              // If they are staring at the home feed, clear the loading text and draw the bubbles!
-              if (document.getElementById('homeView').style.display === "block") {
-                document.getElementById('feedLoadingText').style.display = "none";
-                renderHomeFeed();
-              }
-              if (document.getElementById('libraryView').style.display === "block") loadLibraryCatalog();
-              if (document.getElementById('membersView').style.display === "block") loadMembersDirectory();
-              if (document.getElementById('meView').style.display === "block") {
-                  renderUserShelves(currentUser, 'meDashboardContainer');
-                  renderMeShelfTiles(currentUser);
-                  renderHomeFeed(currentUser, 'meActivityFeed');
-                  renderBadgeStrip(currentUser, 'meBadgeSectionContainer', true);
-                  renderMyChallengesCard();
-              }
-              
+    
+              // Render Me tab with Wave 1 data
+              // populateMePage: name, points, level bar, lifetime stats from MemberDB
+              // renderHeatmap:  heatmap squares, streak, ghost chart (all from PageLogDB)
               populateMePage(response.memberID);
               renderHeatmap(currentUser);
+    
+              // Log Wave 1 timing
+              (function() {
+                try {
+                  const w1Ms = Date.now() - APP_LOAD_T0;
+                  google.script.run.logAppLoadTime({
+                    appVersion: currentAppVersion + '_W1',
+                    bigGulpMs: w1Ms, renderMs: 0, totalMs: w1Ms
+                  });
+                } catch(e) {}
+              })();
+    
+              // ── WAVE 2 ─────────────────────────────────────────────────────────
+              google.script.run
+                .withSuccessHandler(function(w2) {
+                  if (!w2 || w2.status === 'error') return;
+    
+                  // Populate Wave 2 globals
+                  globalActivityLogDB          = w2.activityLogDB          || [];
+                  globalChallengesDB           = w2.challengesDB           || [];
+                  globalChallengeEnrollmentsDB = w2.challengeEnrollmentsDB || [];
+                  globalAnnouncementsDB        = w2.announcementsDB        || [];
+    
+                  // Build maps
+                  challengesMap = new Map(
+                    globalChallengesDB.map(function(c) { return [c.challengeId, c]; })
+                  );
+                  myEnrollmentsMap = new Map();
+                  globalChallengeEnrollmentsDB
+                    .filter(function(e) { return e.memberId === currentUser; })
+                    .forEach(function(e) { myEnrollmentsMap.set(e.challengeId, e); });
+    
+                  isWave2Loaded = true;
+    
+                  // Render sections that needed Wave 2
+                  if (document.getElementById('meView').style.display === 'block') {
+                    renderMyChallengesCard();
+                    renderHomeFeed(currentUser, 'meActivityFeed');
+                  }
+                  // Banner always renders — it's shown on homeView but
+                  // its data is now ready regardless of which view is active
+                  renderAnnouncementsBanner();
 
-            }).getAppMasterData();
-          }, 50);
-        }
+                  if (document.getElementById('homeView').style.display === 'block') {
+                    document.getElementById('feedLoadingText').style.display = 'none';
+                    renderAnnouncementsBanner();
+                    renderHomeFeed();
+                    fetchLatestActivities();
+                  }
+
+                  if (document.getElementById('challengesView').style.display === 'block') {
+                    renderChallengesView();
+                  }
+    
+                  // ── WAVE 3 ───────────────────────────────────────────────────────
+                  google.script.run
+                    .withSuccessHandler(function(w3) {
+                      if (!w3 || w3.status === 'error') return;
+    
+                      // Populate Wave 3 globals
+                      globalBooksDB       = w3.booksDB       || [];
+                      globalShelvesDB     = w3.shelvesDB     || [];
+                      globalBadgesDB      = w3.badgesDB      || [];
+                      globalBadgeAwardsDB = w3.badgeAwardsDB || [];
+    
+                      // Build maps
+                      booksMap   = new Map(globalBooksDB.map(function(b) { return [b.id, b]; }));
+                      shelvesMap = new Map(globalShelvesDB.map(function(s) { return [s.shelfId, s]; }));
+    
+                      myShelfIndexByBook = new Map();
+                      globalShelvesDB.forEach(function(s) {
+                        if (s.memberId !== currentUser) return;
+                        if (!myShelfIndexByBook.has(s.bookId)) myShelfIndexByBook.set(s.bookId, []);
+                        myShelfIndexByBook.get(s.bookId).push(s);
+                      });
+    
+                      badgesMap        = new Map(globalBadgesDB.map(function(b) { return [b.id, b]; }));
+                      memberBadgeIndex = new Map();
+                      globalBadgeAwardsDB.forEach(function(award) {
+                        if (award.status !== 'Active') return;
+                        if (!memberBadgeIndex.has(award.memberId)) memberBadgeIndex.set(award.memberId, []);
+                        memberBadgeIndex.get(award.memberId).push(award);
+                      });
+    
+                      isWave3Loaded = true;
+    
+                      // Render sections that needed Wave 3
+                      if (document.getElementById('meView').style.display === 'block') {
+                        renderUserShelves(currentUser, 'meDashboardContainer');
+                        renderMeShelfTiles(currentUser);
+                        renderBadgeStrip(currentUser, 'meBadgeSectionContainer', true);
+                        // Update booksThisYear stat pill now that ShelfDB is available
+                        updateBooksThisYearPill(currentUser);
+                        // Now that Wave 3 data is loaded, re-run them directly:
+                        const userLogs = globalPageLogDB.filter(function(log) {
+                          return log.memberId === currentUser;
+                        });
+                        renderHistoricalGraphs(userLogs, currentUser);  // fixes "Over the Years" books bar
+                        renderGenreWordCloud(currentUser);              // fixes Genre
+                      }
+                      if (document.getElementById('libraryView').style.display === 'block') {
+                        loadLibraryCatalog();
+                      }
+                      if (document.getElementById('membersView').style.display === 'block') {
+                        loadMembersDirectory();
+                      }
+                      if (document.getElementById('badgesView').style.display === 'block') {
+                        renderBadgeGallery();
+                      }
+    
+                      // Log full load timing (W1 start → W3 complete)
+                      (function() {
+                        try {
+                          const totalMs = Date.now() - APP_LOAD_T0;
+                          google.script.run.logAppLoadTime({
+                            appVersion: currentAppVersion + '_W3',
+                            bigGulpMs: totalMs, renderMs: 0, totalMs: totalMs
+                          });
+                        } catch(e) {}
+                      })();
+    
+                      // ── WAVE 4 ─────────────────────────────────────────────────
+                      google.script.run
+                        .withSuccessHandler(function(w4) {
+                          if (!w4 || w4.status === 'error') return;
+    
+                          globalActivityTypeDB = w4.activityTypeDB || [];
+                          actTypeMap = new Map(
+                            globalActivityTypeDB.map(function(a) { return [a.activityTypeID, a]; })
+                          );
+                          // Build the points map used by all write operations
+                          globalActivityPointsMap = {};
+                          actTypeMap.forEach(function(obj, id) {
+                            globalActivityPointsMap[id] = obj.activityClubPoints || 0;
+                          });
+    
+                          isWave4Loaded = true;
+                        })
+                        .withFailureHandler(function() {
+                          console.warn('Wave 4 failed — write ops will use backend fallback.');
+                        })
+                        .getWave4Data();
+    
+                    })
+                    .withFailureHandler(function() {
+                      console.warn('Wave 3 failed — library and shelves unavailable.');
+                    })
+                    .getWave3Data();
+    
+                })
+                .withFailureHandler(function() {
+                  console.warn('Wave 2 failed — feed and challenges unavailable.');
+                })
+                .getWave2Data();
+    
+            })
+            .withFailureHandler(function() {
+              showToast('Failed to load. Please refresh the page.');
+            })
+            .getWave1Data();
+    
+        }, 50);
       }
 
       /**
@@ -4227,40 +4377,82 @@
 
         // 7. Route-specific resets (Ensures the parent containers show their default state)
         if (tabName === 'me') {
-          document.getElementById('profileDisplay').style.display = "block";
+          document.getElementById('profileDisplay').style.display = 'block';
+
+          // Wave 1 data — always available once isAppDataLoaded
           if (isAppDataLoaded) {
+            populateMePage(currentUser);  // profile, level bar, lifetime stats
+            renderHeatmap(currentUser);   // heatmap, streak, ghost chart
+          }
+
+          // Wave 2 data — challenges card + activity feed
+          if (isWave2Loaded) {
+            renderMyChallengesCard();
+            renderHomeFeed(currentUser, 'meActivityFeed');
+          }
+
+          // Wave 3 data — shelves, badges, genre DNA, over the years
+          if (isWave3Loaded) {
             renderUserShelves(currentUser, 'meDashboardContainer');
             renderMeShelfTiles(currentUser);
-            renderHomeFeed(currentUser, 'meActivityFeed');
             renderBadgeStrip(currentUser, 'meBadgeSectionContainer', true);
-            renderMyChallengesCard();
+            updateBooksThisYearPill(currentUser);
+            const userLogs = globalPageLogDB.filter(function(l) {
+              return l.memberId === currentUser;
+            });
+            renderHistoricalGraphs(userLogs, currentUser);
+            renderGenreWordCloud(currentUser);
           }
         }
 
         if (tabName === 'library') {
-          document.getElementById('libraryMainCard').style.display = "block";
-          loadLibraryCatalog(); 
+          document.getElementById('libraryMainCard').style.display = 'block';
+          if (isWave3Loaded) {
+            loadLibraryCatalog();
+          } else {
+            // Show a loading placeholder — Wave 3 handler will call
+            // loadLibraryCatalog() automatically when data arrives
+            const grid = document.getElementById('libraryGrid');
+            if (grid) {
+              grid.innerHTML = '<p style="text-align:center;color:#7f8c8d;' +
+                'padding:40px 20px;font-style:italic;">Loading library…</p>';
+            }
+          }
         }
 
         if (tabName === 'members') {
           document.getElementById('membersListContainer').style.display = 'block';
-          switchMembersTab('rankings');
-          // If the Rankings sub-tab is currently visible, refresh it with the latest data
-          const leaderboardEl = document.getElementById('leaderboardContainer');
-          if (leaderboardEl && leaderboardEl.style.display !== 'none' && isAppDataLoaded) {
-            renderLeaderboard(currentLeaderboardCategory);
+          if (isWave3Loaded) {
+            switchMembersTab('rankings');
+          } else {
+            // Wave 3 handler calls loadMembersDirectory() when data arrives
+            const grid = document.getElementById('membersGrid');
+            if (grid) {
+              grid.innerHTML = '<p style="text-align:center;color:#7f8c8d;' +
+                'padding:40px 20px;font-style:italic;">Loading members…</p>';
+            }
           }
         }
 
         if (tabName === 'badges') {
-          if (isAppDataLoaded) renderBadgeGallery();
+          if (isWave3Loaded) {
+            renderBadgeGallery();
+          } else {
+            const content = document.getElementById('badgesGalleryContent');
+            if (content) content.innerHTML =
+              '<p style="text-align:center;color:#7f8c8d;padding:40px 20px;font-style:italic;">Loading badges…</p>';
+          }
         }
 
         if (tabName === 'home') {
-          if (isAppDataLoaded) {
+          if (isWave2Loaded) {
             renderAnnouncementsBanner();
-            renderHomeFeed();          
-            fetchLatestActivities();   
+            renderHomeFeed();
+            fetchLatestActivities();
+          } else {
+            // Show loading text — Wave 2 handler will render when ready
+            document.getElementById('feedLoadingText').style.display = 'block';
+            document.getElementById('feedLoadingText').innerText = 'Loading feed…';
           }
         }
 
@@ -4273,7 +4465,13 @@
         }
         if (tabName === 'challenges') {
           refreshChallengesViewFabVisibility();
-          renderChallengesView();
+          if (isWave2Loaded) {
+            renderChallengesView();
+          } else {
+            const list = document.getElementById('chalAllList');
+            if (list) list.innerHTML =
+              '<p style="text-align:center;color:#7f8c8d;padding:20px 0;font-style:italic;">Loading challenges…</p>';
+          }
         }
         if (tabName === 'challengeDetail') {
           // view shown by step 5 — no extra setup needed here
@@ -4463,15 +4661,27 @@
         return langs.join(', ');
       }
 
-      // Basic notification UI functions
+      /**
+       * Shows a toast notification. Handles rapid repeated calls correctly
+       * by force-resetting the CSS animation before re-adding the class.
+       * @param {string} message
+       */
       function showToast(message) {
         const toast = document.getElementById("toastMessage");
-    
-        // Set the message and show it
+        if (!toast) return;
+
         toast.innerText = message;
+
+        // Force-remove the class and trigger a reflow before re-adding.
+        // Without the reflow, the browser skips restarting the animation
+        // if the class is already present — causing the toast to stay invisible.
+        toast.classList.remove("show");
+        void toast.offsetWidth;  // triggers reflow — this line is intentional
         toast.classList.add("show");
-        // Hide it after 3 seconds
-        setTimeout(() => {
+
+        // Clear any existing timeout so rapid calls don't hide the toast early
+        clearTimeout(window._toastHideTimeout);
+        window._toastHideTimeout = setTimeout(function() {
           toast.classList.remove("show");
         }, 3000);
       }
@@ -8915,16 +9125,14 @@
           }
         });
 
-        // 5. Calculate Current Year Books Finished
-        // Looks at the user's shelf, filters for "Finished", and checks if the date was this year
-        let booksThisYear = 0;
-        const userShelves = globalShelvesDB.filter(s => s.memberId === memberId && s.status === 'Finished');
-        userShelves.forEach(shelf => {
-            const finishDate = parseGoogleDate(shelf.manualDateFinished || shelf.dateFinished || shelf.lastModifiedOn);
-            if (finishDate.getFullYear() === currentYear) {
-                booksThisYear++;
-            }
-        });
+        // 5. Books this year — read from MemberDB (Wave 1) so this renders
+        //    immediately without waiting for ShelfDB (Wave 3).
+        //    MemberDB.books is maintained by MasterEngine — authoritative.
+        //    NOTE: This is the LIFETIME total. booksThisYear is approximated
+        //    here and updated accurately by updateBooksThisYearPill() in Wave 3.
+        const memberForStats = membersMap.get(memberId);
+        let booksThisYear = 0; // Will be updated accurately in Wave 3
+        // Leave as 0 here — updateBooksThisYearPill() fills it when ShelfDB loads
 
         // Populate the top half of the split stat pills with current-year data.
         // The bottom halves (lifetime totals) are set earlier by populateMePage().
@@ -12515,9 +12723,10 @@
       // ── Navigation ──────────────────────────────────────────────────────────────
     
       /**
-       * Opens the challenge detail view for a given challenge.
-       * For BOOK_COUNT and PAGE_COUNT, fires a backend sync before rendering
-       * so the My Progress tab always shows data calculated from live source data.
+       * Opens the challenge detail view.
+       * Renders immediately from cached globalChallengeEnrollmentsDB data.
+       * For BOOK_COUNT and PAGE_COUNT a Sync button appears in the My Progress
+       * tab header — same pattern as the Home Feed sync button.
        *
        * @param {string} challengeId - ARKA_CHAL_X
        * @param {string} [from]      - 'challenges' | 'me'
@@ -12533,10 +12742,9 @@
         currentViewedChallengeId      = challengeId;
         currentChalDetailTab          = 'mine';
     
-        // Header
+        // ── Header ───────────────────────────────────────────────────────────────
         document.getElementById('chalDetailTitle').textContent = challenge.title;
     
-        // Status badge
         const badge      = document.getElementById('chalDetailStatusBadge');
         const statusCols = {
           Active  : 'background:#EAF3DE;color:#27500A;',
@@ -12546,70 +12754,228 @@
         badge.style.cssText = statusCols[enrollment.enrollmentStatus] || '';
         badge.textContent   = enrollment.enrollmentStatus;
     
-        // Show/hide Club tab
+        // ── Club tab visibility ────────────────────────────────────────────────
         const clubTab = document.getElementById('tabChalDetailClub');
-        if (clubTab) clubTab.style.display = challenge.isCompetitive ? '' : 'none';
+        if (clubTab) clubTab.style.display = '';
     
+        // ── Navigate to view ──────────────────────────────────────────────────
         switchTab('challengeDetail');
     
-        // ── For count challenges: sync from source data before rendering ─────────
-        const countTypes = ['BOOK_COUNT', 'PAGE_COUNT'];
-        if (countTypes.includes(challenge.challengeType)) {
-    
-          // Show a lightweight loading state on the My Progress panel
-          const minePanel = document.getElementById('chalDetailMineContent');
-          if (minePanel) {
-            minePanel.innerHTML = `
-              <div style="text-align:center; padding:40px 0; color:#7f8c8d;">
-                <i class="fas fa-circle-notch fa-spin" style="font-size:1.5rem; margin-bottom:12px; display:block;"></i>
-                Syncing your progress…
-              </div>`;
-          }
-    
-          // Switch to mine tab visually (shows the loading state above)
-          document.getElementById('chalDetailMineContent').style.display  = 'block';
-          document.getElementById('chalDetailClubContent').style.display  = 'none';
-          document.getElementById('tabChalDetailMine').classList.add('active');
-          document.getElementById('tabChalDetailClub').classList.remove('active');
-    
-          // Fire backend sync — on success, update local state and render
-          google.script.run
-            .withSuccessHandler(function(res) {
-              if (res.status === 'success' && res.enrollment) {
-    
-                // Update local arrays with fresh data
-                const enrIdx = globalChallengeEnrollmentsDB.findIndex(function(e) {
-                  return e.enrollmentId === res.enrollment.enrollmentId;
-                });
-                if (enrIdx > -1) {
-                  globalChallengeEnrollmentsDB[enrIdx] = res.enrollment;
-                }
-                myEnrollmentsMap.set(challengeId, res.enrollment);
-    
-                // Update status badge if status changed (e.g. just became Finisher)
-                const updBadge = document.getElementById('chalDetailStatusBadge');
-                if (updBadge) {
-                  updBadge.style.cssText = statusCols[res.enrollment.enrollmentStatus] || '';
-                  updBadge.textContent   = res.enrollment.enrollmentStatus;
-                }
+        // ── Render immediately from cached data ──────────────────────────────
+        // No spinner. User sees current data right away.
+        switchChalDetailTab('mine');
+      }
+
+      /**
+       * Manual sync triggered by the Sync button on the My Progress tab.
+       * Only available for BOOK_COUNT and PAGE_COUNT challenges.
+       * Fires syncAndFetchEnrollment() and re-renders on success.
+       */
+      function syncChallengeProgressNow() {
+        const challengeId = currentViewedChallengeId;
+        if (!challengeId) return;
+
+        const challenge  = challengesMap.get(challengeId);
+        const enrollment = myEnrollmentsMap.get(challengeId);
+        if (!challenge || !enrollment) return;
+
+        const btn = document.getElementById('chalSyncBtn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>'; }
+
+        // ── Calculate on the frontend using same data/logic as heatmap ──────────
+        let existingState = {};
+        try { existingState = JSON.parse(enrollment.progressStateJson || '{}'); } catch (e) {}
+
+        const { newProgressValue, updatedState } = calculateCountChallengeProgress(
+          challenge, existingState
+        );
+
+        const progressStateJson = JSON.stringify(updatedState);
+
+        // ── Send result to backend — backend just writes it ──────────────────────
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt"></i> Sync'; }
+
+            if (res.status === 'success' && res.updatedEnrollment) {
+              const enrIdx = globalChallengeEnrollmentsDB.findIndex(function(e) {
+                return e.enrollmentId === enrollment.enrollmentId;
+              });
+              const fresh = res.updatedEnrollment;
+              if (enrIdx > -1) globalChallengeEnrollmentsDB[enrIdx] = fresh;
+              myEnrollmentsMap.set(challengeId, fresh);
+
+              // Update status badge if changed (e.g. just became Finisher)
+              const badge = document.getElementById('chalDetailStatusBadge');
+              const statusCols = {
+                Active  : 'background:#EAF3DE;color:#27500A;',
+                Finisher: 'background:#E1F5EE;color:#085041;',
+                Winner  : 'background:#FAEEDA;color:#633806;'
+              };
+              if (badge) {
+                badge.style.cssText = statusCols[fresh.enrollmentStatus] || '';
+                badge.textContent   = fresh.enrollmentStatus;
               }
-              // Render My Progress tab with updated data (or original if sync failed)
-              renderChalDetailMyProgress();
-              // Keep Me tab in sync
-              renderMyChallengesCard();
-            })
-            .withFailureHandler(function() {
-              // Sync failed — render with whatever data we already have
-              console.warn('Challenge sync failed — rendering cached data.');
-              renderChalDetailMyProgress();
-            })
-            .syncAndFetchEnrollment(challengeId);
-    
+              showToast('Progress synced! ✓');
+            } else {
+              showToast('Sync failed — try again.');
+            }
+
+            renderChalDetailMyProgress();
+            renderMyChallengesCard();
+          })
+          .withFailureHandler(function() {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt"></i> Sync'; }
+            showToast('Sync failed. Please try again.');
+          })
+          .saveChallengeProgress({
+            enrollmentId        : enrollment.enrollmentId,
+            currentProgressValue: newProgressValue,
+            progressStateJson   : progressStateJson,
+            activityPointsMap   : globalActivityPointsMap
+          });
+      }
+
+      /**
+       * Calculates PAGE_COUNT or BOOK_COUNT progress for a challenge
+       * using the already-loaded frontend globals — same data and same
+       * parseGoogleDate() logic as the heatmap and Me tab stats pills.
+       *
+       * @param {ChallengeRecord} challenge
+       * @param {Object}          existingState - Current progressStateJson parsed
+       * @returns {{ newProgressValue: number, updatedState: Object }}
+       */
+      function calculateCountChallengeProgress(challenge, existingState) {
+        const isPages      = challenge.challengeType === 'PAGE_COUNT';
+        const startDateMs  = parseGoogleDate(challenge.startDate).getTime();
+        const endDateMs    = challenge.endDate
+          ? parseGoogleDate(challenge.endDate).getTime() + 86400000  // inclusive
+          : Infinity;
+
+        let config = {};
+        try { config = JSON.parse(challenge.goalConfigJson || '{}'); } catch (e) {}
+
+        const personalGoal = existingState.personalGoal
+          || config.defaultGoal
+          || challenge.goalValue
+          || (isPages ? 5000 : 24);
+
+        const months = ['Jan','Feb','Mar','Apr','May','Jun',
+                        'Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        if (isPages) {
+          // ── PAGE_COUNT: sum globalPageLogDB ──────────────────────────────────
+          // Uses parseGoogleDate — same as heatmap. Catches all formats.
+          let   totalPages       = 0;
+          const monthlyBreakdown = {};
+          const weeklyBreakdown  = {};
+
+          globalPageLogDB.forEach(function(log) {
+            if (log.memberId !== currentUser) return;
+
+            const logDate = parseGoogleDate(log.timestamp);
+            const logMs   = logDate.getTime();
+            if (isNaN(logMs) || logMs < startDateMs || logMs > endDateMs) return;
+
+            const pages = Number(log.pagesDelta) || 0;
+            if (pages <= 0) return;
+
+            totalPages += pages;
+
+            const mKey = months[logDate.getMonth()] || '?';
+            monthlyBreakdown[mKey] = (monthlyBreakdown[mKey] || 0) + pages;
+
+            const wKey = 'W' + String(getISOWeekNumber(logDate)).padStart(2, '0');
+            weeklyBreakdown[wKey] = (weeklyBreakdown[wKey] || 0) + pages;
+          });
+
+          const pacingProjection = calculatePacingProjectionFE(
+            totalPages, challenge.startDate, new Date()
+          );
+          const aheadBehindTarget = buildAheadBehindLabelFE(
+            totalPages, personalGoal, challenge.startDate, new Date()
+          );
+
+          return {
+            newProgressValue: totalPages,
+            updatedState: {
+              personalGoal, totalPages, monthlyBreakdown,
+              weeklyBreakdown, pacingProjection, aheadBehindTarget
+            }
+          };
+
         } else {
-          // Non-count types render immediately — no sync needed
-          switchChalDetailTab('mine');
+          // ── BOOK_COUNT: count from globalShelvesDB ────────────────────────────
+          // Mirrors heatmap's booksThisYear logic exactly.
+          const booksRead        = [];
+          const monthlyBreakdown = {};
+
+          globalShelvesDB.forEach(function(shelf) {
+            if (shelf.memberId !== currentUser) return;
+            if (shelf.status !== 'Finished') return;
+
+            const finishDate = parseGoogleDate(
+              shelf.dateFinished || shelf.dateUpdated || shelf.lastModifiedOn
+            );
+            const finishMs = finishDate.getTime();
+            if (isNaN(finishMs) || finishMs < startDateMs || finishMs > endDateMs) return;
+
+            const book = booksMap.get(shelf.bookId);
+            booksRead.push({
+              bookId    : shelf.bookId,
+              title     : '',           // resolved at render time from booksMap
+              finishedOn: shelf.dateFinished || shelf.dateUpdated || ''
+            });
+
+            const mKey = months[finishDate.getMonth()] || '?';
+            monthlyBreakdown[mKey] = (monthlyBreakdown[mKey] || 0) + 1;
+          });
+
+          const totalBooks = booksRead.length;
+          const pacingProjection = calculatePacingProjectionFE(
+            totalBooks, challenge.startDate, new Date()
+          );
+
+          return {
+            newProgressValue: totalBooks,
+            updatedState: {
+              personalGoal, booksRead, totalBooks,
+              monthlyBreakdown, pacingProjection
+            }
+          };
         }
       }
+
+
+      /**
+       * Frontend pacing projection — mirrors backend calculatePacingProjection().
+       * Kept separate to avoid naming collision.
+       */
+      function calculatePacingProjectionFE(currentTotal, startDateStr, now) {
+        const startMs     = parseGoogleDate(startDateStr).getTime();
+        const elapsedDays = Math.max(1, (now.getTime() - startMs) / 86400000);
+        const yearEnd     = new Date(now.getFullYear(), 11, 31);
+        const totalDays   = Math.max(1, (yearEnd.getTime() - startMs) / 86400000);
+        return Math.round((currentTotal / elapsedDays) * totalDays);
+      }
+
+
+      /**
+       * Frontend ahead/behind label — mirrors backend buildAheadBehindLabel().
+       */
+      function buildAheadBehindLabelFE(currentTotal, personalGoal, startDateStr, now) {
+        const startMs       = parseGoogleDate(startDateStr).getTime();
+        const yearEnd       = new Date(now.getFullYear(), 11, 31);
+        const totalDays     = Math.max(1, (yearEnd.getTime() - startMs) / 86400000);
+        const elapsedDays   = Math.max(1, (now.getTime() - startMs) / 86400000);
+        const expectedByNow = Math.round(personalGoal * (elapsedDays / totalDays));
+        const diff          = currentTotal - expectedByNow;
+        if (diff === 0) return 'exactly on pace';
+        return (diff > 0 ? '+' : '') + diff.toLocaleString() + ' pages '
+          + (diff > 0 ? 'ahead of' : 'behind') + ' pace';
+      }
+
+
     
       /**
        * Closes the challenge detail view and returns to the source view.
@@ -13016,99 +13382,270 @@
       }
     
     
-      // ── BOOK_COUNT / PAGE_COUNT renderer ─────────────────────────────────────────
-    
+      /**
+       * Renders the My Progress view for BOOK_COUNT and PAGE_COUNT challenges.
+       *
+       * @param {ChallengeRecord}           challenge
+       * @param {ChallengeEnrollmentRecord} enrollment
+       * @param {Object}                    state - Parsed progressStateJson
+       * @returns {string} HTML string
+       */
       function renderCountProgress(challenge, enrollment, state) {
-        const isPages     = challenge.challengeType === 'PAGE_COUNT';
-        const unit        = isPages ? 'pages' : 'books';
-        const colour      = isPages ? '#378ADD' : '#EF9F27';
-        const total       = isPages ? (state.totalPages || 0) : (state.totalBooks || 0);
-        const goal        = state.personalGoal || challenge.goalValue || 1;
-        const projection  = state.pacingProjection || 0;
-        const pct         = Math.min(100, Math.round((total / goal) * 100));
+        const isPages    = challenge.challengeType === 'PAGE_COUNT';
+        const unit       = isPages ? 'pages' : 'books';
+        const colour     = isPages ? '#378ADD' : '#EF9F27';
+        const total      = isPages ? (state.totalPages || 0) : (state.totalBooks || 0);
+        const goal       = state.personalGoal || challenge.goalValue || 1;
+        const projection = state.pacingProjection || 0;
+        const pct        = Math.min(100, Math.round((total / goal) * 100));
         const aheadBehind = state.aheadBehindTarget || '';
     
-        // Monthly breakdown bars
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const monthBreakdown = state.monthlyBreakdown || {};
-        const maxMonth = Math.max(1, ...Object.values(monthBreakdown).map(Number));
-        let monthBars = months.map(function(m) {
-          const val    = Number(monthBreakdown[m]) || 0;
-          const barPct = Math.round((val / maxMonth) * 100);
-          return `
-            <div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;">
-              <div style="width:100%;background:#ecf0f1;border-radius:3px;height:40px;display:flex;align-items:flex-end;overflow:hidden;">
-                <div style="width:100%;height:${barPct}%;background:${colour};border-radius:3px;transition:height 0.4s;"></div>
-              </div>
-              <div style="font-size:0.55rem;color:#95a5a6;margin-top:3px;">${m}</div>
-              ${val > 0 ? `<div style="font-size:0.6rem;color:${colour};font-weight:600;">${isPages ? val.toLocaleString() : val}</div>` : ''}
-            </div>`;
-        }).join('');
+        // ── Sync button (BOOK_COUNT / PAGE_COUNT only) ────────────────────────
+        // Rendered above the tab label in renderChalDetailMyProgress's wrapper.
+        // We inject it here as a section at the top.
+        const syncBtn = `
+          <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+            <button id="chalSyncBtn" onclick="syncChallengeProgressNow()"
+              style="background:none;border:1px solid #bdc3c7;border-radius:20px;
+                    padding:5px 12px;font-size:0.75rem;color:#7f8c8d;cursor:pointer;
+                    font-family:inherit;width:auto;display:flex;align-items:center;gap:5px;">
+              <i class="fas fa-bolt"></i> Sync
+            </button>
+          </div>`;
     
-        // Book list for BOOK_COUNT
-        let listHtml = '';
-        if (!isPages) {
-          const books = (state.booksRead || []).slice(-10).reverse();
-          listHtml = books.length ? `
-            <div class="card" style="padding:14px;margin-top:14px;">
-              <div style="font-size:0.75rem;font-weight:700;color:#7f8c8d;text-transform:uppercase;
-                          letter-spacing:0.5px;margin-bottom:8px;">Recent reads</div>
-              ${books.map(function(b) {
-                return `<div style="padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.82rem;">
-                  <span style="font-weight:500;">${escapeHtml(b.title)}</span>
-                  <span style="color:#95a5a6;font-size:0.72rem;float:right;">${b.finishedOn || ''}</span>
-                </div>`;
-              }).join('')}
-            </div>` : '';
-        }
-    
-        return `
+        // ── Stat tiles ─────────────────────────────────────────────────────────
+        const statTiles = `
           <div class="chal-stat-strip">
             <div class="chal-stat-tile">
-              <div class="chal-stat-num" style="color:${colour};">${isPages ? total.toLocaleString() : total}</div>
+              <div class="chal-stat-num" style="color:${colour};">
+                ${isPages ? total.toLocaleString() : total}
+              </div>
               <div class="chal-stat-label">${unit} read</div>
             </div>
             <div class="chal-stat-tile">
               <div class="chal-stat-num">${isPages ? goal.toLocaleString() : goal}</div>
               <div class="chal-stat-label">your goal</div>
             </div>
-            <div class="chal-stat-tile">
-              <div class="chal-stat-num">${projection > 0 ? (isPages ? projection.toLocaleString() : projection) : '—'}</div>
-              <div class="chal-stat-label">pace</div>
+            <div class="chal-stat-tile" onclick="showPaceInfo()" style="cursor:pointer;">
+              <div class="chal-stat-num">
+                ${projection > 0 ? (isPages ? projection.toLocaleString() : projection) : '—'}
+              </div>
+              <div class="chal-stat-label" style="display:flex;align-items:center;
+                  justify-content:center;gap:3px;">
+                pace
+                <span style="display:inline-flex;align-items:center;justify-content:center;
+                            width:13px;height:13px;border-radius:50%;background:#bdc3c7;
+                            color:white;font-size:0.55rem;font-weight:700;flex-shrink:0;">ⓘ</span>
+              </div>
             </div>
-          </div>
+          </div>`;
+    
+        // ── Progress bar ────────────────────────────────────────────────────────
+        const progressBar = `
           <div style="height:10px;background:#ecf0f1;border-radius:6px;overflow:hidden;margin-bottom:6px;">
             <div style="height:100%;width:${pct}%;background:${colour};border-radius:6px;transition:width 0.4s;"></div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:#7f8c8d;margin-bottom:16px;">
             <span>${pct}% of goal</span>
-            <span>${aheadBehind}</span>
-          </div>
-          <div class="card" style="padding:12px 14px;">
+            <span>${escapeHtml(aheadBehind)}</span>
+          </div>`;
+    
+        // ── Monthly breakdown — FIX B ──────────────────────────────────────────
+        // Layout per column (top→bottom):
+        //   [value text  — 14px fixed, blank if 0]
+        //   [bar         — grows from bottom in fixed 50px zone]
+        //   [month label — 14px fixed]
+        // Outer row uses align-items:flex-end so all bars touch the same baseline.
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const monthBreakdown = state.monthlyBreakdown || {};
+        const maxMonthVal    = Math.max(1, ...Object.values(monthBreakdown).map(Number));
+        const BAR_ZONE_PX    = 50; // fixed pixel height for the bar zone
+    
+        const monthCols = months.map(function(m) {
+          const val    = Number(monthBreakdown[m]) || 0;
+          const barPx  = val > 0 ? Math.max(2, Math.round((val / maxMonthVal) * BAR_ZONE_PX)) : 0;
+          const valStr = val > 0
+            ? (isPages ? (val >= 1000 ? Math.round(val/100)/10 + 'k' : val.toString()) : val.toString())
+            : '';
+    
+          return `
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;min-width:0;">
+              <!-- Value above bar — fixed 14px height so all columns are same total height -->
+              <div style="height:14px;display:flex;align-items:flex-end;justify-content:center;
+                          font-size:0.5rem;color:${colour};font-weight:600;line-height:1;">
+                ${valStr}
+              </div>
+              <!-- Bar zone — fixed 50px, bar grows from bottom -->
+              <div style="height:${BAR_ZONE_PX}px;width:80%;display:flex;align-items:flex-end;">
+                <div style="width:100%;height:${barPx}px;background:${val > 0 ? colour : '#ecf0f1'};
+                            border-radius:3px 3px 0 0;transition:height 0.4s;min-height:${val>0?2:0}px;">
+                </div>
+              </div>
+              <!-- Month label — fixed 14px height -->
+              <div style="height:14px;display:flex;align-items:center;justify-content:center;
+                          font-size:0.52rem;color:#95a5a6;margin-top:2px;">
+                ${m}
+              </div>
+            </div>`;
+        }).join('');
+    
+        const barChart = `
+          <div class="card" style="padding:12px 14px;margin-bottom:14px;">
             <div style="font-size:0.75rem;font-weight:700;color:#7f8c8d;text-transform:uppercase;
-                        letter-spacing:0.5px;margin-bottom:8px;">Monthly breakdown</div>
-            <div style="display:flex;gap:3px;align-items:flex-end;">${monthBars}</div>
-          </div>
-          ${listHtml}`;
+                        letter-spacing:0.5px;margin-bottom:10px;">Monthly breakdown</div>
+            <div style="display:flex;gap:2px;align-items:flex-end;">${monthCols}</div>
+          </div>`;
+    
+        // ── Book list — FIX C ─────────────────────────────────────────────────
+        // Uses same cover pattern as library and shelf views:
+        //   book.coverImageURL → <img> if present
+        //   getBookColor(title) → auto-cover fallback
+        let booksHtml = '';
+        if (!isPages) {
+          const books = (state.booksRead || []).slice().reverse(); // newest first
+    
+          if (books.length === 0) {
+            booksHtml = `
+              <div class="card" style="padding:14px;">
+                <div style="font-size:0.75rem;font-weight:700;color:#7f8c8d;text-transform:uppercase;
+                            letter-spacing:0.5px;margin-bottom:8px;">Books read</div>
+                <p style="color:#95a5a6;font-style:italic;text-align:center;
+                          padding:12px 0;font-size:0.85rem;margin:0;">
+                  No finished books recorded yet. Sync to refresh.
+                </p>
+              </div>`;
+          } else {
+            const rowsHtml = books.map(function(b) {
+              const bookRecord = booksMap.get(b.bookId);
+    
+              const displayTitle  = bookRecord ? bookRecord.title  : (b.title || b.bookId);
+              const displayAuthor = bookRecord ? bookRecord.author : '';
+              const displayGenre  = bookRecord ? bookRecord.genre  : '';
+              const finishedOn    = b.finishedOn || '';
+    
+              // Cover — exact same pattern as library renderLibrary() and shelf views
+              let coverHtml;
+              if (bookRecord && bookRecord.coverImageURL) {
+                // Real cover URL from Drive — use directly, same as the shelf carousel
+                coverHtml = `
+                  <img src="${escapeHtml(bookRecord.coverImageURL)}"
+                      style="width:48px;height:72px;object-fit:cover;border-radius:4px;
+                              flex-shrink:0;box-shadow:2px 2px 6px rgba(0,0,0,0.12);"
+                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                  <div style="display:none;width:48px;height:72px;border-radius:4px;
+                              flex-shrink:0;align-items:center;justify-content:center;">
+                    ${autoCoverMini(displayTitle, displayAuthor, 48, 72)}
+                  </div>`;
+              } else {
+                // No cover URL — use auto-cover (coloured spine, same as library list)
+                coverHtml = autoCoverMini(displayTitle, displayAuthor, 48, 72);
+              }
+    
+              const bookId = b.bookId || '';
+    
+              return `
+                <div onclick="${bookId ? 'openBookDetailView(\'' + bookId + '\', \'challengeDetail\')' : ''}"
+                    style="display:flex;align-items:center;gap:12px;padding:10px 0;
+                            border-bottom:1px solid #f4f4f4;cursor:${bookId ? 'pointer' : 'default'};">
+                  <div style="flex-shrink:0;">${coverHtml}</div>
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:0.88rem;color:#2c3e50;
+                                display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+                                overflow:hidden;">
+                      ${escapeHtml(displayTitle)}
+                    </div>
+                    ${displayAuthor ? `
+                      <div style="font-size:0.75rem;color:#7f8c8d;margin-top:1px;
+                                  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        ${escapeHtml(displayAuthor)}
+                      </div>` : ''}
+                    ${displayGenre ? `
+                      <div style="font-size:0.68rem;color:#bdc3c7;margin-top:2px;">
+                        ${escapeHtml(displayGenre)}
+                      </div>` : ''}
+                    ${finishedOn ? `
+                      <div style="font-size:0.72rem;color:#95a5a6;margin-top:4px;">
+                        Finished ${finishedOn}
+                      </div>` : ''}
+                  </div>
+                  ${bookId ? '<div style="font-size:1rem;color:#bdc3c7;flex-shrink:0;">›</div>' : ''}
+                </div>`;
+            }).join('');
+    
+            booksHtml = `
+              <div class="card" style="padding:14px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                  <div style="font-size:0.75rem;font-weight:700;color:#7f8c8d;
+                              text-transform:uppercase;letter-spacing:0.5px;">
+                    Books read
+                  </div>
+                  <div style="font-size:0.72rem;color:#bdc3c7;">${books.length} book${books.length !== 1 ? 's' : ''}</div>
+                </div>
+                ${rowsHtml}
+              </div>`;
+          }
+        }
+    
+        return syncBtn + statTiles + progressBar + barChart + booksHtml;
+      }
+
+      /**
+       * Shows a toast explaining the Pace metric in count challenges.
+       */
+      function showPaceInfo() {
+        showToast('Pace = projected year-end total at your current reading speed.');
+      }
+
+      /**
+       * Builds a mini auto-cover div — matching the .auto-cover pattern from the library.
+       * Used when a book has no coverImageURL.
+       *
+       * @param {string} title  - Book title (used for color + text)
+       * @param {string} author - Author name
+       * @param {number} w      - Width in px
+       * @param {number} h      - Height in px
+       * @returns {string} HTML string
+       */
+      function autoCoverMini(title, author, w, h) {
+        const colour = getBookColor(title);
+        return `
+          <div class="auto-cover"
+              style="background-color:${colour};width:${w}px;height:${h}px;
+                      font-size:0.6rem;border-radius:3px 5px 5px 3px;flex-shrink:0;">
+            <div class="auto-cover-title"
+                style="-webkit-line-clamp:4;font-size:0.5rem;">${escapeHtml(title)}</div>
+            <div class="auto-cover-divider" style="width:50%;"></div>
+            <div class="auto-cover-author"
+                style="font-size:0.45rem;">${escapeHtml(author)}</div>
+          </div>`;
       }
     
     
       // ── Club tab renderer ────────────────────────────────────────────────────────
     
       /**
-       * Renders the Club leaderboard tab.
-       * Shows all enrolled members ranked by currentProgressValue.
-       * Current user row is always highlighted and pinned to stay visible.
+       * Renders the Club tab for a challenge.
+       *
+       * COMPETITIVE challenges (isCompetitive = true):
+       *   Ranked leaderboard — members sorted by currentProgressValue, with
+       *   gold/silver/bronze medals, coloured progress bars, your row highlighted.
+       *
+       * NON-COMPETITIVE challenges (isCompetitive = false):
+       *   Pace table — each member's goal, current progress, and year-end
+       *   projection. No rank numbers. Pace indicator (↑ ahead / → on track /
+       *   ↓ behind) calculated per-person against their own target.
+       *   Your row always highlighted in purple.
        */
       function renderChalDetailClub() {
         const container  = document.getElementById('chalDetailClubContent');
         const challenge  = challengesMap.get(currentViewedChallengeId);
         if (!container || !challenge) return;
     
-        // Get all Active / Finisher / Winner enrollments for this challenge
+        // All non-Dropped enrollments for this challenge
         const challEnrollments = globalChallengeEnrollmentsDB
           .filter(function(e) {
-            return e.challengeId === challenge.challengeId && e.enrollmentStatus !== 'Dropped';
+            return e.challengeId === challenge.challengeId
+              && e.enrollmentStatus !== 'Dropped';
           })
           .sort(function(a, b) {
             return b.currentProgressValue - a.currentProgressValue;
@@ -13119,71 +13656,80 @@
           return;
         }
     
-        // Max value for progress bar scaling
-        const maxVal = Math.max(1, challEnrollments[0].currentProgressValue);
+        if (challenge.isCompetitive) {
+          container.innerHTML = renderCompetitiveLeaderboard(challenge, challEnrollments);
+        } else {
+          container.innerHTML = renderPaceTable(challenge, challEnrollments);
+        }
+      }
     
-        // Accent colour per type
+    
+      /**
+       * Renders the ranked leaderboard for competitive challenges.
+       * Gold/silver/bronze medals for top 3. Your row highlighted + pinned.
+       *
+       * @param {ChallengeRecord}               challenge
+       * @param {ChallengeEnrollmentRecord[]}   enrollments - Sorted desc by currentProgressValue
+       * @returns {string} HTML
+       */
+      function renderCompetitiveLeaderboard(challenge, enrollments) {
         const typeColours = {
           HABIT_STREAK: '#EF9F27', BINGO_GRID: '#7F77DD',
           BUDDY_READ: '#D4537E', COUNTRY_SPREAD: '#1D9E75',
           ALPHABET: '#378ADD', BOOK_COUNT: '#EF9F27', PAGE_COUNT: '#378ADD'
         };
         const barColour = typeColours[challenge.challengeType] || '#A984BA';
-    
-        let rankHtml  = '';
-        let myRankRow = '';
-        let myRank    = -1;
-    
-        challEnrollments.forEach(function(enrollment, idx) {
-          const rank    = idx + 1;
-          const member  = membersMap.get(enrollment.memberId);
-          const isMe    = enrollment.memberId === currentUser;
-          const name    = member ? member.displayName : enrollment.memberId;
-          const initials = name.slice(0, 2).toUpperCase();
-          const score   = enrollment.currentProgressValue;
-          const barPct  = Math.round((score / maxVal) * 100);
-          const unit    = challenge.goalUnit || '';
-    
-          // Rank medal for top 3
+        const maxVal    = Math.max(1, enrollments[0].currentProgressValue);
+        const unit      = challenge.goalUnit || '';
+
+        let rankHtml = '';
+        let myRank   = -1;
+
+        enrollments.forEach(function(enrollment, idx) {
+          const rank   = idx + 1;
+          const member = membersMap.get(enrollment.memberId);
+          const isMe   = enrollment.memberId === currentUser;
+          const name   = member ? member.displayName : enrollment.memberId;
+          const score  = enrollment.currentProgressValue;
+          const barPct = Math.round((score / maxVal) * 100);
           const rankDisplay = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
-    
-          const rowHtml = `
-            <div class="club-rank-row${isMe ? ' is-me' : ''}">
+
+          if (isMe) myRank = rank;
+
+          // Use existing buildAvatarHtml helper — same as events attendee list
+          const avatarHtml = buildAvatarHtml(member, 32);
+
+          rankHtml += `
+            <div class="club-rank-row${isMe ? ' is-me' : ''}"
+                onclick="${member ? 'showMemberProfile(\'' + enrollment.memberId + '\')' : ''}"
+                style="cursor:${member ? 'pointer' : 'default'};">
               <div class="club-rank-num">${rankDisplay}</div>
-              <div class="club-rank-avatar"
-                  style="background:${isMe ? '#EEEDFE' : '#ecf0f1'};
-                          color:${isMe ? '#534AB7' : '#7f8c8d'};">
-                ${initials}
-              </div>
+              ${avatarHtml}
               <div style="flex:1;min-width:0;">
                 <div style="display:flex;justify-content:space-between;">
-                  <span class="club-rank-name" style="${isMe ? 'color:#3C3489;font-weight:600;' : ''}">${escapeHtml(name)}${isMe ? ' (you)' : ''}</span>
-                  <span class="club-rank-score" style="color:${barColour};">${score.toLocaleString()} ${unit}</span>
+                  <span class="club-rank-name"
+                        style="${isMe ? 'color:#3C3489;font-weight:600;' : ''}">
+                    ${escapeHtml(name)}${isMe ? ' (you)' : ''}
+                  </span>
+                  <span class="club-rank-score" style="color:${barColour};">
+                    ${score.toLocaleString()} ${unit}
+                  </span>
                 </div>
                 <div class="club-rank-bar-wrap">
                   <div class="club-rank-bar-bg">
-                    <div class="club-rank-bar-fill" style="width:${barPct}%;background:${barColour};"></div>
+                    <div class="club-rank-bar-fill"
+                        style="width:${barPct}%;background:${barColour};"></div>
                   </div>
                 </div>
               </div>
             </div>`;
-    
-          if (isMe) {
-            myRank    = rank;
-            myRankRow = rowHtml;
-          }
-          rankHtml += rowHtml;
         });
-    
-        const enrolledCount = challEnrollments.length;
-        const progressLabel = CHAL_CARD_CONFIG[challenge.challengeType]
-          ? 'Ranked by ' + (challenge.goalUnit || 'progress')
-          : 'Progress';
-    
-        container.innerHTML = `
+
+        const count = enrollments.length;
+        return `
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <div style="font-size:0.78rem;color:#7f8c8d;">${enrolledCount} member${enrolledCount !== 1 ? 's' : ''} enrolled</div>
-            <div style="font-size:0.72rem;color:#95a5a6;">${progressLabel}</div>
+            <div style="font-size:0.78rem;color:#7f8c8d;">${count} member${count !== 1 ? 's' : ''} enrolled</div>
+            <div style="font-size:0.72rem;color:#95a5a6;">Ranked by ${unit || 'progress'}</div>
           </div>
           <div class="card" style="padding:14px;">
             ${rankHtml}
@@ -13191,8 +13737,149 @@
           ${myRank > 5 ? `
             <div style="margin-top:10px;padding:8px;background:#EEEDFE;border-radius:8px;
                         font-size:0.82rem;color:#534AB7;text-align:center;">
-              Your rank: #${myRank} of ${enrolledCount}
+              Your rank: #${myRank} of ${count}
             </div>` : ''}`;
+      }
+
+    
+      /**
+       * Renders the pace table for non-competitive challenges (BOOK_COUNT, PAGE_COUNT).
+       * No rank numbers. Each row shows the member's goal, current count, and pace.
+       * Pace indicator: ↑ ahead · → on track · ↓ behind — calculated vs their own goal.
+       *
+       * @param {ChallengeRecord}               challenge
+       * @param {ChallengeEnrollmentRecord[]}   enrollments
+       * @returns {string} HTML
+       */
+      function renderPaceTable(challenge, enrollments) {
+        const isPages = challenge.challengeType === 'PAGE_COUNT';
+        const unit    = isPages ? 'pages' : 'books';
+        const colour  = isPages ? '#378ADD' : '#EF9F27';
+
+        const rows = enrollments.map(function(enrollment) {
+          const member  = membersMap.get(enrollment.memberId);
+          const isMe    = enrollment.memberId === currentUser;
+          const name    = member ? member.displayName : enrollment.memberId;
+
+          let state = {};
+          try { state = JSON.parse(enrollment.progressStateJson || '{}'); } catch (e) {}
+
+          const personalGoal = state.personalGoal  || challenge.goalValue || 1;
+          const currentTotal = isPages
+            ? (state.totalPages || 0)
+            : (state.totalBooks || 0);
+          const projection   = state.pacingProjection || 0;
+          const pct          = Math.min(100, Math.round((currentTotal / personalGoal) * 100));
+
+          let paceIcon = '→'; let paceColor = '#95a5a6';
+          if (projection > 0) {
+            const ratio = projection / personalGoal;
+            if (ratio >= 1.05)    { paceIcon = '↑'; paceColor = '#1D9E75'; }
+            else if (ratio < 0.9) { paceIcon = '↓'; paceColor = '#e74c3c'; }
+            else                  { paceIcon = '→'; paceColor = '#EF9F27'; }
+          }
+
+          const avatarHtml = buildAvatarHtml(member, 28);
+
+          return { isMe, name, member, memberId: enrollment.memberId,
+                  personalGoal, currentTotal, projection, pct,
+                  paceIcon, paceColor, avatarHtml };
+        }).sort(function(a, b) { return b.pct - a.pct; });
+
+        const rowsHtml = rows.map(function(r) {
+          // Format numbers compactly for small screens
+          const totalStr = isPages && r.currentTotal >= 1000
+            ? (Math.round(r.currentTotal / 100) / 10) + 'k'
+            : r.currentTotal.toLocaleString();
+          const goalStr = isPages && r.personalGoal >= 1000
+            ? (Math.round(r.personalGoal / 100) / 10) + 'k'
+            : r.personalGoal.toLocaleString();
+          const projStr = r.projection > 0
+            ? (isPages && r.projection >= 1000
+                ? (Math.round(r.projection / 100) / 10) + 'k'
+                : r.projection.toLocaleString())
+            : '—';
+
+          return `
+            <div onclick="${r.member ? 'showMemberProfile(\'' + r.memberId + '\')' : ''}"
+                style="display:flex;align-items:center;gap:8px;padding:9px 10px;
+                        border-bottom:1px solid #f4f4f4;cursor:${r.member ? 'pointer' : 'default'};
+                        ${r.isMe ? 'background:#EEEDFE;border-radius:8px;margin:2px 0;' : ''}">
+
+              <!-- Col 1: Avatar + name — fixed width, truncated -->
+              <div style="display:flex;align-items:center;gap:6px;
+                          width:34%;flex-shrink:0;min-width:0;">
+                ${r.avatarHtml}
+                <span style="font-size:0.82rem;font-weight:${r.isMe ? '600' : '400'};
+                            color:${r.isMe ? '#3C3489' : '#2c3e50'};
+                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  ${escapeHtml(r.name)}
+                </span>
+              </div>
+
+              <!-- Col 2: Progress (x/goal + bar + %) — flex:1 takes remaining space -->
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;
+                            font-size:0.75rem;margin-bottom:3px;">
+                  <span style="color:#2c3e50;font-weight:500;">
+                    ${totalStr} <span style="color:#7f8c8d;">/ ${goalStr}</span>
+                  </span>
+                  <span style="color:#5d6d7e;">${r.pct}%</span>
+                </div>
+                <div style="height:5px;background:#d5d8dc;border-radius:3px;overflow:hidden;">
+                  <div style="height:100%;width:${r.pct}%;background:${colour};
+                              border-radius:3px;transition:width 0.4s;"></div>
+                </div>
+              </div>
+
+              <!-- Col 3: Pace — fixed width, never pushed off -->
+              <div style="flex-shrink:0;width:52px;text-align:right;">
+                <div style="font-size:0.85rem;font-weight:700;color:${r.paceColor};">
+                  ${r.paceIcon}
+                </div>
+                <div style="font-size:0.68rem;color:${r.paceColor};white-space:nowrap;">
+                  ${projStr}
+                </div>
+              </div>
+
+            </div>`;
+        }).join('');
+
+        const count = enrollments.length;
+        return `
+          <div style="font-size:0.78rem;color:#7f8c8d;margin-bottom:10px;">
+            ${count} member${count !== 1 ? 's' : ''} enrolled
+            <span style="color:#bdc3c7;margin-left:6px;">· Personal goals · no ranking</span>
+          </div>
+          <div class="card" style="padding:8px;">
+            <!-- Header row -->
+            <div style="display:flex;align-items:center;gap:8px;padding:4px 10px 8px;
+                        border-bottom:1px solid #ecf0f1;">
+              <div style="width:34%;flex-shrink:0;font-size:0.68rem;font-weight:600;
+                          color:#95a5a6;text-transform:uppercase;letter-spacing:0.4px;">
+                Member
+              </div>
+              <div style="flex:1;font-size:0.68rem;font-weight:600;color:#95a5a6;
+                          text-transform:uppercase;letter-spacing:0.4px;">
+                Progress
+              </div>
+              <div style="width:52px;flex-shrink:0;text-align:right;font-size:0.68rem;
+                          font-weight:600;color:#95a5a6;text-transform:uppercase;
+                          letter-spacing:0.4px;">
+                Pace
+              </div>
+            </div>
+            ${rowsHtml}
+          </div>
+          <div style="display:flex;justify-content:center;gap:16px;margin-top:8px;
+                      font-size:0.7rem;color:#95a5a6;">
+            <span style="color:#1D9E75;">↑ ahead</span>
+            <span style="color:#EF9F27;">→ on track</span>
+            <span style="color:#e74c3c;">↓ behind</span>
+          </div>
+          <div style="font-size:0.7rem;color:#95a5a6;text-align:center;margin-top:4px;">
+            Pace = projected year-end total at your current reading speed.
+          </div>`;
       }
     
     
@@ -13398,6 +14085,32 @@
         }
     
         return lines;
+      }
+
+      /**
+       * Updates the "books this year" stat pill on the Me tab.
+       * Called by the Wave 3 handler once globalShelvesDB is populated.
+       * Runs the same ShelfDB scan that renderHeatmap() used to do inline.
+       *
+       * @param {string} memberId
+       */
+      function updateBooksThisYearPill(memberId) {
+        const el = document.getElementById('meStatBooksYear');
+        if (!el) return;
+    
+        const currentYear = new Date().getFullYear();
+        let   booksThisYear = 0;
+    
+        globalShelvesDB
+          .filter(function(s) { return s.memberId === memberId && s.status === 'Finished'; })
+          .forEach(function(shelf) {
+            const finishDate = parseGoogleDate(
+              shelf.dateFinished || shelf.dateUpdated || shelf.lastModifiedOn
+            );
+            if (finishDate.getFullYear() === currentYear) booksThisYear++;
+          });
+    
+        el.innerText = booksThisYear;
       }
 
     </script>
