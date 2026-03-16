@@ -1517,8 +1517,64 @@
       }
       .chal-drop-btn:hover { background: #fff5f5; }
       
-
+      /* ── My Challenges card on Me tab ─────────────────────────────────────────── */
+      .my-chal-card {
+        background: white;
+        border: 1px solid #ecf0f1;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: transform 0.15s, box-shadow 0.15s;
+      }
+      .my-chal-card:active {
+        transform: scale(0.98);
+      }
     
+      /* Mini progress bar inside each challenge card */
+      .chal-mini-bar-bg {
+        width: 100%;
+        height: 6px;
+        background: #ecf0f1;
+        border-radius: 4px;
+        margin: 6px 0 4px;
+        overflow: hidden;
+      }
+      .chal-mini-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.4s ease;
+      }
+    
+      /* Per-type accent colours for the challenge cards on Me tab */
+      .chal-accent-HABIT_STREAK   { border-left: 4px solid #EF9F27; }
+      .chal-accent-BINGO_GRID     { border-left: 4px solid #7F77DD; }
+      .chal-accent-BUDDY_READ     { border-left: 4px solid #D4537E; }
+      .chal-accent-COUNTRY_SPREAD { border-left: 4px solid #1D9E75; }
+      .chal-accent-ALPHABET       { border-left: 4px solid #378ADD; }
+      .chal-accent-BOOK_COUNT     { border-left: 4px solid #EF9F27; }
+      .chal-accent-PAGE_COUNT     { border-left: 4px solid #378ADD; }
+    
+      .chal-mini-fill-HABIT_STREAK   { background: #EF9F27; }
+      .chal-mini-fill-BINGO_GRID     { background: #7F77DD; }
+      .chal-mini-fill-BUDDY_READ     { background: #D4537E; }
+      .chal-mini-fill-COUNTRY_SPREAD { background: #1D9E75; }
+      .chal-mini-fill-ALPHABET       { background: #378ADD; }
+      .chal-mini-fill-BOOK_COUNT     { background: #EF9F27; }
+      .chal-mini-fill-PAGE_COUNT     { background: #378ADD; }
+    
+      /* Status badge inside challenge cards */
+      .chal-status-badge {
+        display: inline-block;
+        font-size: 0.68rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 20px;
+      }
+      .chal-status-Active   { background: #EAF3DE; color: #27500A; }
+      .chal-status-Winner   { background: #FAEEDA; color: #633806; }
+      .chal-status-Finisher { background: #E1F5EE; color: #085041; }
+
     </style>
   </head>
   <body>
@@ -1975,6 +2031,16 @@
               Constructing your reading dashboard...
             </p>
           </div>
+
+          <!-- My Challenges section divider -->
+          <div style="display:flex; align-items:center; gap:10px; margin:20px 0 14px;">
+            <div style="flex:1; height:2px; background:linear-gradient(to right, #2c3e50, transparent); border-radius:0;"></div>
+            <span style="font-size:13px; font-weight:700; color:#7f8c8d; text-transform:uppercase; letter-spacing:1px; white-space:nowrap;">My Challenges</span>
+            <div style="flex:1; height:2px; background:linear-gradient(to left, #2c3e50, transparent); border-radius:0;"></div>
+          </div>
+          
+          <!-- My Challenges card container — rendered by renderMyChallengesCard() -->
+          <div id="meChallengesContainer"></div>
 
           <!-- Badges section -->
           <div style="display:flex; align-items:center; gap:10px; margin:20px 0 14px;">
@@ -3716,6 +3782,7 @@
                   renderMeShelfTiles(currentUser);
                   renderHomeFeed(currentUser, 'meActivityFeed');
                   renderBadgeStrip(currentUser, 'meBadgeSectionContainer', true);
+                  renderMyChallengesCard();
               }
               
               populateMePage(response.memberID);
@@ -3966,6 +4033,7 @@
             renderMeShelfTiles(currentUser);
             renderHomeFeed(currentUser, 'meActivityFeed');
             renderBadgeStrip(currentUser, 'meBadgeSectionContainer', true);
+            renderMyChallengesCard();
           }
         }
 
@@ -11439,6 +11507,7 @@
     
             closeChalEnrolSheet();
             showToast('You\'ve joined "' + challenge.title + '"! 🏆');
+            renderMyChallengesCard();
     
             // 3. Re-render the current tab so the Enrol button becomes a Drop button
             renderChallengeList(currentChallengesSubTab);
@@ -11485,6 +11554,7 @@
     
             showToast('You\'ve dropped from "' + title + '".');
             renderChallengeList(currentChallengesSubTab);
+            renderMyChallengesCard();
           })
           .withFailureHandler(function() { showToast('Drop failed. Please try again.'); })
           .dropFromChallenge(challengeId);
@@ -11975,6 +12045,253 @@
             btn.innerText = 'Save Challenge';
           })
           .saveChallenge(payload);
+      }
+
+      // ==========================================================================
+      // MY CHALLENGES CARD — Me Tab Renderer
+      // ==========================================================================
+    
+      /**
+       * TYPE CONFIG for Me tab challenge cards.
+       * Defines how each challenge type renders its progress line and metric.
+       *
+       * @type {Object.<string, {icon: string, getProgress: function, getLabel: function}>}
+       */
+      const CHAL_CARD_CONFIG = {
+    
+        HABIT_STREAK: {
+          icon: '📅',
+          /**
+           * Returns 0–1 fill fraction for the progress bar.
+           * Streaks don't have a fixed end target — we use current/365 as a
+           * visual proxy so the bar feels meaningful.
+           */
+          getProgress: function(state) {
+            return Math.min(1, (state.currentStreak || 0) / 365);
+          },
+          getLabel: function(state) {
+            const streak  = state.currentStreak  || 0;
+            const longest = state.longestStreak  || 0;
+            const missed  = (state.missedDates || []).length;
+            return streak + ' day streak  ·  best: ' + longest + (missed > 0 ? '  ·  ' + missed + ' missed' : '');
+          }
+        },
+    
+        BINGO_GRID: {
+          icon: '🎲',
+          getProgress: function(state, challenge) {
+            const total    = challenge.goalValue || 9;
+            const completed = (state.cellsCompleted || []).length;
+            return total > 0 ? Math.min(1, completed / total) : 0;
+          },
+          getLabel: function(state, challenge) {
+            const total     = challenge.goalValue || 9;
+            const completed = (state.cellsCompleted || []).length;
+            const bingo     = state.hasBingo ? '  ·  BINGO! 🎉' : '';
+            return completed + ' / ' + total + ' cells' + bingo;
+          }
+        },
+    
+        BUDDY_READ: {
+          icon: '📖',
+          getProgress: function(state, challenge) {
+            const total = challenge.goalValue || 0;
+            return total > 0 ? Math.min(1, (state.pagesRead || 0) / total) : 0;
+          },
+          getLabel: function(state, challenge) {
+            const total    = challenge.goalValue || 0;
+            const read     = state.pagesRead || 0;
+            const pct      = total > 0 ? Math.round((read / total) * 100) : 0;
+            const finished = state.finishedBeforeDeadline === true  ? '  ·  Finished in time ✓'
+                          : state.finishedBeforeDeadline === false ? '  ·  Finished (after deadline)'
+                          : '';
+            return read.toLocaleString() + ' / ' + total.toLocaleString() + ' pages  ·  ' + pct + '%' + finished;
+          }
+        },
+    
+        COUNTRY_SPREAD: {
+          icon: '🌍',
+          getProgress: function(state, challenge) {
+            const goal = challenge.goalValue || 10;
+            return Math.min(1, (state.totalCountries || 0) / goal);
+          },
+          getLabel: function(state, challenge) {
+            const goal = challenge.goalValue || 10;
+            return (state.totalCountries || 0) + ' / ' + goal + ' countries';
+          }
+        },
+    
+        ALPHABET: {
+          icon: '🔤',
+          getProgress: function(state, challenge) {
+            const goal      = challenge.goalValue || 23;
+            const completed = state.lettersCompleted || 0;
+            return goal > 0 ? Math.min(1, completed / goal) : 0;
+          },
+          getLabel: function(state, challenge) {
+            const goal      = challenge.goalValue || 23;
+            const completed = state.lettersCompleted || 0;
+            const optional  = state.optionalLettersCompleted || 0;
+            const optStr    = optional > 0 ? '  ·  ' + optional + ' optional' : '';
+            return completed + ' / ' + goal + ' letters' + optStr;
+          }
+        },
+    
+        BOOK_COUNT: {
+          icon: '📚',
+          getProgress: function(state) {
+            const goal = state.personalGoal || 1;
+            return Math.min(1, (state.totalBooks || 0) / goal);
+          },
+          getLabel: function(state) {
+            const goal       = state.personalGoal || 0;
+            const total      = state.totalBooks   || 0;
+            const projection = state.pacingProjection || 0;
+            const paceStr    = projection > 0
+              ? '  ·  on pace for ' + projection
+              : '';
+            return total + ' / ' + goal + ' books' + paceStr;
+          }
+        },
+    
+        PAGE_COUNT: {
+          icon: '📄',
+          getProgress: function(state) {
+            const goal = state.personalGoal || 1;
+            return Math.min(1, (state.totalPages || 0) / goal);
+          },
+          getLabel: function(state) {
+            const goal       = state.personalGoal || 0;
+            const total      = state.totalPages   || 0;
+            const projection = state.pacingProjection || 0;
+            const paceStr    = projection > 0
+              ? '  ·  on pace for ' + projection.toLocaleString()
+              : '';
+            return total.toLocaleString() + ' / ' + goal.toLocaleString() + ' pages' + paceStr;
+          }
+        }
+      };
+    
+    
+      /**
+       * Renders the My Challenges card on the Me tab.
+       * Shows one mini-card per active enrollment, sorted by challenge type order.
+       * Collapsed when there are no active enrollments — shows a friendly nudge instead.
+       *
+       * Called by:
+       *   - populateMePage() after Big Gulp loads
+       *   - switchTab('me') route handler
+       *   - submitEnrolment() success handler (after a new enrolment is created)
+       */
+      function renderMyChallengesCard() {
+        const container = document.getElementById('meChallengesContainer');
+        if (!container) return;
+    
+        // Collect only Active / Winner / Finisher enrollments (not Dropped)
+        const activeEnrollments = Array.from(myEnrollmentsMap.values()).filter(function(e) {
+          return e.enrollmentStatus !== 'Dropped';
+        });
+    
+        // ── Empty state ───────────────────────────────────────────────────────────
+        if (activeEnrollments.length === 0) {
+          container.innerHTML = `
+            <div style="background:white; border:1px dashed #bdc3c7; border-radius:12px;
+                        padding:20px; text-align:center; margin-bottom:10px;">
+              <div style="font-size:1.5rem; margin-bottom:8px;">🏆</div>
+              <p style="color:#7f8c8d; font-size:0.88rem; margin:0 0 12px;">
+                You haven't joined any challenges yet.
+              </p>
+              <button onclick="openChallengesView()"
+                style="background:#2c3e50; color:white; border:none; border-radius:20px;
+                      padding:8px 18px; font-size:0.82rem; cursor:pointer; font-family:inherit;">
+                Browse challenges →
+              </button>
+            </div>`;
+          return;
+        }
+    
+        // ── Sort: Active first, then Winner/Finisher; within group alphabetical ───
+        const statusOrder = { Active: 0, Winner: 1, Finisher: 2 };
+        activeEnrollments.sort(function(a, b) {
+          const sa = statusOrder[a.enrollmentStatus] || 0;
+          const sb = statusOrder[b.enrollmentStatus] || 0;
+          if (sa !== sb) return sa - sb;
+          const ca = challengesMap.get(a.challengeId);
+          const cb = challengesMap.get(b.challengeId);
+          return (ca ? ca.title : '').localeCompare(cb ? cb.title : '');
+        });
+    
+        // ── Build HTML for each enrollment ────────────────────────────────────────
+        let html = '';
+    
+        activeEnrollments.forEach(function(enrollment) {
+          const challenge = challengesMap.get(enrollment.challengeId);
+          if (!challenge) return; // Challenge archived or not loaded — skip silently
+    
+          // Parse progressStateJson — fail gracefully to empty object
+          let state = {};
+          try { state = JSON.parse(enrollment.progressStateJson || '{}'); } catch (e) {}
+    
+          const typeCfg = CHAL_CARD_CONFIG[challenge.challengeType];
+          if (!typeCfg) return; // Unknown type — skip
+    
+          // Progress fraction (0–1) and label string
+          const progressFraction = typeCfg.getProgress(state, challenge);
+          const progressLabel    = typeCfg.getLabel(state, challenge);
+          const progressPct      = Math.round(progressFraction * 100);
+    
+          // Dates — show end date if not open-ended
+          const dateNote = challenge.endDate
+            ? 'Ends ' + challenge.endDate
+            : 'Open-ended';
+    
+          // Status badge
+          const statusBadge = enrollment.enrollmentStatus !== 'Active'
+            ? `<span class="chal-status-badge chal-status-${enrollment.enrollmentStatus}">
+                ${enrollment.enrollmentStatus}
+              </span>`
+            : '';
+    
+          html += `
+            <div class="my-chal-card chal-accent-${challenge.challengeType}"
+                onclick="openChallengesView()">
+              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+                <div style="flex:1;">
+                  <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <span style="font-size:1rem;">${typeCfg.icon}</span>
+                    <span style="font-weight:600; font-size:0.92rem; color:#2c3e50;">
+                      ${escapeHtml(challenge.title)}
+                    </span>
+                    ${statusBadge}
+                  </div>
+                  <div style="font-size:0.75rem; color:#95a5a6; margin-top:2px;">${dateNote}</div>
+                </div>
+                <div style="font-size:0.82rem; font-weight:700; color:#7f8c8d; flex-shrink:0;">
+                  ${progressPct}%
+                </div>
+              </div>
+    
+              <div class="chal-mini-bar-bg">
+                <div class="chal-mini-bar-fill chal-mini-fill-${challenge.challengeType}"
+                    style="width:${progressPct}%;"></div>
+              </div>
+    
+              <div style="font-size:0.78rem; color:#7f8c8d; line-height:1.4;">
+                ${progressLabel}
+              </div>
+            </div>`;
+        });
+    
+        // ── "See all" footer link ─────────────────────────────────────────────────
+        html += `
+          <div style="text-align:center; margin-top:4px; margin-bottom:4px;">
+            <span onclick="openChallengesView()"
+                  style="font-size:0.8rem; color:#A984BA; font-weight:500; cursor:pointer;">
+              View all challenges →
+            </span>
+          </div>`;
+    
+        container.innerHTML = html;
       }
 
     </script>
