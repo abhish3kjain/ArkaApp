@@ -437,7 +437,9 @@ function logActivityBatch(memberId, activityData, activityValue = 1, description
       currentActNum++;
       let activityId = "ARKA_ACT_" + currentActNum;
       const multiplier = getActivityMultiplier(log.typeId, clientPointsMap, ss);
-      const cpAwarded = (log.val || 1) * multiplier;
+      const cpAwarded = (log.directCp !== undefined && log.directCp !== null)
+        ? Number(log.directCp)
+        : (log.val || 1) * multiplier;
       
       rowsToWrite.push([
         activityId,
@@ -1924,8 +1926,7 @@ function fetchActiveAnnouncements(ss) {
 
 /**
  * PRIVATE HELPER: Reads all non-Archived challenges from ChallengeDB.
- * Reuses the already-open spreadsheet instance passed in from getAppMasterData()
- * to avoid opening a second connection — keeps the Big Gulp fast.
+ * Reuses the already-open spreadsheet instance from getAppMasterData().
  *
  * Column mapping (0-indexed):
  *   A=0  challengeId       B=1  challengeType     C=2  title
@@ -1933,23 +1934,23 @@ function fetchActiveAnnouncements(ss) {
  *   G=6  goalValue         H=7  goalUnit          I=8  goalConfigJson
  *   J=9  status            K=10 isCompetitive     L=11 seriesTag
  *   M=12 isPinned          N=13 createdBy         O=14 createdOn
+ *   P=15 enrollPoints      Q=16 finishPoints      R=17 winPoints
  *
- * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Open spreadsheet instance
- * @returns {ChallengeRecord[]} Array of challenge objects (Archived rows excluded)
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss
+ * @returns {ChallengeRecord[]}
  */
 function fetchChallenges(ss) {
   const sheet = ss.getSheetByName(CHALLENGE_SHEET);
-  if (!sheet) return []; // Sheet not yet created — fail silently on first deploy
+  if (!sheet) return [];
  
   const data       = sheet.getDataRange().getValues();
   const challenges = [];
  
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (!row[0]) continue;                              // Skip blank rows
-    if (row[9].toString() === 'Archived') continue;    // Col J: Archived hidden from frontend
+    if (!row[0]) continue;
+    if (row[9].toString() === 'Archived') continue;
  
-    // Normalise Date objects → strings for consistent frontend handling
     const rawStartDate = row[4];
     const rawEndDate   = row[5];
     const rawCreatedOn = row[14];
@@ -1975,13 +1976,17 @@ function fetchChallenges(ss) {
       endDate        : endDateStr,
       goalValue      : Number(row[6]) || 0,
       goalUnit       : row[7].toString(),
-      goalConfigJson : row[8].toString(),   // Raw JSON string — frontend parses on demand
-      status         : row[9].toString(),   // Active | Upcoming | Completed | Archived
+      goalConfigJson : row[8].toString(),
+      status         : row[9].toString(),
       isCompetitive  : row[10].toString().toUpperCase() === 'TRUE',
       seriesTag      : row[11] ? row[11].toString() : '',
       isPinned       : row[12].toString().toUpperCase() === 'TRUE',
       createdBy      : row[13].toString(),
-      createdOn      : createdOnStr
+      createdOn      : createdOnStr,
+      // ── NEW: per-challenge points ────────────────────────────────────────
+      enrollPoints   : Number(row[15]) || 0,  // Col P
+      finishPoints   : Number(row[16]) || 0,  // Col Q
+      winPoints      : Number(row[17]) || 0   // Col R
     });
   }
  
@@ -2045,7 +2050,469 @@ function fetchChallengeEnrollments(ss) {
  
   return enrollments;
 }
+
+/**
+ * ADMIN ONLY: Creates a new challenge or updates an existing one.
+ *
+ * @param {Object}  data
+ * @param {string}  [data.challengeId]
+ * @param {string}  data.challengeType
+ * @param {string}  data.title
+ * @param {string}  [data.description]
+ * @param {string}  data.startDate         - dd-MMM-yyyy
+ * @param {string}  [data.endDate]
+ * @param {number}  data.goalValue
+ * @param {string}  data.goalUnit
+ * @param {string}  data.goalConfigJson
+ * @param {string}  data.status
+ * @param {boolean} data.isCompetitive
+ * @param {string}  [data.seriesTag]
+ * @param {boolean} data.isPinned
+ * @param {number}  data.enrollPoints      - ☀️ for enrolling
+ * @param {number}  data.finishPoints      - ☀️ for finishing
+ * @param {number}  data.winPoints         - ☀️ for winning (0 for personal challenges)
+ * @returns {{ status: string, challenge?: ChallengeRecord, message?: string }}
+ */
+function saveChallenge(data) {
  
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId)              return { status: 'error', message: 'Unauthorized session.' };
+  if (!isAdminMember(currentMemberId)) return { status: 'error', message: 'Admin access required.' };
+ 
+  const title         = (data.title         || '').trim();
+  const challengeType = (data.challengeType || '').trim();
+  const startDate     = (data.startDate     || '').trim();
+ 
+  if (!title)         return { status: 'error', message: 'Challenge title cannot be empty.'  };
+  if (!challengeType) return { status: 'error', message: 'Challenge type is required.'        };
+  if (!startDate)     return { status: 'error', message: 'Start date is required.'            };
+ 
+  const validTypes = [
+    'HABIT_STREAK', 'BINGO_GRID', 'BUDDY_READ',
+    'COUNTRY_SPREAD', 'ALPHABET', 'BOOK_COUNT', 'PAGE_COUNT'
+  ];
+  if (!validTypes.includes(challengeType)) {
+    return { status: 'error', message: 'Invalid challenge type: ' + challengeType };
+  }
+ 
+  const goalConfigJsonStr = (data.goalConfigJson || '{}').trim();
+  try { JSON.parse(goalConfigJsonStr); } catch (e) {
+    return { status: 'error', message: 'goalConfigJson is not valid JSON.' };
+  }
+ 
+  const ss             = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const challengeSheet = ss.getSheetByName(CHALLENGE_SHEET);
+  if (!challengeSheet) return { status: 'error', message: 'ChallengeDB sheet not found.' };
+ 
+  const timestamp     = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z');
+  const status        = (data.status    || 'Active').trim();
+  const isPinned      = data.isPinned      === true || data.isPinned      === 'TRUE';
+  const isCompetitive = data.isCompetitive === true || data.isCompetitive === 'TRUE';
+  const seriesTag     = (data.seriesTag  || '').trim();
+  const endDate       = (data.endDate    || '').trim();
+  const goalValue     = Number(data.goalValue)    || 0;
+  const goalUnit      = (data.goalUnit   || '').trim();
+  const description   = (data.description || '').trim();
+  const enrollPoints  = Number(data.enrollPoints)  || 0;   // Col P
+  const finishPoints  = Number(data.finishPoints)  || 0;   // Col Q
+  const winPoints     = Number(data.winPoints)     || 0;   // Col R
+ 
+  // ── UPDATE path ─────────────────────────────────────────────────────────
+  if (data.challengeId) {
+    const sheetData = challengeSheet.getDataRange().getValues();
+    let targetRow   = -1;
+ 
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][0].toString() === data.challengeId.toString()) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+    if (targetRow === -1) return { status: 'error', message: 'Challenge not found.' };
+ 
+    const originalCreatedBy = sheetData[targetRow - 1][13].toString();
+    const originalCreatedOn = sheetData[targetRow - 1][14].toString();
+ 
+    // Write all 18 columns A–R in one call
+    challengeSheet.getRange(targetRow, 1, 1, 18).setValues([[
+      data.challengeId, challengeType, title,     description, startDate,
+      endDate,          goalValue,     goalUnit,  goalConfigJsonStr,
+      status,           isCompetitive, seriesTag, isPinned,
+      originalCreatedBy, originalCreatedOn,
+      enrollPoints,     finishPoints,  winPoints
+    ]]);
+ 
+    const updatedChallenge = {
+      challengeId: data.challengeId, challengeType, title, description,
+      startDate, endDate, goalValue, goalUnit, goalConfigJson: goalConfigJsonStr,
+      status, isCompetitive, seriesTag, isPinned,
+      createdBy: originalCreatedBy, createdOn: originalCreatedOn,
+      enrollPoints, finishPoints, winPoints
+    };
+    return { status: 'success', challenge: updatedChallenge, isUpdate: true };
+  }
+ 
+  // ── CREATE path ──────────────────────────────────────────────────────────
+  const existingData = challengeSheet.getDataRange().getValues();
+  let newNum = 1;
+  if (existingData.length > 1) {
+    const lastId  = existingData[existingData.length - 1][0].toString();
+    const lastNum = parseInt(lastId.split('_')[2]);
+    if (!isNaN(lastNum)) newNum = lastNum + 1;
+  }
+  const challengeId = 'ARKA_CHAL_' + newNum;
+ 
+  // 18 columns A–R
+  const newRow = [
+    challengeId,    challengeType,  title,     description,   startDate,
+    endDate,        goalValue,      goalUnit,  goalConfigJsonStr,
+    status,         isCompetitive,  seriesTag, isPinned,
+    currentMemberId, timestamp,
+    enrollPoints,   finishPoints,   winPoints
+  ];
+ 
+  challengeSheet.appendRow(newRow);
+ 
+  const newChallenge = {
+    challengeId, challengeType, title, description,
+    startDate, endDate, goalValue, goalUnit, goalConfigJson: goalConfigJsonStr,
+    status, isCompetitive, seriesTag, isPinned,
+    createdBy: currentMemberId, createdOn: timestamp,
+    enrollPoints, finishPoints, winPoints
+  };
+ 
+  return { status: 'success', challenge: newChallenge, isUpdate: false };
+}
+
+/**
+ * Enrols the current user in a challenge.
+ * Awards enrollPoints from ChallengeDB via the new ARKA_ACTTYP_CHALLENGE_ENROLL type.
+ *
+ * @param {Object}  data
+ * @param {string}  data.challengeId
+ * @param {number}  [data.personalGoal]
+ * @param {Object}  [data.activityPointsMap]
+ * @returns {{ status: string, enrollment?: ChallengeEnrollmentRecord, message?: string }}
+ */
+function enrollInChallenge(data) {
+ 
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
+  if (!data.challengeId) return { status: 'error', message: 'Challenge ID is required.' };
+ 
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+ 
+  // ── Fetch and validate challenge ─────────────────────────────────────────
+  const challengeSheet = ss.getSheetByName(CHALLENGE_SHEET);
+  if (!challengeSheet) return { status: 'error', message: 'ChallengeDB sheet not found.' };
+ 
+  const challengeRows = challengeSheet.getDataRange().getValues();
+  let targetChallenge = null;
+ 
+  for (let i = 1; i < challengeRows.length; i++) {
+    if (challengeRows[i][0].toString() === data.challengeId.toString()) {
+      targetChallenge = {
+        challengeId    : challengeRows[i][0].toString(),
+        challengeType  : challengeRows[i][1].toString(),
+        goalValue      : Number(challengeRows[i][6]) || 0,
+        goalUnit       : challengeRows[i][7].toString(),
+        goalConfigJson : challengeRows[i][8].toString(),
+        status         : challengeRows[i][9].toString(),
+        enrollPoints   : Number(challengeRows[i][15]) || 0  // Col P
+      };
+      break;
+    }
+  }
+ 
+  if (!targetChallenge) return { status: 'error', message: 'Challenge not found.' };
+  if (targetChallenge.status !== 'Active') {
+    return { status: 'error', message: 'This challenge is not currently active.' };
+  }
+ 
+  // ── Duplicate check ───────────────────────────────────────────────────────
+  const enrollmentSheet = ss.getSheetByName(CHALLENGE_ENROLLMENT_SHEET);
+  if (!enrollmentSheet) return { status: 'error', message: 'ChallengeEnrollmentDB sheet not found.' };
+ 
+  const enrollmentRows = enrollmentSheet.getDataRange().getValues();
+  for (let i = 1; i < enrollmentRows.length; i++) {
+    if (enrollmentRows[i][1].toString() !== data.challengeId.toString()) continue;
+    if (enrollmentRows[i][2].toString() !== currentMemberId) continue;
+    if (enrollmentRows[i][4].toString() === 'Dropped') continue;
+    return { status: 'error', message: 'You are already enrolled in this challenge.' };
+  }
+ 
+  // ── Generate enrollment ID ────────────────────────────────────────────────
+  let newNum = 1;
+  if (enrollmentRows.length > 1) {
+    const lastId  = enrollmentRows[enrollmentRows.length - 1][0].toString();
+    const lastNum = parseInt(lastId.split('_')[2]);
+    if (!isNaN(lastNum)) newNum = lastNum + 1;
+  }
+  const enrollmentId = 'ARKA_ENRL_' + newNum;
+  const timestamp    = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z');
+ 
+  // ── Build initial progressStateJson ──────────────────────────────────────
+  let config = {};
+  try { config = JSON.parse(targetChallenge.goalConfigJson || '{}'); } catch (e) {}
+ 
+  const initialProgressState = buildInitialProgressState(
+    targetChallenge.challengeType,
+    config,
+    targetChallenge.goalValue,
+    Number(data.personalGoal) || 0
+  );
+ 
+  const newRow = [
+    enrollmentId, data.challengeId, currentMemberId, timestamp,
+    'Active', 0, JSON.stringify(initialProgressState), timestamp, ''
+  ];
+  enrollmentSheet.appendRow(newRow);
+ 
+  // ── Log ENROLL activity with per-challenge points via directCp ─────────
+  if (targetChallenge.enrollPoints > 0) {
+    try {
+      logActivityBatch(currentMemberId, [{
+        typeId  : 'ARKA_ACTTYP_CHALLENGE_ENROLL',
+        val     : 1,
+        desc    : enrollmentId,
+        directCp: targetChallenge.enrollPoints   // ← bypasses multiplier calculation
+      }], 1, '', data.activityPointsMap || {});
+    } catch (e) {
+      console.error('Enrolment activity log failed (non-fatal):', e);
+    }
+  }
+ 
+  const newEnrollment = {
+    enrollmentId, challengeId: data.challengeId,
+    memberId: currentMemberId, enrolledOn: timestamp,
+    enrollmentStatus: 'Active', currentProgressValue: 0,
+    progressStateJson: JSON.stringify(initialProgressState),
+    lastProgressUpdate: timestamp, completedOn: ''
+  };
+ 
+  return { status: 'success', enrollment: newEnrollment };
+}
+
+/**
+ * Lightweight fetcher for ChallengeEnrollmentDB.
+ * Called lazily when the Challenges view is opened — NOT in the Big Gulp.
+ * Returns all rows so the frontend can rebuild counts and myEnrollmentsMap.
+ *
+ * @returns {ChallengeEnrollmentRecord[]}
+ */
+function getLatestChallengeEnrollments() {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID)
+                                .getSheetByName(CHALLENGE_ENROLLMENT_SHEET);
+    if (!sheet) return [];
+ 
+    const data        = sheet.getDataRange().getValues();
+    const enrollments = [];
+ 
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+ 
+      const rawEnrolledOn         = row[3];
+      const rawLastProgressUpdate = row[7];
+      const rawCompletedOn        = row[8];
+ 
+      const toStr = function(v) {
+        return v instanceof Date
+          ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z')
+          : String(v || '');
+      };
+ 
+      enrollments.push({
+        enrollmentId         : row[0].toString(),
+        challengeId          : row[1].toString(),
+        memberId             : row[2].toString(),
+        enrolledOn           : toStr(rawEnrolledOn),
+        enrollmentStatus     : row[4].toString(),
+        currentProgressValue : Number(row[5]) || 0,
+        progressStateJson    : row[6].toString(),
+        lastProgressUpdate   : toStr(rawLastProgressUpdate),
+        completedOn          : toStr(rawCompletedOn)
+      });
+    }
+ 
+    return enrollments;
+  } catch (e) {
+    console.error('getLatestChallengeEnrollments failed:', e);
+    return [];
+  }
+}
+ 
+ 
+/**
+ * PRIVATE HELPER: Builds the correct initial progressStateJson object
+ * for each challenge type.
+ *
+ * @param {string} challengeType  - e.g. 'HABIT_STREAK'
+ * @param {Object} config         - Parsed goalConfigJson from ChallengeDB
+ * @param {number} goalValue      - The challenge's primary goalValue
+ * @param {number} personalGoal   - Member's own target (BOOK_COUNT / PAGE_COUNT only)
+ * @returns {Object} The initial progress state object (to be JSON.stringified)
+ */
+function buildInitialProgressState(challengeType, config, goalValue, personalGoal) {
+ 
+  if (challengeType === 'HABIT_STREAK') {
+    return {
+      currentStreak   : 0,
+      longestStreak   : 0,
+      totalDaysLogged : 0,
+      totalPagesLogged: 0,
+      lastLogDate     : '',
+      missedDates     : [],
+      streakHistory   : []
+    };
+  }
+ 
+  if (challengeType === 'BINGO_GRID') {
+    return {
+      cellsCompleted  : [],
+      booksLinked     : {},
+      linesCompleted  : [],
+      hasBingo        : false
+    };
+  }
+ 
+  if (challengeType === 'BUDDY_READ') {
+    return {
+      pagesRead              : 0,
+      shelfRecordId          : '',
+      currentShelfStatus     : 'To Read',
+      finishedBeforeDeadline : null
+    };
+  }
+ 
+  if (challengeType === 'COUNTRY_SPREAD') {
+    return {
+      countriesVisited  : {},
+      totalCountries    : 0,
+      continentProgress : {
+        Africa    : 0,
+        Americas  : 0,
+        Asia      : 0,
+        Europe    : 0,
+        Oceania   : 0,
+        MiddleEast: 0
+      }
+    };
+  }
+ 
+  if (challengeType === 'ALPHABET') {
+    // Build the full letterMap — all 26 letters set to null (unclaimed)
+    const allLetters = (config.allLetters || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''));
+    const letterMap  = {};
+    allLetters.forEach(function(letter) { letterMap[letter] = null; });
+ 
+    return {
+      letterMap                : letterMap,
+      lettersCompleted         : 0,
+      optionalLettersCompleted : 0
+    };
+  }
+ 
+  if (challengeType === 'BOOK_COUNT') {
+    // Use personalGoal if provided and allowPersonalGoal is true, else use challenge default
+    const effectiveGoal = (config.allowPersonalGoal && personalGoal > 0)
+      ? personalGoal
+      : (config.defaultGoal || goalValue || 24);
+ 
+    return {
+      personalGoal     : effectiveGoal,
+      booksRead        : [],
+      totalBooks       : 0,
+      pacingProjection : 0,
+      monthlyBreakdown : {}
+    };
+  }
+ 
+  if (challengeType === 'PAGE_COUNT') {
+    const effectiveGoal = (config.allowPersonalGoal && personalGoal > 0)
+      ? personalGoal
+      : (config.defaultGoal || goalValue || 5000);
+ 
+    return {
+      personalGoal       : effectiveGoal,
+      totalPages         : 0,
+      monthlyBreakdown   : {},
+      weeklyBreakdown    : {},
+      pacingProjection   : 0,
+      aheadBehindTarget  : ''
+    };
+  }
+ 
+  // Fallback for unknown types
+  return {};
+}
+ 
+ 
+/**
+ * Drops the current user from a challenge.
+ *
+ * Sets enrollmentStatus to 'Dropped'. The row is preserved for audit purposes.
+ * A member who has Dropped may re-enrol — enrollInChallenge() skips Dropped rows
+ * in its duplicate check.
+ *
+ * @param {string} challengeId - ARKA_CHAL_X to drop from
+ * @returns {{ status: string, message?: string }}
+ */
+function dropFromChallenge(challengeId) {
+ 
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
+ 
+  if (!challengeId) return { status: 'error', message: 'Challenge ID is required.' };
+ 
+  const ss              = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const enrollmentSheet = ss.getSheetByName(CHALLENGE_ENROLLMENT_SHEET);
+  if (!enrollmentSheet) return { status: 'error', message: 'ChallengeEnrollmentDB sheet not found.' };
+ 
+  const enrollmentRows = enrollmentSheet.getDataRange().getValues();
+ 
+  for (let i = 1; i < enrollmentRows.length; i++) {
+    if (enrollmentRows[i][1].toString() !== challengeId.toString()) continue;
+    if (enrollmentRows[i][2].toString() !== currentMemberId) continue;
+    if (enrollmentRows[i][4].toString() === 'Dropped') continue; // Already dropped
+ 
+    enrollmentSheet.getRange(i + 1, 5).setValue('Dropped'); // Col E = enrollmentStatus
+    return { status: 'success' };
+  }
+ 
+  return { status: 'error', message: 'Active enrollment not found.' };
+}
+ 
+ 
+/**
+ * ADMIN ONLY: Archives a challenge (soft-delete).
+ * Sets status to 'Archived' — hidden from all member views.
+ * Existing enrollments are preserved in ChallengeEnrollmentDB.
+ *
+ * @param {string} challengeId - ARKA_CHAL_X to archive
+ * @returns {{ status: string, message?: string }}
+ */
+function archiveChallenge(challengeId) {
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId)              return { status: 'error', message: 'Unauthorized session.' };
+  if (!isAdminMember(currentMemberId)) return { status: 'error', message: 'Admin access required.' };
+ 
+  if (!challengeId) return { status: 'error', message: 'Challenge ID is required.' };
+ 
+  const ss             = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const challengeSheet = ss.getSheetByName(CHALLENGE_SHEET);
+  if (!challengeSheet) return { status: 'error', message: 'ChallengeDB sheet not found.' };
+ 
+  const sheetData = challengeSheet.getDataRange().getValues();
+  for (let i = 1; i < sheetData.length; i++) {
+    if (sheetData[i][0].toString() !== challengeId.toString()) continue;
+    challengeSheet.getRange(i + 1, 10).setValue('Archived'); // Col J = status
+    return { status: 'success' };
+  }
+ 
+  return { status: 'error', message: 'Challenge not found.' };
+}
  
 // ============================================================================
 // PUBLIC FUNCTIONS
