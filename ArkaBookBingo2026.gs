@@ -118,7 +118,7 @@
  * @property {string} completedOn          - dd-MM-yyyy HH:mm:ss Z or blank   (Col I)
  */
 
-const APP_VERSION = "v38.3";
+const APP_VERSION = "v38.4";
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -1277,335 +1277,380 @@ function getAppMasterData() {
 
 }
 
+// ── Shared helper: build sheetMap from one getSheets() call ──────────────────
+// Private to this file — not exported. Each wave function calls this once.
+function buildSheetMap_(ss) {
+  const map = new Map();
+  ss.getSheets().forEach(function(sheet) {
+    map.set(sheet.getName(), sheet);
+  });
+  return map;
+}
+
 /**
- * WAVE 1 — Essential data for immediate first render.
+ * WAVE 1 — Minimum data for immediate Me tab render.
  *
- * Returns only what the Me tab needs to paint instantly:
- *   - MemberDB        → profile name, points, lifetime stats
- *   - ClubPointLevelDB → level bar calculation
- *   - ChallengeDB      → My Challenges card titles and types
- *   - ChallengeEnrollmentDB → My Challenges card progress
+ * Returns:
+ *   MemberDB         → profile, lifetime stats, level bar
+ *   PageLogDB        → heatmap, streak, ghost chart, pulse chart
+ *   ClubPointLevelDB → level bar thresholds
  *
- * Called first. Frontend renders the Me tab the moment this returns.
- * getSecondaryData() is fired immediately after without waiting for
- * user interaction.
- *
- * @returns {{ status: string, membersDB, memberLevelsDB,
- *             challengesDB, challengeEnrollmentsDB }}
+ * Target: < 2,000ms
  */
-function getEssentialData() {
+function getWave1Data() {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const t0 = Date.now();
- 
-    // Single getSheets() call — same OPT 1 pattern
-    const sheetMap = new Map();
-    ss.getSheets().forEach(function(sheet) {
-      sheetMap.set(sheet.getName(), sheet);
-    });
+    const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const t0       = Date.now();
+    const sheetMap = buildSheetMap_(ss);
     console.log('W1 getSheets: ' + (Date.now() - t0) + 'ms');
  
-    function getSheet(name) { return sheetMap.get(name) || null; }
+    function gs(name) { return sheetMap.get(name) || null; }
  
-    // ── 1. Level Rules ───────────────────────────────────────────────────────
-    const levelSheet = getSheet('ClubPointLevelDB');
+    // ── 1. Level Rules (3 cols) ──────────────────────────────────────────────
+    const levelSheet = gs('ClubPointLevelDB');
     const levelList  = [];
     if (levelSheet) {
-      const levelData = levelSheet.getRange(
-        1, 1, levelSheet.getLastRow(), 3
-      ).getValues();
+      const data = levelSheet
+        .getRange(1, 1, levelSheet.getLastRow(), 3)
+        .getValues();
       console.log('W1 LevelDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < levelData.length; i++) {
-        if (levelData[i][0] !== '') {
-          levelList.push({
-            levelNum      : parseInt(levelData[i][0]) || 0,
-            maxClubPoints : parseInt(levelData[i][1]) || 0,
-            levelName     : levelData[i][2] || 'Reader'
-          });
-        }
-      }
-    }
- 
-    // ── 2. Members ───────────────────────────────────────────────────────────
-    const memSheet = getSheet(MEMBERS_SHEET);
-    const membersList = [];
-    if (memSheet) {
-      const memData = memSheet.getDataRange().getValues();
-      console.log('W1 MemberDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < memData.length; i++) {
-        if (!memData[i][0]) continue;
-        membersList.push({
-          id          : memData[i][0],
-          email       : memData[i][1] || 'emailnotset@email.com',
-          fullName    : memData[i][2],
-          displayName : memData[i][3],
-          country     : memData[i][5] || '',
-          clubPoints  : Number(memData[i][14]) || 0,
-          pages       : Number(memData[i][15]) || 0,
-          books       : Number(memData[i][16]) || 0,
-          joinDate    : memData[i][4]
-            ? Utilities.formatDate(new Date(memData[i][4]),
-                Session.getScriptTimeZone(), 'dd-MMM-yyyy')
-            : 'Unknown',
-          bio      : memData[i][6]  || 'No bio added yet.',
-          goal     : memData[i][11] || 'None set.',
-          genres   : memData[i][10] || 'None listed.',
-          langs    : memData[i][7]  || 'Unknown',
-          linkedin : memData[i][8]  || '',
-          goodreads: memData[i][9]  || '',
-          imageURL : memData[i][17] || ''
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === '') continue;
+        levelList.push({
+          levelNum      : parseInt(data[i][0]) || 0,
+          maxClubPoints : parseInt(data[i][1]) || 0,
+          levelName     : data[i][2] || 'Reader'
         });
       }
     }
  
-    // ── 3. Challenges ────────────────────────────────────────────────────────
-    const challengesDBList = fetchChallenges(sheetMap);
-    console.log('W1 ChallengeDB: ' + (Date.now() - t0) + 'ms');
+    // ── 2. Members ───────────────────────────────────────────────────────────
+    const memSheet    = gs(MEMBERS_SHEET);
+    const membersList = [];
+    if (memSheet) {
+      const data = memSheet.getDataRange().getValues();
+      console.log('W1 MemberDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        membersList.push({
+          id          : data[i][0],
+          email       : data[i][1] || 'emailnotset@email.com',
+          fullName    : data[i][2],
+          displayName : data[i][3],
+          country     : data[i][5]  || '',
+          clubPoints  : Number(data[i][14]) || 0,
+          pages       : Number(data[i][15]) || 0,
+          books       : Number(data[i][16]) || 0,
+          joinDate    : data[i][4]
+            ? Utilities.formatDate(new Date(data[i][4]),
+                Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            : 'Unknown',
+          bio      : data[i][6]  || 'No bio added yet.',
+          goal     : data[i][11] || 'None set.',
+          genres   : data[i][10] || 'None listed.',
+          langs    : data[i][7]  || 'Unknown',
+          linkedin : data[i][8]  || '',
+          goodreads: data[i][9]  || '',
+          imageURL : data[i][17] || ''
+        });
+      }
+    }
  
-    // ── 4. Challenge Enrollments ─────────────────────────────────────────────
-    const challengeEnrollmentsDBList = fetchChallengeEnrollments(sheetMap);
-    console.log('W1 EnrollmentDB: ' + (Date.now() - t0) + 'ms');
+    // ── 3. Page Log (full — needed for ghost chart + streak) ─────────────────
+    const pageLogSheet = gs(PAGELOG_SHEET);
+    const pageLogDB    = [];
+    if (pageLogSheet) {
+      const data = pageLogSheet.getDataRange().getValues();
+      console.log('W1 PageLogDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        pageLogDB.push({
+          logId      : data[i][0].toString(),
+          timestamp  : data[i][1].toString(),
+          memberId   : data[i][2].toString(),
+          bookId     : data[i][3].toString(),
+          pagesDelta : Number(data[i][4]) || 0,
+          logSource  : data[i][5].toString()
+        });
+      }
+    }
  
     console.log('W1 TOTAL: ' + (Date.now() - t0) + 'ms');
- 
     return {
-      status                 : 'success',
-      membersDB              : membersList,
-      memberLevelsDB         : levelList,
-      challengesDB           : challengesDBList,
-      challengeEnrollmentsDB : challengeEnrollmentsDBList
+      status        : 'success',
+      membersDB     : membersList,
+      memberLevelsDB: levelList,
+      pageLogDB     : pageLogDB
     };
  
   } catch (e) {
-    console.error('getEssentialData failed:', e);
+    console.error('getWave1Data failed:', e);
     return { status: 'error', message: e.toString() };
   }
 }
  
  
 /**
- * WAVE 2 — Secondary data loaded silently after first render.
+ * WAVE 2 — Activity feed + challenges.
  *
- * Everything needed for Library, Home feed, Me tab shelves/badges/heatmap,
- * Members leaderboard, and write operations.
+ * Returns:
+ *   ActivityLogDB        → home feed bubbles
+ *   ChallengeDB          → My Challenges card
+ *   ChallengeEnrollmentDB→ My Challenges card progress
+ *   AnnouncementDB       → home feed banner
  *
- * Called immediately after getEssentialData() returns but does NOT
- * block the first render — the user is already looking at their profile.
- *
- * @returns {{ status: string, booksDB, shelvesDB, activityTypeDB,
- *             activityLogDB, pageLogDB, badgesDB, badgeAwardsDB,
- *             announcementsDB }}
+ * Target: fires immediately after Wave 1 handler completes.
  */
-function getSecondaryData() {
+function getWave2Data() {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const t0 = Date.now();
- 
-    const sheetMap = new Map();
-    ss.getSheets().forEach(function(sheet) {
-      sheetMap.set(sheet.getName(), sheet);
-    });
+    const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const t0       = Date.now();
+    const sheetMap = buildSheetMap_(ss);
     console.log('W2 getSheets: ' + (Date.now() - t0) + 'ms');
  
-    function getSheet(name) { return sheetMap.get(name) || null; }
+    function gs(name) { return sheetMap.get(name) || null; }
  
-    // ── 1. Library ───────────────────────────────────────────────────────────
-    const libSheet    = getSheet('ArkaLibraryDB');
-    const libraryList = [];
-    if (libSheet) {
-      const libData = libSheet.getDataRange().getValues();
-      console.log('W2 LibraryDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < libData.length; i++) {
-        if (!libData[i][0]) continue;
-        const rawDate = libData[i][6];
-        libraryList.push({
-          id               : libData[i][0],
-          title            : libData[i][1],
-          author           : libData[i][2],
-          genre            : libData[i][3] || 'Uncategorized',
-          pages            : libData[i][4] || 0,
-          addedByRaw       : libData[i][5],
-          addedDate        : rawDate instanceof Date
-            ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
-            : String(rawDate),
-          lastModifiedDate : libData[i][7],
-          lastModifiedBy   : libData[i][8],
-          coverImageURL    : libData[i][9]  || '',
-          isbn13           : libData[i][10] || '',
-          publishedDate    : libData[i][11] || '',
-          blurb            : libData[i][12] || ''
-        });
-      }
-    }
- 
-    // ── 2. Shelves ───────────────────────────────────────────────────────────
-    const shelfSheet  = getSheet(SHELF_SHEET);
-    const shelvesList = [];
-    if (shelfSheet) {
-      const shelfLastRow = shelfSheet.getLastRow();
-      if (shelfLastRow > 1) {
-        const shelfData = shelfSheet.getRange(1, 1, shelfLastRow, 11).getValues();
-        console.log('W2 ShelfDB: ' + (Date.now() - t0) + 'ms');
-        for (let i = 1; i < shelfData.length; i++) {
-          if (!shelfData[i][0]) continue;
-          const r1 = shelfData[i][6];
-          const r2 = shelfData[i][7];
-          const r3 = shelfData[i][8];
-          shelvesList.push({
-            shelfId        : shelfData[i][0],
-            memberId       : shelfData[i][1],
-            bookId         : shelfData[i][2],
-            status         : shelfData[i][3],
-            rating         : Number(shelfData[i][4]) || 0,
-            review         : shelfData[i][5] || '',
-            pagesRead      : shelfData[i][9] || 0,
-            dateAdded      : r1 instanceof Date
-              ? Utilities.formatDate(r1, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
-              : String(r1),
-            dateUpdated    : r2 instanceof Date
-              ? Utilities.formatDate(r2, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
-              : String(r2),
-            dateFinished   : r3 instanceof Date
-              ? Utilities.formatDate(r3, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
-              : String(r3),
-            lastModifiedOn : shelfData[i][10]
-          });
-        }
-      }
-    }
- 
-    // ── 3. Activity Types ────────────────────────────────────────────────────
-    const actTypeSheet     = getSheet('ActivityTypeDB');
-    const activityTypeList = [];
-    if (actTypeSheet) {
-      const actTypeLastRow  = actTypeSheet.getLastRow();
-      const activityTypeData = actTypeSheet
-        .getRange(1, 1, actTypeLastRow, 5)
-        .getValues();
-      console.log('W2 ActivityTypeDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < activityTypeData.length; i++) {
-        if (!activityTypeData[i][0]) continue;
-        const rawDate = activityTypeData[i][3];
-        activityTypeList.push({
-          activityTypeID    : activityTypeData[i][0],
-          activityType      : activityTypeData[i][1],
-          activityDesc      : activityTypeData[i][2] || '',
-          activityIntroDate : rawDate instanceof Date
-            ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
-            : String(rawDate),
-          activityClubPoints: Number(activityTypeData[i][4]) || 0
-        });
-      }
-    }
- 
-    // ── 4. Activity Log — last 300 rows ──────────────────────────────────────
-    const actLogSheet     = getSheet(ACTIVITYLOG_SHEET);
+    // ── 1. Activity Log — last 300 rows ──────────────────────────────────────
+    const actLogSheet     = gs(ACTIVITYLOG_SHEET);
     const activityLogList = [];
     if (actLogSheet) {
-      const actLogTotalRows = actLogSheet.getLastRow();
-      const ACTIVITY_LOG_FETCH_LIMIT = 300;
-      const actLogStartRow  = Math.max(2, actLogTotalRows - ACTIVITY_LOG_FETCH_LIMIT + 1);
-      const actLogRowCount  = actLogTotalRows - actLogStartRow + 1;
-      if (actLogRowCount > 0) {
-        const actLogData = actLogSheet
-          .getRange(actLogStartRow, 1, actLogRowCount, 7)
-          .getValues();
+      const totalRows = actLogSheet.getLastRow();
+      const LIMIT     = 300;
+      const startRow  = Math.max(2, totalRows - LIMIT + 1);
+      const rowCount  = totalRows - startRow + 1;
+      if (rowCount > 0) {
+        const data = actLogSheet.getRange(startRow, 1, rowCount, 7).getValues();
         console.log('W2 ActivityLogDB: ' + (Date.now() - t0) + 'ms');
-        for (let i = 0; i < actLogData.length; i++) {
-          if (!actLogData[i][0]) continue;
+        for (let i = 0; i < data.length; i++) {
+          if (!data[i][0]) continue;
           activityLogList.push({
-            activityID        : actLogData[i][0],
-            activityTypeID    : actLogData[i][1],
-            activityDate      : actLogData[i][2],
-            activityMemberID  : actLogData[i][3],
-            activityDesc      : actLogData[i][4] || '',
-            activitySource    : actLogData[i][5] || '',
-            activityCPAwarded : Number(actLogData[i][6]) || 0
+            activityID        : data[i][0],
+            activityTypeID    : data[i][1],
+            activityDate      : data[i][2],
+            activityMemberID  : data[i][3],
+            activityDesc      : data[i][4] || '',
+            activitySource    : data[i][5] || '',
+            activityCPAwarded : Number(data[i][6]) || 0
           });
         }
       }
     }
  
-    // ── 5. Page Log — full (for ghost chart and all-years streak) ─────────────
-    const pageLogSheet = getSheet(PAGELOG_SHEET);
-    const pageLogDB    = [];
-    if (pageLogSheet) {
-      const pData = pageLogSheet.getRange(1,1,pageLogSheet.getLastRow(),6).getValues();
-      console.log('W2 PageLogDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < pData.length; i++) {
-        if (!pData[i][0]) continue;
-        pageLogDB.push({
-          logId      : pData[i][0].toString(),
-          timestamp  : pData[i][1].toString(),
-          memberId   : pData[i][2].toString(),
-          bookId     : pData[i][3].toString(),
-          pagesDelta : Number(pData[i][4]) || 0,
-          logSource  : pData[i][5].toString()
-        });
-      }
-    }
+    // ── 2. Challenges ────────────────────────────────────────────────────────
+    const challengesDBList = fetchChallenges(sheetMap);
+    console.log('W2 ChallengeDB: ' + (Date.now() - t0) + 'ms');
  
-    // ── 6. Badges ────────────────────────────────────────────────────────────
-    const badgeSheet   = getSheet(BADGE_DB_SHEET);
-    const badgesDBList = [];
-    if (badgeSheet) {
-      const bData = badgeSheet.getRange(1,1,badgeSheet.getLastRow(),5).getValues();
-      console.log('W2 BadgeDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < bData.length; i++) {
-        if (!bData[i][0]) continue;
-        badgesDBList.push({
-          id          : bData[i][0].toString(),
-          caption     : bData[i][1].toString(),
-          description : bData[i][2].toString(),
-          imgUrl      : bData[i][3].toString(),
-          badgePoints : Number(bData[i][4]) || 0
-        });
-      }
-    }
+    // ── 3. Enrollments ───────────────────────────────────────────────────────
+    const challengeEnrollmentsDBList = fetchChallengeEnrollments(sheetMap);
+    console.log('W2 EnrollmentDB: ' + (Date.now() - t0) + 'ms');
  
-    // ── 7. Badge Awards ──────────────────────────────────────────────────────
-    const badgeAwardSheet   = getSheet(BADGE_AWARD_DB_SHEET);
-    const badgeAwardsDBList = [];
-    if (badgeAwardSheet) {
-      const baData = badgeAwardSheet.getRange(1,1,badgeAwardSheet.getLastRow(),7).getValues();
-      console.log('W2 BadgeAwardDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < baData.length; i++) {
-        if (!baData[i][0]) continue;
-        const rawAwardDate = baData[i][4];
-        badgeAwardsDBList.push({
-          awardId     : baData[i][0].toString(),
-          badgeId     : baData[i][1].toString(),
-          memberId    : baData[i][2].toString(),
-          awardedBy   : baData[i][3].toString(),
-          awardedDate : rawAwardDate instanceof Date
-            ? Utilities.formatDate(rawAwardDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
-            : String(rawAwardDate),
-          status      : baData[i][5].toString(),
-          notes       : baData[i][6] ? baData[i][6].toString() : ''
-        });
-      }
-    }
- 
-    // ── 8. Announcements (active only) ───────────────────────────────────────
+    // ── 4. Announcements ─────────────────────────────────────────────────────
     const announcementsDBList = fetchActiveAnnouncements(sheetMap);
-    console.log('W2 AnnouncementsDB: ' + (Date.now() - t0) + 'ms');
+    console.log('W2 AnnouncementDB: ' + (Date.now() - t0) + 'ms');
  
     console.log('W2 TOTAL: ' + (Date.now() - t0) + 'ms');
- 
     return {
-      status         : 'success',
-      booksDB        : libraryList,
-      shelvesDB      : shelvesList,
-      activityTypeDB : activityTypeList,
-      activityLogDB  : activityLogList,
-      pageLogDB      : pageLogDB,
-      badgesDB       : badgesDBList,
-      badgeAwardsDB  : badgeAwardsDBList,
-      announcementsDB: announcementsDBList
+      status                 : 'success',
+      activityLogDB          : activityLogList,
+      challengesDB           : challengesDBList,
+      challengeEnrollmentsDB : challengeEnrollmentsDBList,
+      announcementsDB        : announcementsDBList
     };
  
   } catch (e) {
-    console.error('getSecondaryData failed:', e);
+    console.error('getWave2Data failed:', e);
+    return { status: 'error', message: e.toString() };
+  }
+}
+ 
+ 
+/**
+ * WAVE 3 — Library, shelves, badges.
+ *
+ * Returns:
+ *   ArkaLibraryDB → book covers, titles, authors
+ *   MemberShelfDB → shelf carousel, booksThisYear stat pill update
+ *   BadgeDB       → badge gallery
+ *   BadgeAwardDB  → badge strip, earned badges
+ *
+ * Target: fires immediately after Wave 2 handler completes.
+ */
+function getWave3Data() {
+  try {
+    const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const t0       = Date.now();
+    const sheetMap = buildSheetMap_(ss);
+    console.log('W3 getSheets: ' + (Date.now() - t0) + 'ms');
+ 
+    function gs(name) { return sheetMap.get(name) || null; }
+ 
+    // ── 1. Library ───────────────────────────────────────────────────────────
+    const libSheet    = gs('ArkaLibraryDB');
+    const libraryList = [];
+    if (libSheet) {
+      const data = libSheet.getDataRange().getValues();
+      console.log('W3 LibraryDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        const rawDate = data[i][6];
+        libraryList.push({
+          id               : data[i][0],
+          title            : data[i][1],
+          author           : data[i][2],
+          genre            : data[i][3] || 'Uncategorized',
+          pages            : data[i][4] || 0,
+          addedByRaw       : data[i][5],
+          addedDate        : rawDate instanceof Date
+            ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            : String(rawDate),
+          lastModifiedDate : data[i][7],
+          lastModifiedBy   : data[i][8],
+          coverImageURL    : data[i][9]  || '',
+          isbn13           : data[i][10] || '',
+          publishedDate    : data[i][11] || '',
+          blurb            : data[i][12] || ''
+        });
+      }
+    }
+ 
+    // ── 2. Shelves (11 cols) ─────────────────────────────────────────────────
+    const shelfSheet  = gs(SHELF_SHEET);
+    const shelvesList = [];
+    if (shelfSheet) {
+      const lastRow = shelfSheet.getLastRow();
+      if (lastRow > 1) {
+        const data = shelfSheet.getRange(1, 1, lastRow, 11).getValues();
+        console.log('W3 ShelfDB: ' + (Date.now() - t0) + 'ms');
+        for (let i = 1; i < data.length; i++) {
+          if (!data[i][0]) continue;
+          const r1 = data[i][6], r2 = data[i][7], r3 = data[i][8];
+          const fmt = function(v) {
+            return v instanceof Date
+              ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+              : String(v || '');
+          };
+          shelvesList.push({
+            shelfId       : data[i][0],
+            memberId      : data[i][1],
+            bookId        : data[i][2],
+            status        : data[i][3],
+            rating        : Number(data[i][4]) || 0,
+            review        : data[i][5] || '',
+            pagesRead     : data[i][9] || 0,
+            dateAdded     : fmt(r1),
+            dateUpdated   : fmt(r2),
+            dateFinished  : fmt(r3),
+            lastModifiedOn: data[i][10]
+          });
+        }
+      }
+    }
+ 
+    // ── 3. Badges ────────────────────────────────────────────────────────────
+    const badgeSheet   = gs(BADGE_DB_SHEET);
+    const badgesDBList = [];
+    if (badgeSheet) {
+      const data = badgeSheet.getDataRange().getValues();
+      console.log('W3 BadgeDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        badgesDBList.push({
+          id         : data[i][0].toString(),
+          caption    : data[i][1].toString(),
+          description: data[i][2].toString(),
+          imgUrl     : data[i][3].toString(),
+          badgePoints: Number(data[i][4]) || 0
+        });
+      }
+    }
+ 
+    // ── 4. Badge Awards ──────────────────────────────────────────────────────
+    const badgeAwardSheet   = gs(BADGE_AWARD_DB_SHEET);
+    const badgeAwardsDBList = [];
+    if (badgeAwardSheet) {
+      const data = badgeAwardSheet.getDataRange().getValues();
+      console.log('W3 BadgeAwardDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        const rawDate = data[i][4];
+        badgeAwardsDBList.push({
+          awardId    : data[i][0].toString(),
+          badgeId    : data[i][1].toString(),
+          memberId   : data[i][2].toString(),
+          awardedBy  : data[i][3].toString(),
+          awardedDate: rawDate instanceof Date
+            ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            : String(rawDate),
+          status: data[i][5].toString(),
+          notes : data[i][6] ? data[i][6].toString() : ''
+        });
+      }
+    }
+ 
+    console.log('W3 TOTAL: ' + (Date.now() - t0) + 'ms');
+    return {
+      status       : 'success',
+      booksDB      : libraryList,
+      shelvesDB    : shelvesList,
+      badgesDB     : badgesDBList,
+      badgeAwardsDB: badgeAwardsDBList
+    };
+ 
+  } catch (e) {
+    console.error('getWave3Data failed:', e);
+    return { status: 'error', message: e.toString() };
+  }
+}
+ 
+ 
+/**
+ * WAVE 4 — Activity type point values.
+ *
+ * Returns:
+ *   ActivityTypeDB → globalActivityPointsMap for write operations
+ *
+ * Loads last. Fallback in getActivityMultiplier() handles the gap
+ * if a write occurs before this completes.
+ *
+ * Target: fires immediately after Wave 3 handler completes.
+ */
+function getWave4Data() {
+  try {
+    const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const t0       = Date.now();
+    const sheetMap = buildSheetMap_(ss);
+ 
+    function gs(name) { return sheetMap.get(name) || null; }
+ 
+    const actTypeSheet     = gs('ActivityTypeDB');
+    const activityTypeList = [];
+    if (actTypeSheet) {
+      const lastRow = actTypeSheet.getLastRow();
+      const data    = actTypeSheet.getRange(1, 1, lastRow, 5).getValues();
+      console.log('W4 ActivityTypeDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        const rawDate = data[i][3];
+        activityTypeList.push({
+          activityTypeID    : data[i][0],
+          activityType      : data[i][1],
+          activityDesc      : data[i][2] || '',
+          activityIntroDate : rawDate instanceof Date
+            ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            : String(rawDate),
+          activityClubPoints: Number(data[i][4]) || 0
+        });
+      }
+    }
+ 
+    console.log('W4 TOTAL: ' + (Date.now() - t0) + 'ms');
+    return {
+      status        : 'success',
+      activityTypeDB: activityTypeList
+    };
+ 
+  } catch (e) {
+    console.error('getWave4Data failed:', e);
     return { status: 'error', message: e.toString() };
   }
 }
@@ -4524,4 +4569,37 @@ function logAppLoadTime(data) {
     console.error('logAppLoadTime failed (non-fatal):', e);
   }
 }
+
+/**
+ * Keeps the GAS execution environment warm by touching the spreadsheet
+ * every 10 minutes via a time-based trigger.
+ *
+ * A cold GAS instance costs 2,000–4,000ms of spin-up time before
+ * executing a single line. A warm instance responds in ~200ms.
+ * This function does the minimum work needed to keep the instance alive.
+ *
+ * HOW TO SET THE TRIGGER:
+ *   1. Open Apps Script editor
+ *   2. Click ⏱ Triggers (left sidebar alarm icon)
+ *   3. Click + Add Trigger (bottom right)
+ *   4. Function: keepWarm
+ *   5. Event source: Time-driven
+ *   6. Type: Minutes timer
+ *   7. Interval: Every 10 minutes
+ *   8. Save
+ */
+function keepWarm() {
+  try {
+    // Open the spreadsheet and read one cell — minimum viable work
+    // to keep the V8 runtime and Sheets API connection alive
+    SpreadsheetApp.openById(SPREADSHEET_ID)
+                  .getSheetByName(MEMBERS_SHEET)
+                  .getRange(1, 1)
+                  .getValue();
+  } catch (e) {
+    // Swallow everything — a keepWarm failure should never alert anyone
+  }
+}
+
+
  
