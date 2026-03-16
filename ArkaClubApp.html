@@ -1575,6 +1575,145 @@
       .chal-status-Winner   { background: #FAEEDA; color: #633806; }
       .chal-status-Finisher { background: #E1F5EE; color: #085041; }
 
+      /* ── Challenge Detail: header ──────────────────────────────────────────────── */
+      .chal-detail-header {
+        background: #2c3e50; color: white; padding: 14px 16px;
+        display: flex; align-items: center; gap: 12px;
+      }
+      .chal-detail-back { background: none; border: none; color: white;
+        font-size: 0.9rem; cursor: pointer; padding: 0; font-family: inherit; }
+      .chal-detail-title { font-size: 1rem; font-weight: 600; flex: 1; line-height: 1.2; }
+      .chal-detail-status-badge {
+        font-size: 0.68rem; font-weight: 600; padding: 3px 9px;
+        border-radius: 20px; flex-shrink: 0;
+      }
+      .chal-detail-inner-tabs {
+        display: flex; background: #f8f9fa;
+        border-bottom: 1px solid #ecf0f1;
+      }
+      .chal-detail-tab {
+        flex: 1; text-align: center; padding: 10px 0; font-size: 0.85rem;
+        color: #7f8c8d; cursor: pointer; border-bottom: 2px solid transparent;
+        font-weight: 500;
+      }
+      .chal-detail-tab.active { color: #2c3e50; border-bottom-color: #2c3e50; }
+    
+      /* ── Stat tiles strip ──────────────────────────────────────────────────────── */
+      .chal-stat-strip {
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: 8px; margin-bottom: 14px;
+      }
+      .chal-stat-tile {
+        background: #f8f9fa; border: 1px solid #ecf0f1; border-radius: 10px;
+        padding: 10px 8px; text-align: center;
+      }
+      .chal-stat-num   { font-size: 1.3rem; font-weight: 700; color: #2c3e50; line-height: 1; }
+      .chal-stat-label { font-size: 0.65rem; color: #95a5a6; text-transform: uppercase;
+                        letter-spacing: 0.4px; margin-top: 3px; }
+    
+      /* ── Day heatmap (streak) ──────────────────────────────────────────────────── */
+      .streak-heatmap {
+        display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px;
+        margin: 10px 0;
+      }
+      .streak-day {
+        aspect-ratio: 1; border-radius: 4px; background: #ecf0f1;
+        font-size: 0; cursor: default; transition: transform 0.1s;
+      }
+      .streak-day.logged    { background: #1D9E75; }
+      .streak-day.missed    { background: #e74c3c; opacity: 0.7; }
+      .streak-day.future    { background: #f8f9fa; }
+      .streak-day.today     { outline: 2px solid #2c3e50; }
+    
+      /* ── Bingo board ───────────────────────────────────────────────────────────── */
+      .chal-bingo-grid   { display: grid; gap: 6px; }
+      .bingo-tile {
+        border-radius: 10px; padding: 10px 6px; text-align: center;
+        cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+        border: 2px solid transparent; position: relative;
+        min-height: 72px; display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+      }
+      .bingo-tile:active { transform: scale(0.96); }
+      .bingo-tile.state-empty {
+        background: #f4f1ea; border-color: #ddd;
+        color: #7f8c8d;
+      }
+      .bingo-tile.state-done {
+        background: #d1fae5; border-color: #1D9E75; color: #085041;
+      }
+      .bingo-tile.state-free {
+        background: #EEEDFE; border-color: #7F77DD; color: #3C3489;
+      }
+      .bingo-tile-prompt { font-size: 0.72rem; font-weight: 600; line-height: 1.3; }
+      .bingo-tile-book   { font-size: 0.65rem; font-style: italic; margin-top: 4px;
+                          opacity: 0.8; line-height: 1.2; }
+      .bingo-tile-check  {
+        position: absolute; top: 4px; right: 6px;
+        font-size: 0.75rem; color: #1D9E75;
+      }
+    
+      /* ── Country / Alphabet cell list ─────────────────────────────────────────── */
+      .spread-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 0; border-bottom: 1px solid #f0f0f0;
+      }
+      .spread-item:last-child { border-bottom: none; }
+      .spread-item-flag { font-size: 1.1rem; flex-shrink: 0; }
+      .spread-item-name { font-size: 0.88rem; font-weight: 500; flex: 1; }
+      .spread-item-book { font-size: 0.75rem; color: #7f8c8d; }
+    
+      /* ── Alphabet A-Z grid ─────────────────────────────────────────────────────── */
+      .alpha-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+      .alpha-cell {
+        aspect-ratio: 1; border-radius: 8px; border: 1px solid #ecf0f1;
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; cursor: pointer; transition: transform 0.1s;
+        background: #f8f9fa;
+      }
+      .alpha-cell:active { transform: scale(0.92); }
+      .alpha-cell.claimed   { background: #EAF3DE; border-color: #1D9E75; }
+      .alpha-cell.optional  { border-style: dashed; opacity: 0.7; }
+      .alpha-cell-letter { font-size: 1rem; font-weight: 700; color: #2c3e50; }
+      .alpha-cell-book   { font-size: 0.5rem; color: #7f8c8d; text-align: center;
+                          line-height: 1.2; overflow: hidden; max-width: 100%;
+                          display: -webkit-box; -webkit-line-clamp: 2;
+                          -webkit-box-orient: vertical; padding: 0 2px; }
+    
+      /* ── Club leaderboard ──────────────────────────────────────────────────────── */
+      .club-rank-row {
+        display: flex; align-items: center; gap: 10px; padding: 9px 0;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .club-rank-row:last-child { border-bottom: none; }
+      .club-rank-row.is-me { background: #EEEDFE; border-radius: 8px;
+        padding: 9px 10px; margin: 0 -4px; }
+      .club-rank-num  { font-size: 0.8rem; font-weight: 700; color: #95a5a6; width: 20px; text-align: center; }
+      .club-rank-avatar {
+        width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.65rem; font-weight: 700; background: #ecf0f1; color: #7f8c8d;
+      }
+      .club-rank-name  { font-size: 0.88rem; font-weight: 500; flex: 1; }
+      .club-rank-score { font-size: 0.88rem; font-weight: 700; color: #2c3e50; flex-shrink: 0; }
+      .club-rank-bar-wrap { width: 100%; margin-top: 4px; }
+      .club-rank-bar-bg   { height: 4px; background: #ecf0f1; border-radius: 2px; overflow: hidden; }
+      .club-rank-bar-fill { height: 100%; border-radius: 2px; }
+    
+      /* ── Bingo cell link sheet ─────────────────────────────────────────────────── */
+      #bingoCellDrawer label {
+        display: block; font-size: 0.78rem; font-weight: 600; color: #7f8c8d;
+        text-transform: uppercase; letter-spacing: 0.5px;
+        margin-bottom: 4px; margin-top: 12px;
+      }
+      #bingoCellDrawer label:first-of-type { margin-top: 0; }
+      #bingoCellDrawer input, #bingoCellDrawer select {
+        width: 100%; box-sizing: border-box; border: 1px solid #ecf0f1;
+        border-radius: 8px; padding: 9px 11px; font-size: 0.88rem;
+        color: #2c3e50; font-family: inherit; background: #f8f9fa;
+      }
+      #bingoCellDrawer input:focus { border-color: #A984BA; outline: none; background: #fff; }
+
     </style>
   </head>
   <body>
@@ -2764,8 +2903,68 @@
         </div>
       </div>
 
-
+      <div id="challengeDetailView" class="view-section" style="display:none;">
+ 
+        <!-- Sticky header -->
+        <div class="chal-detail-header">
+          <button class="chal-detail-back" onclick="closeChallengeDetailView()">⬅</button>
+          <div class="chal-detail-title" id="chalDetailTitle">Challenge</div>
+          <span class="chal-detail-status-badge" id="chalDetailStatusBadge"></span>
+        </div>
       
+        <!-- My Progress / Club tabs -->
+        <div class="chal-detail-inner-tabs" id="chalDetailTabBar">
+          <div class="chal-detail-tab active" id="tabChalDetailMine"
+              onclick="switchChalDetailTab('mine')">My Progress</div>
+          <div class="chal-detail-tab" id="tabChalDetailClub"
+              onclick="switchChalDetailTab('club')">Club</div>
+        </div>
+      
+        <!-- Tab content panels -->
+        <div style="padding: 16px;" id="chalDetailBody">
+      
+          <div id="chalDetailMineContent">
+            <!-- Rendered by renderChalDetailMyProgress() -->
+          </div>
+      
+          <div id="chalDetailClubContent" style="display:none;">
+            <!-- Rendered by renderChalDetailClub() -->
+          </div>
+      
+        </div>
+      </div>
+      
+      <!-- Bingo cell link bottom sheet -->
+      <div id="bingoCellModal" class="drawer-overlay" onclick="closeBingoCellSheet()">
+        <div class="bottom-drawer" id="bingoCellDrawer"
+            style="max-height:70vh; overflow-y:auto;"
+            onclick="event.stopPropagation()">
+      
+          <div style="width:36px;height:4px;background:#ecf0f1;border-radius:2px;margin:0 auto 14px;"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <h3 id="bingoCellPromptText" style="margin:0;color:#2c3e50;font-size:1rem;flex:1;line-height:1.3;"></h3>
+            <i class="fa-solid fa-xmark" onclick="closeBingoCellSheet()"
+              style="font-size:1.3rem;color:#7f8c8d;cursor:pointer;padding:4px;flex-shrink:0;"></i>
+          </div>
+          <p id="bingoCellCurrentBook" style="font-size:0.82rem;color:#7f8c8d;margin-bottom:14px;"></p>
+      
+          <label>Link a book from Arka Library</label>
+          <input type="text" id="bingoCellBookInput" list="bingoCellBookList"
+                placeholder="Type to search…">
+          <datalist id="bingoCellBookList"></datalist>
+          <input type="hidden" id="bingoCellBookId">
+      
+          <div style="display:flex;gap:10px;margin-top:18px;">
+            <button id="bingoCellSaveBtn" class="btn-primary" style="flex:1;"
+                    onclick="saveBingoCellLink()">Mark as completed</button>
+            <button class="btn-outline" style="flex:0 0 auto;width:auto;padding:12px 18px;"
+                    onclick="closeBingoCellSheet()">Cancel</button>
+          </div>
+          <input type="hidden" id="bingoCellActiveCellId">
+        </div>
+      </div>
+
+
       <!-- Admin FAB — fixed position, shown only when admin is on Notices tab ──── -->
       <div id="annCreateFab" onclick="openAnnouncementFormSheet(null)" title="Create Announcement">
         <span class="fab-icon">+</span>
@@ -4003,6 +4202,7 @@
         document.getElementById('eventsAndAnnouncementsView').style.display = 'none';
         document.getElementById('eventDetailView').style.display = 'none';
         document.getElementById('challengesView').style.display = 'none';
+        document.getElementById('challengeDetailView').style.display = 'none';
 
         // 3. Force reset all nested sub-views so we don't get overlapping cards
         document.getElementById('libAddBookWorkspace').style.display = 'none';
@@ -4074,6 +4274,9 @@
         if (tabName === 'challenges') {
           refreshChallengesViewFabVisibility();
           renderChallengesView();
+        }
+        if (tabName === 'challengeDetail') {
+          // view shown by step 5 — no extra setup needed here
         }
         
         // 8. Snap to the top of the page so it feels like a fresh screen load
@@ -11312,7 +11515,7 @@
           }
     
           html += `
-            <div class="chal-card${pinnedClass}">
+            <div class="chal-card${pinnedClass}" onclick="openChallengeDetailView('${c.challengeId}')">
 
               <div class="chal-card-header">
                 <div style="flex:1;">
@@ -12254,7 +12457,7 @@
     
           html += `
             <div class="my-chal-card chal-accent-${challenge.challengeType}"
-                onclick="openChallengesView()">
+                onclick="openChallengeDetailView('${challenge.challengeId}')">
               <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
                 <div style="flex:1;">
                   <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -12292,6 +12495,909 @@
           </div>`;
     
         container.innerHTML = html;
+      }
+
+      // ==========================================================================
+      // CHALLENGE DETAIL VIEW
+      // ==========================================================================
+    
+      /** Tracks the source view to return to on back (challenges or me) */
+      let lastViewBeforeChallengeDetail = 'challenges';
+    
+    
+      /** Which inner tab is active: 'mine' | 'club' */
+      let currentChalDetailTab = 'mine';
+    
+      /** The bingo cellId currently open in the link sheet */
+      let activeBingoCellId = null;
+    
+    
+      // ── Navigation ──────────────────────────────────────────────────────────────
+    
+      /**
+       * Opens the challenge detail view for a given challenge.
+       * For BOOK_COUNT and PAGE_COUNT, fires a backend sync before rendering
+       * so the My Progress tab always shows data calculated from live source data.
+       *
+       * @param {string} challengeId - ARKA_CHAL_X
+       * @param {string} [from]      - 'challenges' | 'me'
+       */
+      function openChallengeDetailView(challengeId, from) {
+        const challenge  = challengesMap.get(challengeId);
+        if (!challenge) { showToast('Challenge not found.'); return; }
+    
+        const enrollment = myEnrollmentsMap.get(challengeId);
+        if (!enrollment) { showToast('You are not enrolled in this challenge.'); return; }
+    
+        lastViewBeforeChallengeDetail = from || 'challenges';
+        currentViewedChallengeId      = challengeId;
+        currentChalDetailTab          = 'mine';
+    
+        // Header
+        document.getElementById('chalDetailTitle').textContent = challenge.title;
+    
+        // Status badge
+        const badge      = document.getElementById('chalDetailStatusBadge');
+        const statusCols = {
+          Active  : 'background:#EAF3DE;color:#27500A;',
+          Finisher: 'background:#E1F5EE;color:#085041;',
+          Winner  : 'background:#FAEEDA;color:#633806;'
+        };
+        badge.style.cssText = statusCols[enrollment.enrollmentStatus] || '';
+        badge.textContent   = enrollment.enrollmentStatus;
+    
+        // Show/hide Club tab
+        const clubTab = document.getElementById('tabChalDetailClub');
+        if (clubTab) clubTab.style.display = challenge.isCompetitive ? '' : 'none';
+    
+        switchTab('challengeDetail');
+    
+        // ── For count challenges: sync from source data before rendering ─────────
+        const countTypes = ['BOOK_COUNT', 'PAGE_COUNT'];
+        if (countTypes.includes(challenge.challengeType)) {
+    
+          // Show a lightweight loading state on the My Progress panel
+          const minePanel = document.getElementById('chalDetailMineContent');
+          if (minePanel) {
+            minePanel.innerHTML = `
+              <div style="text-align:center; padding:40px 0; color:#7f8c8d;">
+                <i class="fas fa-circle-notch fa-spin" style="font-size:1.5rem; margin-bottom:12px; display:block;"></i>
+                Syncing your progress…
+              </div>`;
+          }
+    
+          // Switch to mine tab visually (shows the loading state above)
+          document.getElementById('chalDetailMineContent').style.display  = 'block';
+          document.getElementById('chalDetailClubContent').style.display  = 'none';
+          document.getElementById('tabChalDetailMine').classList.add('active');
+          document.getElementById('tabChalDetailClub').classList.remove('active');
+    
+          // Fire backend sync — on success, update local state and render
+          google.script.run
+            .withSuccessHandler(function(res) {
+              if (res.status === 'success' && res.enrollment) {
+    
+                // Update local arrays with fresh data
+                const enrIdx = globalChallengeEnrollmentsDB.findIndex(function(e) {
+                  return e.enrollmentId === res.enrollment.enrollmentId;
+                });
+                if (enrIdx > -1) {
+                  globalChallengeEnrollmentsDB[enrIdx] = res.enrollment;
+                }
+                myEnrollmentsMap.set(challengeId, res.enrollment);
+    
+                // Update status badge if status changed (e.g. just became Finisher)
+                const updBadge = document.getElementById('chalDetailStatusBadge');
+                if (updBadge) {
+                  updBadge.style.cssText = statusCols[res.enrollment.enrollmentStatus] || '';
+                  updBadge.textContent   = res.enrollment.enrollmentStatus;
+                }
+              }
+              // Render My Progress tab with updated data (or original if sync failed)
+              renderChalDetailMyProgress();
+              // Keep Me tab in sync
+              renderMyChallengesCard();
+            })
+            .withFailureHandler(function() {
+              // Sync failed — render with whatever data we already have
+              console.warn('Challenge sync failed — rendering cached data.');
+              renderChalDetailMyProgress();
+            })
+            .syncAndFetchEnrollment(challengeId);
+    
+        } else {
+          // Non-count types render immediately — no sync needed
+          switchChalDetailTab('mine');
+        }
+      }
+    
+      /**
+       * Closes the challenge detail view and returns to the source view.
+       */
+      function closeChallengeDetailView() {
+        if (lastViewBeforeChallengeDetail === 'me') {
+          switchTab('me');
+        } else {
+          switchTab('challenges');
+          renderChallengeList(currentChallengesSubTab);
+        }
+        currentViewedChallengeId = null;
+      }
+    
+      /**
+       * Switches between My Progress and Club inner tabs.
+       * @param {'mine'|'club'} tab
+       */
+      function switchChalDetailTab(tab) {
+        currentChalDetailTab = tab;
+    
+        document.getElementById('chalDetailMineContent').style.display  = tab === 'mine' ? 'block' : 'none';
+        document.getElementById('chalDetailClubContent').style.display  = tab === 'club' ? 'block' : 'none';
+    
+        document.getElementById('tabChalDetailMine').classList.toggle('active', tab === 'mine');
+        document.getElementById('tabChalDetailClub').classList.toggle('active', tab === 'club');
+    
+        if (tab === 'mine') renderChalDetailMyProgress();
+        if (tab === 'club') renderChalDetailClub();
+      }
+    
+    
+      // ── My Progress renderers ────────────────────────────────────────────────────
+    
+      /**
+       * Master router — calls the right per-type renderer.
+       */
+      function renderChalDetailMyProgress() {
+        const container  = document.getElementById('chalDetailMineContent');
+        const challenge  = challengesMap.get(currentViewedChallengeId);
+        const enrollment = myEnrollmentsMap.get(currentViewedChallengeId);
+        if (!container || !challenge || !enrollment) return;
+    
+        let state = {};
+        try { state = JSON.parse(enrollment.progressStateJson || '{}'); } catch (e) {}
+    
+        const renderers = {
+          HABIT_STREAK  : renderStreakProgress,
+          BINGO_GRID    : renderBingoProgress,
+          BUDDY_READ    : renderBuddyReadProgress,
+          COUNTRY_SPREAD: renderCountrySpreadProgress,
+          ALPHABET      : renderAlphabetProgress,
+          BOOK_COUNT    : renderCountProgress,
+          PAGE_COUNT    : renderCountProgress
+        };
+    
+        const renderer = renderers[challenge.challengeType];
+        if (renderer) {
+          container.innerHTML = renderer(challenge, enrollment, state);
+        } else {
+          container.innerHTML = '<p style="color:#7f8c8d;text-align:center;padding:20px 0;">Progress view coming soon.</p>';
+        }
+    
+        // Attach Bingo tile click handlers after render
+        if (challenge.challengeType === 'BINGO_GRID') {
+          attachBingoTileHandlers(challenge, enrollment, state);
+        }
+      }
+    
+    
+      // ── HABIT_STREAK renderer ────────────────────────────────────────────────────
+    
+      /**
+       * Renders streak stats + a 28-day daily heatmap (4 weeks visible) +
+       * a monthly breakdown borrowed from the existing TenPagesADay design.
+       */
+      function renderStreakProgress(challenge, enrollment, state) {
+        const currentStreak  = state.currentStreak   || 0;
+        const longestStreak  = state.longestStreak   || 0;
+        const totalLogged    = state.totalDaysLogged  || 0;
+        const totalPages     = state.totalPagesLogged || 0;
+        const missedDates    = new Set(state.missedDates || []);
+    
+        // Build last-28-days heatmap
+        const today     = new Date();
+        const todayStr  = today.toISOString().slice(0, 10);
+        let   heatCells = '';
+    
+        for (let d = 27; d >= 0; d--) {
+          const dt      = new Date(today);
+          dt.setDate(today.getDate() - d);
+          const isoStr  = dt.toISOString().slice(0, 10);
+          const dayNum  = dt.getDate();
+          const isToday = isoStr === todayStr;
+    
+          // Determine if this day was logged — check PageLogDB filtered to this challenge
+          const wasLogged = wasPageLoggedOnDate(isoStr, enrollment.challengeId);
+          const wasMissed = missedDates.has(isoStr);
+    
+          let cls = 'streak-day';
+          if (wasLogged)     cls += ' logged';
+          else if (wasMissed) cls += ' missed';
+          else if (d === 0)   cls += ' future'; // today — not yet decided
+          if (isToday)       cls += ' today';
+    
+          heatCells += `<div class="${cls}" title="${isoStr}"></div>`;
+        }
+    
+        // Streak history list (last 5 streaks)
+        const historyRows = (state.streakHistory || [])
+          .slice(-5)
+          .reverse()
+          .map(function(h) {
+            return `<div style="display:flex;justify-content:space-between;padding:5px 0;
+                                border-bottom:1px solid #f0f0f0;font-size:0.8rem;">
+              <span style="color:#7f8c8d;">${h.startDate} → ${h.endDate || 'ongoing'}</span>
+              <span style="font-weight:600;">${h.length} days</span>
+            </div>`;
+          }).join('');
+    
+        return `
+          <div class="chal-stat-strip">
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num" style="color:#EF9F27;">${currentStreak}</div>
+              <div class="chal-stat-label">Current streak</div>
+            </div>
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num">${longestStreak}</div>
+              <div class="chal-stat-label">Best streak</div>
+            </div>
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num">${totalLogged}</div>
+              <div class="chal-stat-label">Days logged</div>
+            </div>
+          </div>
+    
+          <div class="card" style="padding:14px;margin-bottom:14px;">
+            <div style="font-size:0.75rem;font-weight:700;color:#7f8c8d;text-transform:uppercase;
+                        letter-spacing:0.5px;margin-bottom:8px;">Last 28 days</div>
+            <div class="streak-heatmap">${heatCells}</div>
+            <div style="display:flex;gap:12px;margin-top:6px;font-size:0.7rem;color:#95a5a6;">
+              <span><span style="display:inline-block;width:10px;height:10px;background:#1D9E75;border-radius:2px;margin-right:3px;"></span>Logged</span>
+              <span><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;border-radius:2px;margin-right:3px;opacity:0.7;"></span>Missed</span>
+              <span style="margin-left:auto;">${totalPages.toLocaleString()} total pages</span>
+            </div>
+          </div>
+    
+          ${historyRows.length ? `
+            <div class="card" style="padding:14px;margin-bottom:14px;">
+              <div style="font-size:0.75rem;font-weight:700;color:#7f8c8d;text-transform:uppercase;
+                          letter-spacing:0.5px;margin-bottom:8px;">Streak history</div>
+              ${historyRows}
+            </div>` : ''}
+        `;
+      }
+    
+      /**
+       * Checks PageLogDB to see if any pages were logged on a specific date
+       * for the current challenge enrollment.
+       *
+       * Uses the source field matching challengeId OR 'ArkaClubApp' for
+       * the 10 Pages challenge which predates the challenge module.
+       *
+       * @param {string} isoDateStr - yyyy-MM-dd
+       * @param {string} challengeId
+       * @returns {boolean}
+       */
+      function wasPageLoggedOnDate(isoDateStr, challengeId) {
+        return globalPageLogDB.some(function(log) {
+          if (log.memberId !== currentUser) return false;
+          // Normalise the timestamp to yyyy-MM-dd for comparison
+          const logDate = log.timestamp
+            ? log.timestamp.toString().slice(6, 10) + '-' +
+              log.timestamp.toString().slice(3, 5) + '-' +
+              log.timestamp.toString().slice(0, 2)
+            : '';
+          if (logDate !== isoDateStr) return false;
+          // Pages logged via this challenge OR directly via the app
+          return log.logSource === challengeId || log.logSource === 'ArkaClubApp'
+              || log.logSource === '10PagesADay' || log.logSource.includes('10Pages');
+        });
+      }
+    
+    
+      // ── BINGO_GRID renderer ──────────────────────────────────────────────────────
+    
+      /**
+       * Renders the full bingo board with clickable tiles.
+       * Tile state: free (purple) / done (green) / empty (grey).
+       * Clicking an empty tile opens the cell-link sheet.
+       */
+      function renderBingoProgress(challenge, enrollment, state) {
+        let config = {};
+        try { config = JSON.parse(challenge.goalConfigJson || '{}'); } catch (e) {}
+    
+        const gridSize     = config.gridSize || 3;
+        const cells        = config.cells    || [];
+        const cellsDone    = new Set(state.cellsCompleted || []);
+        const booksLinked  = state.booksLinked || {};
+        const linesCount   = (state.linesCompleted || []).length;
+        const totalCells   = gridSize * gridSize;
+        const centreIdx    = Math.floor(totalCells / 2);
+    
+        let tilesHtml = '';
+        cells.forEach(function(cell, idx) {
+          const isFree = (totalCells % 2 !== 0) && (idx === centreIdx);
+          const isDone = cellsDone.has(cell.cellId);
+          const linked = booksLinked[cell.cellId];
+          const stateClass = isFree ? 'state-free' : (isDone ? 'state-done' : 'state-empty');
+          const checkMark  = isDone ? '<span class="bingo-tile-check">✓</span>' : '';
+          const bookLine   = linked
+            ? `<div class="bingo-tile-book">${escapeHtml(linked.title)}</div>`
+            : '';
+    
+          tilesHtml += `
+            <div class="bingo-tile ${stateClass}"
+                id="bingoTile-${cell.cellId}"
+                data-cellid="${cell.cellId}"
+                data-free="${isFree}"
+                data-done="${isDone}">
+              ${checkMark}
+              <div class="bingo-tile-prompt">${escapeHtml(cell.prompt)}</div>
+              ${bookLine}
+            </div>`;
+        });
+    
+        const donePct = totalCells > 0 ? Math.round((cellsDone.size / totalCells) * 100) : 0;
+        const bingoNote = state.hasBingo ? '<span style="color:#1D9E75;font-weight:600;">🎉 BINGO achieved!</span>' : '';
+    
+        return `
+          <div class="chal-stat-strip">
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num" style="color:#7F77DD;">${cellsDone.size}/${totalCells}</div>
+              <div class="chal-stat-label">Cells done</div>
+            </div>
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num">${linesCount}</div>
+              <div class="chal-stat-label">Lines</div>
+            </div>
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num">${donePct}%</div>
+              <div class="chal-stat-label">Complete</div>
+            </div>
+          </div>
+          ${bingoNote ? `<p style="text-align:center;margin-bottom:12px;">${bingoNote}</p>` : ''}
+          <div class="chal-bingo-grid" style="grid-template-columns:repeat(${gridSize},1fr);">
+            ${tilesHtml}
+          </div>
+          <p style="font-size:0.75rem;color:#95a5a6;text-align:center;margin-top:8px;">
+            Tap any empty cell to link a book and mark it complete.
+          </p>`;
+      }
+    
+      /**
+       * Attaches click handlers to bingo tiles after renderBingoProgress() injects HTML.
+       */
+      function attachBingoTileHandlers(challenge, enrollment, state) {
+        document.querySelectorAll('.bingo-tile').forEach(function(tile) {
+          tile.addEventListener('click', function() {
+            const cellId = this.dataset.cellid;
+            const isFree = this.dataset.free === 'true';
+            const isDone = this.dataset.done === 'true';
+            if (isFree || isDone) return; // Free cell and done cells are not tappable
+            openBingoCellSheet(cellId, challenge, state);
+          });
+        });
+      }
+    
+    
+      // ── BUDDY_READ renderer ───────────────────────────────────────────────────────
+    
+      function renderBuddyReadProgress(challenge, enrollment, state) {
+        let config = {};
+        try { config = JSON.parse(challenge.goalConfigJson || '{}'); } catch (e) {}
+    
+        const totalPages = challenge.goalValue || 0;
+        const pagesRead  = state.pagesRead    || 0;
+        const pct        = totalPages > 0 ? Math.min(100, Math.round((pagesRead / totalPages) * 100)) : 0;
+        const bookTitle  = config.bookTitle   || 'the book';
+        const endDate    = challenge.endDate  || '';
+    
+        let finishedNote = '';
+        if (state.finishedBeforeDeadline === true)  finishedNote = '<p style="color:#1D9E75;font-weight:600;text-align:center;margin-top:12px;">✓ Finished on time!</p>';
+        if (state.finishedBeforeDeadline === false) finishedNote = '<p style="color:#e67e22;font-weight:600;text-align:center;margin-top:12px;">Finished (after deadline)</p>';
+    
+        return `
+          <div class="card" style="padding:16px;margin-bottom:14px;">
+            <div style="font-size:0.88rem;font-weight:600;color:#2c3e50;margin-bottom:4px;">
+              ${escapeHtml(bookTitle)}
+            </div>
+            ${endDate ? `<div style="font-size:0.75rem;color:#95a5a6;margin-bottom:12px;">Deadline: ${endDate}</div>` : ''}
+            <div style="font-size:2rem;font-weight:700;color:#D4537E;text-align:center;margin:10px 0;">
+              ${pagesRead.toLocaleString()} <span style="font-size:1rem;color:#95a5a6;">/ ${totalPages.toLocaleString()}</span>
+            </div>
+            <div style="height:10px;background:#ecf0f1;border-radius:6px;overflow:hidden;margin:8px 0;">
+              <div style="height:100%;width:${pct}%;background:#D4537E;border-radius:6px;transition:width 0.4s;"></div>
+            </div>
+            <div style="text-align:center;font-size:0.8rem;color:#7f8c8d;">${pct}% complete</div>
+            ${finishedNote}
+          </div>
+          <p style="font-size:0.8rem;color:#95a5a6;text-align:center;">
+            Your page progress updates automatically when you log pages for this book on your shelf.
+          </p>`;
+      }
+    
+    
+      // ── COUNTRY_SPREAD renderer ──────────────────────────────────────────────────
+    
+      function renderCountrySpreadProgress(challenge, enrollment, state) {
+        const goalValue = challenge.goalValue || 10;
+        const visited   = state.countriesVisited || {};
+        const total     = state.totalCountries  || 0;
+        const pct       = Math.round((total / goalValue) * 100);
+    
+        let listHtml = Object.entries(visited).map(function(entry) {
+          const country = entry[0];
+          const data    = entry[1];
+          return `
+            <div class="spread-item">
+              <div class="spread-item-flag">🌍</div>
+              <div style="flex:1;">
+                <div class="spread-item-name">${escapeHtml(country)}</div>
+                <div class="spread-item-book">${escapeHtml(data.title || '')}
+                  <span style="color:#bdc3c7;margin-left:4px;">${data.qualifiedVia || ''}</span>
+                </div>
+              </div>
+              <div style="font-size:0.72rem;color:#95a5a6;">${data.completedOn || ''}</div>
+            </div>`;
+        }).join('');
+    
+        if (!listHtml) listHtml = '<p style="color:#95a5a6;font-style:italic;text-align:center;padding:16px 0;">No countries visited yet.</p>';
+    
+        return `
+          <div class="chal-stat-strip" style="grid-template-columns:1fr 1fr;">
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num" style="color:#1D9E75;">${total}</div>
+              <div class="chal-stat-label">Countries</div>
+            </div>
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num">${goalValue - total > 0 ? goalValue - total : '✓'}</div>
+              <div class="chal-stat-label">${goalValue - total > 0 ? 'Remaining' : 'Goal reached'}</div>
+            </div>
+          </div>
+          <div style="height:8px;background:#ecf0f1;border-radius:4px;overflow:hidden;margin-bottom:16px;">
+            <div style="height:100%;width:${Math.min(100,pct)}%;background:#1D9E75;border-radius:4px;transition:width 0.4s;"></div>
+          </div>
+          <div class="card" style="padding:14px;">
+            ${listHtml}
+          </div>
+          <p style="font-size:0.78rem;color:#95a5a6;text-align:center;margin-top:10px;">
+            Ask your admin to record country completions from the admin enrollment view.
+          </p>`;
+      }
+    
+    
+      // ── ALPHABET renderer ─────────────────────────────────────────────────────────
+    
+      function renderAlphabetProgress(challenge, enrollment, state) {
+        let config = {};
+        try { config = JSON.parse(challenge.goalConfigJson || '{}'); } catch (e) {}
+    
+        const optionals  = new Set(config.optionalLetters || ['Q','X','Z']);
+        const letterMap  = state.letterMap || {};
+        const completed  = state.lettersCompleted || 0;
+        const goalValue  = challenge.goalValue || 23;
+    
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        let cellsHtml = letters.map(function(letter) {
+          const data      = letterMap[letter];
+          const isClaimed = data !== null && data !== undefined;
+          const isOpt     = optionals.has(letter);
+          const cls       = 'alpha-cell' + (isClaimed ? ' claimed' : '') + (isOpt ? ' optional' : '');
+          const bookSnip  = isClaimed && data ? data.title.slice(0, 12) : '';
+          return `
+            <div class="${cls}" title="${isClaimed && data ? escapeHtml(data.title) : (isOpt ? 'Optional' : 'Not claimed')}">
+              <div class="alpha-cell-letter">${letter}</div>
+              ${bookSnip ? `<div class="alpha-cell-book">${escapeHtml(bookSnip)}</div>` : ''}
+            </div>`;
+        }).join('');
+    
+        return `
+          <div class="chal-stat-strip">
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num" style="color:#378ADD;">${completed}/${goalValue}</div>
+              <div class="chal-stat-label">Letters</div>
+            </div>
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num">${state.optionalLettersCompleted || 0}</div>
+              <div class="chal-stat-label">Optional</div>
+            </div>
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num">${Math.round((completed/Math.max(1,goalValue))*100)}%</div>
+              <div class="chal-stat-label">Complete</div>
+            </div>
+          </div>
+          <div class="alpha-grid">${cellsHtml}</div>
+          <div style="display:flex;gap:12px;margin-top:8px;font-size:0.72rem;color:#95a5a6;flex-wrap:wrap;">
+            <span><span style="display:inline-block;width:10px;height:10px;background:#EAF3DE;border:1px solid #1D9E75;border-radius:2px;margin-right:3px;"></span>Claimed</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:#f8f9fa;border:1px dashed #95a5a6;border-radius:2px;margin-right:3px;"></span>Optional</span>
+          </div>
+          <p style="font-size:0.78rem;color:#95a5a6;text-align:center;margin-top:12px;">
+            Ask your admin to record letter completions from the admin enrollment view.
+          </p>`;
+      }
+    
+    
+      // ── BOOK_COUNT / PAGE_COUNT renderer ─────────────────────────────────────────
+    
+      function renderCountProgress(challenge, enrollment, state) {
+        const isPages     = challenge.challengeType === 'PAGE_COUNT';
+        const unit        = isPages ? 'pages' : 'books';
+        const colour      = isPages ? '#378ADD' : '#EF9F27';
+        const total       = isPages ? (state.totalPages || 0) : (state.totalBooks || 0);
+        const goal        = state.personalGoal || challenge.goalValue || 1;
+        const projection  = state.pacingProjection || 0;
+        const pct         = Math.min(100, Math.round((total / goal) * 100));
+        const aheadBehind = state.aheadBehindTarget || '';
+    
+        // Monthly breakdown bars
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const monthBreakdown = state.monthlyBreakdown || {};
+        const maxMonth = Math.max(1, ...Object.values(monthBreakdown).map(Number));
+        let monthBars = months.map(function(m) {
+          const val    = Number(monthBreakdown[m]) || 0;
+          const barPct = Math.round((val / maxMonth) * 100);
+          return `
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;">
+              <div style="width:100%;background:#ecf0f1;border-radius:3px;height:40px;display:flex;align-items:flex-end;overflow:hidden;">
+                <div style="width:100%;height:${barPct}%;background:${colour};border-radius:3px;transition:height 0.4s;"></div>
+              </div>
+              <div style="font-size:0.55rem;color:#95a5a6;margin-top:3px;">${m}</div>
+              ${val > 0 ? `<div style="font-size:0.6rem;color:${colour};font-weight:600;">${isPages ? val.toLocaleString() : val}</div>` : ''}
+            </div>`;
+        }).join('');
+    
+        // Book list for BOOK_COUNT
+        let listHtml = '';
+        if (!isPages) {
+          const books = (state.booksRead || []).slice(-10).reverse();
+          listHtml = books.length ? `
+            <div class="card" style="padding:14px;margin-top:14px;">
+              <div style="font-size:0.75rem;font-weight:700;color:#7f8c8d;text-transform:uppercase;
+                          letter-spacing:0.5px;margin-bottom:8px;">Recent reads</div>
+              ${books.map(function(b) {
+                return `<div style="padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.82rem;">
+                  <span style="font-weight:500;">${escapeHtml(b.title)}</span>
+                  <span style="color:#95a5a6;font-size:0.72rem;float:right;">${b.finishedOn || ''}</span>
+                </div>`;
+              }).join('')}
+            </div>` : '';
+        }
+    
+        return `
+          <div class="chal-stat-strip">
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num" style="color:${colour};">${isPages ? total.toLocaleString() : total}</div>
+              <div class="chal-stat-label">${unit} read</div>
+            </div>
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num">${isPages ? goal.toLocaleString() : goal}</div>
+              <div class="chal-stat-label">your goal</div>
+            </div>
+            <div class="chal-stat-tile">
+              <div class="chal-stat-num">${projection > 0 ? (isPages ? projection.toLocaleString() : projection) : '—'}</div>
+              <div class="chal-stat-label">pace</div>
+            </div>
+          </div>
+          <div style="height:10px;background:#ecf0f1;border-radius:6px;overflow:hidden;margin-bottom:6px;">
+            <div style="height:100%;width:${pct}%;background:${colour};border-radius:6px;transition:width 0.4s;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:#7f8c8d;margin-bottom:16px;">
+            <span>${pct}% of goal</span>
+            <span>${aheadBehind}</span>
+          </div>
+          <div class="card" style="padding:12px 14px;">
+            <div style="font-size:0.75rem;font-weight:700;color:#7f8c8d;text-transform:uppercase;
+                        letter-spacing:0.5px;margin-bottom:8px;">Monthly breakdown</div>
+            <div style="display:flex;gap:3px;align-items:flex-end;">${monthBars}</div>
+          </div>
+          ${listHtml}`;
+      }
+    
+    
+      // ── Club tab renderer ────────────────────────────────────────────────────────
+    
+      /**
+       * Renders the Club leaderboard tab.
+       * Shows all enrolled members ranked by currentProgressValue.
+       * Current user row is always highlighted and pinned to stay visible.
+       */
+      function renderChalDetailClub() {
+        const container  = document.getElementById('chalDetailClubContent');
+        const challenge  = challengesMap.get(currentViewedChallengeId);
+        if (!container || !challenge) return;
+    
+        // Get all Active / Finisher / Winner enrollments for this challenge
+        const challEnrollments = globalChallengeEnrollmentsDB
+          .filter(function(e) {
+            return e.challengeId === challenge.challengeId && e.enrollmentStatus !== 'Dropped';
+          })
+          .sort(function(a, b) {
+            return b.currentProgressValue - a.currentProgressValue;
+          });
+    
+        if (challEnrollments.length === 0) {
+          container.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:20px 0;font-style:italic;">No enrolled members yet.</p>';
+          return;
+        }
+    
+        // Max value for progress bar scaling
+        const maxVal = Math.max(1, challEnrollments[0].currentProgressValue);
+    
+        // Accent colour per type
+        const typeColours = {
+          HABIT_STREAK: '#EF9F27', BINGO_GRID: '#7F77DD',
+          BUDDY_READ: '#D4537E', COUNTRY_SPREAD: '#1D9E75',
+          ALPHABET: '#378ADD', BOOK_COUNT: '#EF9F27', PAGE_COUNT: '#378ADD'
+        };
+        const barColour = typeColours[challenge.challengeType] || '#A984BA';
+    
+        let rankHtml  = '';
+        let myRankRow = '';
+        let myRank    = -1;
+    
+        challEnrollments.forEach(function(enrollment, idx) {
+          const rank    = idx + 1;
+          const member  = membersMap.get(enrollment.memberId);
+          const isMe    = enrollment.memberId === currentUser;
+          const name    = member ? member.displayName : enrollment.memberId;
+          const initials = name.slice(0, 2).toUpperCase();
+          const score   = enrollment.currentProgressValue;
+          const barPct  = Math.round((score / maxVal) * 100);
+          const unit    = challenge.goalUnit || '';
+    
+          // Rank medal for top 3
+          const rankDisplay = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+    
+          const rowHtml = `
+            <div class="club-rank-row${isMe ? ' is-me' : ''}">
+              <div class="club-rank-num">${rankDisplay}</div>
+              <div class="club-rank-avatar"
+                  style="background:${isMe ? '#EEEDFE' : '#ecf0f1'};
+                          color:${isMe ? '#534AB7' : '#7f8c8d'};">
+                ${initials}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;">
+                  <span class="club-rank-name" style="${isMe ? 'color:#3C3489;font-weight:600;' : ''}">${escapeHtml(name)}${isMe ? ' (you)' : ''}</span>
+                  <span class="club-rank-score" style="color:${barColour};">${score.toLocaleString()} ${unit}</span>
+                </div>
+                <div class="club-rank-bar-wrap">
+                  <div class="club-rank-bar-bg">
+                    <div class="club-rank-bar-fill" style="width:${barPct}%;background:${barColour};"></div>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+    
+          if (isMe) {
+            myRank    = rank;
+            myRankRow = rowHtml;
+          }
+          rankHtml += rowHtml;
+        });
+    
+        const enrolledCount = challEnrollments.length;
+        const progressLabel = CHAL_CARD_CONFIG[challenge.challengeType]
+          ? 'Ranked by ' + (challenge.goalUnit || 'progress')
+          : 'Progress';
+    
+        container.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-size:0.78rem;color:#7f8c8d;">${enrolledCount} member${enrolledCount !== 1 ? 's' : ''} enrolled</div>
+            <div style="font-size:0.72rem;color:#95a5a6;">${progressLabel}</div>
+          </div>
+          <div class="card" style="padding:14px;">
+            ${rankHtml}
+          </div>
+          ${myRank > 5 ? `
+            <div style="margin-top:10px;padding:8px;background:#EEEDFE;border-radius:8px;
+                        font-size:0.82rem;color:#534AB7;text-align:center;">
+              Your rank: #${myRank} of ${enrolledCount}
+            </div>` : ''}`;
+      }
+    
+    
+      // ── Bingo cell link sheet ─────────────────────────────────────────────────────
+    
+      /**
+       * Opens the cell-link bottom sheet for a specific bingo cell.
+       * @param {string} cellId    - e.g. 'C3'
+       * @param {Object} challenge - ChallengeRecord
+       * @param {Object} state     - Current progressStateJson parsed
+       */
+      function openBingoCellSheet(cellId, challenge, state) {
+        activeBingoCellId = cellId;
+    
+        let config = {};
+        try { config = JSON.parse(challenge.goalConfigJson || '{}'); } catch (e) {}
+    
+        const cell = (config.cells || []).find(function(c) { return c.cellId === cellId; });
+        const linked = (state.booksLinked || {})[cellId];
+    
+        document.getElementById('bingoCellPromptText').textContent = cell ? cell.prompt : cellId;
+        document.getElementById('bingoCellCurrentBook').textContent = linked
+          ? 'Currently linked: ' + linked.title
+          : 'No book linked yet.';
+        document.getElementById('bingoCellActiveCellId').value = cellId;
+        document.getElementById('bingoCellBookInput').value   = '';
+        document.getElementById('bingoCellBookId').value      = '';
+    
+        // Populate book datalist from Arka Library
+        const datalist = document.getElementById('bingoCellBookList');
+        if (datalist) {
+          datalist.innerHTML = globalBooksDB.map(function(b) {
+            return '<option value="' + escapeHtml(b.title + ' — ' + b.author) + '" data-id="' + b.id + '">';
+          }).join('');
+        }
+    
+        // Reset button
+        const btn = document.getElementById('bingoCellSaveBtn');
+        if (btn) { btn.disabled = false; btn.innerText = 'Mark as completed'; }
+    
+        document.getElementById('bingoCellModal').style.display = 'flex';
+        setTimeout(function() {
+          document.getElementById('bingoCellDrawer').classList.add('open');
+        }, 10);
+      }
+    
+      /** Closes the bingo cell sheet. */
+      function closeBingoCellSheet() {
+        const drawer = document.getElementById('bingoCellDrawer');
+        if (drawer) drawer.classList.remove('open');
+        setTimeout(function() {
+          const modal = document.getElementById('bingoCellModal');
+          if (modal) modal.style.display = 'none';
+        }, 300);
+        activeBingoCellId = null;
+      }
+    
+      /**
+       * Saves the bingo cell link + marks the cell complete.
+       * Builds the updated progressStateJson, calls saveChallengeProgress(),
+       * and re-renders the board on success.
+       */
+      function saveBingoCellLink() {
+        const btn          = document.getElementById('bingoCellSaveBtn');
+        const cellId       = document.getElementById('bingoCellActiveCellId').value;
+        const bookRawInput = document.getElementById('bingoCellBookInput').value.trim();
+        const challenge    = challengesMap.get(currentViewedChallengeId);
+        const enrollment   = myEnrollmentsMap.get(currentViewedChallengeId);
+        if (!challenge || !enrollment || !cellId) return;
+    
+        if (!bookRawInput) {
+          showToast('Please link a book before marking this cell complete.');
+          document.getElementById('bingoCellBookInput').focus();
+          return;
+        }
+    
+        // Resolve bookId from input (format: "Title — Author")
+        const bookTitle   = bookRawInput.split(' — ')[0].trim();
+        const matchedBook = globalBooksDB.find(function(b) {
+          return b.title.toLowerCase() === bookTitle.toLowerCase();
+        });
+    
+        if (!matchedBook) {
+          showToast('Book not found in Arka Library. Please select from the list.');
+          return;
+        }
+    
+        btn.disabled  = true;
+        btn.innerText = 'Saving…';
+    
+        // Build updated progress state
+        let state = {};
+        try { state = JSON.parse(enrollment.progressStateJson || '{}'); } catch (e) {}
+    
+        // Add cell to completed set
+        const cellsDone = new Set(state.cellsCompleted || []);
+        cellsDone.add(cellId);
+        state.cellsCompleted = Array.from(cellsDone);
+    
+        // Link the book
+        if (!state.booksLinked) state.booksLinked = {};
+        state.booksLinked[cellId] = {
+          bookId     : matchedBook.id,
+          title      : matchedBook.title,
+          completedOn: getArkaTimestamp(new Date(), 'SHORT')
+        };
+    
+        // Check for completed lines
+        state.linesCompleted = detectBingoLines(state.cellsCompleted, challenge);
+        state.hasBingo       = state.linesCompleted.length > 0;
+    
+        const newProgressValue = cellsDone.size;
+        const progressJsonStr  = JSON.stringify(state);
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.status === 'error') {
+              showToast('Error: ' + res.message);
+              btn.disabled  = false;
+              btn.innerText = 'Mark as completed';
+              return;
+            }
+    
+            // Update local state
+            enrollment.progressStateJson    = progressJsonStr;
+            enrollment.currentProgressValue = newProgressValue;
+            if (res.updatedEnrollment) {
+              enrollment.enrollmentStatus = res.updatedEnrollment.enrollmentStatus;
+            }
+    
+            // Update myEnrollmentsMap
+            myEnrollmentsMap.set(currentViewedChallengeId, enrollment);
+    
+            // Show win/finish toast
+            if (res.isNewWin)    showToast('🏆 You won the Bingo challenge! Congratulations!');
+            else if (res.isNewFinish) showToast('✅ Bingo! Challenge finisher!');
+            else showToast('Cell marked complete! ✓');
+    
+            closeBingoCellSheet();
+            // Re-render the board with updated state
+            renderChalDetailMyProgress();
+            renderMyChallengesCard();
+          })
+          .withFailureHandler(function() {
+            showToast('Save failed. Please try again.');
+            btn.disabled  = false;
+            btn.innerText = 'Mark as completed';
+          })
+          .saveChallengeProgress({
+            enrollmentId        : enrollment.enrollmentId,
+            currentProgressValue: newProgressValue,
+            progressStateJson   : progressJsonStr,
+            activityPointsMap   : globalActivityPointsMap
+          });
+      }
+    
+      /**
+       * CLIENT-SIDE line detection for a bingo grid.
+       * Returns an array of completed line IDs (e.g. ['ROW_0', 'COL_1', 'DIAG_0']).
+       *
+       * @param {string[]} completedCellIds - e.g. ['C1', 'C5', 'C9']
+       * @param {Object}   challenge
+       * @returns {string[]}
+       */
+      function detectBingoLines(completedCellIds, challenge) {
+        let config = {};
+        try { config = JSON.parse(challenge.goalConfigJson || '{}'); } catch (e) {}
+    
+        const gridSize = config.gridSize || 3;
+        const done     = new Set(completedCellIds);
+        const cells    = config.cells || [];
+        const lines    = [];
+    
+        // Build cellId matrix
+        const matrix = [];
+        for (let r = 0; r < gridSize; r++) {
+          matrix[r] = [];
+          for (let c = 0; c < gridSize; c++) {
+            const idx  = r * gridSize + c;
+            matrix[r][c] = cells[idx] ? cells[idx].cellId : null;
+          }
+        }
+    
+        // Check rows
+        for (let r = 0; r < gridSize; r++) {
+          if (matrix[r].every(function(id) { return id && done.has(id); })) {
+            lines.push('ROW_' + r);
+          }
+        }
+        // Check columns
+        for (let c = 0; c < gridSize; c++) {
+          if (matrix.every(function(row) { return row[c] && done.has(row[c]); })) {
+            lines.push('COL_' + c);
+          }
+        }
+        // Check main diagonal
+        if (matrix.every(function(row, i) { return row[i] && done.has(row[i]); })) {
+          lines.push('DIAG_0');
+        }
+        // Check anti-diagonal
+        if (matrix.every(function(row, i) { return row[gridSize - 1 - i] && done.has(row[gridSize - 1 - i]); })) {
+          lines.push('DIAG_1');
+        }
+    
+        return lines;
       }
 
     </script>
