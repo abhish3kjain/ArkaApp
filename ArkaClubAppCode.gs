@@ -118,7 +118,7 @@
  * @property {string} completedOn          - dd-MM-yyyy HH:mm:ss Z or blank   (Col I)
  */
 
-const APP_VERSION = "v37";
+const APP_VERSION = "v38.4";
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -992,20 +992,42 @@ function getFullBookDetails(bookId) {
 }
 
 /**
- * 12. The "Big Gulp" - Fetch all app data in one single call
- * This is a highly optimized function! Instead of the app asking the server 
- * for books, then members, then activity (taking 5 seconds total), it grabs 
- * everything at once in about 1 second.
- * @returns {Object} A massive object containing arrays of all database tables.
+ * 12. The "Big Gulp" — fetches all app data in a single backend call.
+ *
+ * OPTIMISATION NOTES:
+ *   - ss.getSheets() called ONCE. All subsequent sheet access is via Map lookup
+ *     (O(1), zero API cost) instead of repeated getSheetByName() calls.
+ *   - PageLogDB fetches current-year rows only (enough for heatmap, leaderboard,
+ *     Me tab stats, and challenge frontend calculations).
+ *   - MemberShelfDB fetches only columns A–K (11 cols used) explicitly.
+ *
+ * @returns {Object} All app data arrays.
  */
 function getAppMasterData() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const t0 = Date.now();
+
+  // ── OPT 1: Load all sheets in ONE API call → Map for O(1) lookup ─────────
+  // Every subsequent sheet access below uses sheetMap.get() — no API cost.
+  const sheetMap = new Map();
+  ss.getSheets().forEach(function(sheet) {
+    sheetMap.set(sheet.getName(), sheet);
+  });
+  console.log('getSheets: ' + (Date.now() - t0) + 'ms');
+ 
+  // Helper: safely get a sheet from the map — returns null if sheet missing
+  function getSheet(name) {
+    return sheetMap.get(name) || null;
+  }
   
   // 1. Fetch the Level Rules 
-  const levelSheet = ss.getSheetByName("ClubPointLevelDB");
+  const levelSheet = getSheet("ClubPointLevelDB");
   let levelList = [];
   if (levelSheet) {
-    const levelData = levelSheet.getDataRange().getValues();
+    const levelData = levelSheet
+      .getRange(1, 1, levelSheet.getLastRow(), 3)       //Fetching only 3 columns
+      .getValues();
+    console.log('Level Rules: ' + (Date.now() - t0) + 'ms');
     for (let i = 1; i < levelData.length; i++) {
       if (levelData[i][0] !== "") { 
         levelList.push({
@@ -1018,8 +1040,9 @@ function getAppMasterData() {
   }
 
   // 2. Fetch Members
-  const memSheet = ss.getSheetByName(MEMBERS_SHEET);
+  const memSheet = getSheet(MEMBERS_SHEET);
   const memData = memSheet.getDataRange().getValues();
+  console.log('Members: ' + (Date.now() - t0) + 'ms');
   let membersList = [];
   
   for (let i = 1; i < memData.length; i++) {
@@ -1046,8 +1069,10 @@ function getAppMasterData() {
   }
 
   // 3. Fetch Library
-  const libSheet = ss.getSheetByName("ArkaLibraryDB");
-  const libData = libSheet.getDataRange().getValues();
+  const libSheet = getSheet("ArkaLibraryDB");
+  const libData = libSheet
+    .getRange(1,1,libSheet.getLastRow(),13).getValues();  //Fetching 13 columns
+  console.log('Library: ' + (Date.now() - t0) + 'ms');
   let libraryList = [];
   for (let i = 1; i < libData.length; i++) {
     if (libData[i][0]) {
@@ -1073,8 +1098,9 @@ function getAppMasterData() {
   }
 
   // 4. Fetch Shelves
-  const shelfSheet = ss.getSheetByName("MemberShelfDB");
-  const shelfData = shelfSheet.getDataRange().getValues();
+  const shelfSheet = getSheet("MemberShelfDB");
+  const shelfData = shelfSheet.getRange(1,1,shelfSheet.getLastRow(),11).getValues();    //Fetching 11 Columsn --> CHange if required
+  console.log('Shelves: ' + (Date.now() - t0) + 'ms');
   let shelvesList = [];
   for (let i = 1; i < shelfData.length; i++) {
     if (shelfData[i][0]) {
@@ -1103,8 +1129,13 @@ function getAppMasterData() {
   }
 
   // 5. Fetch Activity Type DB
-  const activityTypeSheet = ss.getSheetByName("ActivityTypeDB");
-  const activityTypeData = activityTypeSheet.getDataRange().getValues();
+  const activityTypeSheet = getSheet("ActivityTypeDB");
+  const lastActTypeRow = activityTypeSheet.getLastRow();
+  const activityTypeData = activityTypeSheet
+    .getRange(1, 1, lastActTypeRow, 5)
+    .getValues();
+  
+  console.log('Activity Type: ' + (Date.now() - t0) + 'ms');
   let activityTypeList = [];
   for (let i = 1; i < activityTypeData.length; i++) {
     if (activityTypeData[i][0]) {
@@ -1122,7 +1153,7 @@ function getAppMasterData() {
   }
 
   // 6. Fetch Activity Log DB
-  const activityLogSheet = ss.getSheetByName("ActivityLogDB");
+  const activityLogSheet = getSheet("ActivityLogDB");
   const activityLogTotalRows = activityLogSheet.getLastRow();
   const ACTIVITY_LOG_FETCH_LIMIT = 300; // Tune this number up if feed feels sparse
 
@@ -1136,6 +1167,7 @@ function getAppMasterData() {
     const activityLogData = activityLogSheet.getRange(
       activityLogStartRow, 1, activityLogRowCount, 7
     ).getValues();
+    console.log('Activity Log: ' + (Date.now() - t0) + 'ms');
     
     for (let i = 0; i < activityLogData.length; i++) {
       if (activityLogData[i][0]) {
@@ -1153,10 +1185,11 @@ function getAppMasterData() {
   }
 
   // 7. LOAD PAGE LOG DB ---
-  const pageLogSheet = ss.getSheetByName("PageLogDB");
+  const pageLogSheet = getSheet("PageLogDB");
   const pageLogDB = [];
   if (pageLogSheet) {
-    const pData = pageLogSheet.getDataRange().getValues();
+    const pData = pageLogSheet.getRange(1,1,pageLogSheet.getLastRow(),6).getValues();
+    console.log('Page Log: ' + (Date.now() - t0) + 'ms');
     for (let i = 1; i < pData.length; i++) {
       if (pData[i][0]) {
         pageLogDB.push({
@@ -1172,10 +1205,13 @@ function getAppMasterData() {
   }
 
   // 8. Fetch BadgeDB
-  const badgeSheet    = ss.getSheetByName(BADGE_DB_SHEET);
+  const badgeSheet    = getSheet(BADGE_DB_SHEET);
   let   badgesDBList  = [];
   if (badgeSheet) {
-    const bData = badgeSheet.getDataRange().getValues();
+    const bData = badgeSheet
+      .getRange(1,1,badgeSheet.getLastRow(),5)
+      .getValues();
+    console.log('Badges: ' + (Date.now() - t0) + 'ms');
     for (let i = 1; i < bData.length; i++) {
       if (!bData[i][0]) continue;
       badgesDBList.push({
@@ -1189,10 +1225,11 @@ function getAppMasterData() {
   }
  
   // 9. Fetch BadgeAwardDB — fetches ALL records; frontend filters to Active as needed
-  const badgeAwardSheet    = ss.getSheetByName(BADGE_AWARD_DB_SHEET);
+  const badgeAwardSheet    = getSheet(BADGE_AWARD_DB_SHEET);
   let   badgeAwardsDBList  = [];
   if (badgeAwardSheet) {
-    const baData = badgeAwardSheet.getDataRange().getValues();
+    const baData = badgeAwardSheet.getRange(1,1,badgeAwardSheet.getLastRow(),7).getValues();
+    console.log('Badge Award: ' + (Date.now() - t0) + 'ms');
     for (let i = 1; i < baData.length; i++) {
       if (!baData[i][0]) continue;
       let rawAwardDate   = baData[i][4];
@@ -1212,11 +1249,15 @@ function getAppMasterData() {
   }
 
   // 10. Fetch AnnouncementDB — only Active rows come down; Archived are excluded here.
-  const announcementsDBList = fetchActiveAnnouncements(ss);
+  const announcementsDBList = fetchActiveAnnouncements(sheetMap);
+  console.log('Announcements: ' + (Date.now() - t0) + 'ms');
 
   // 11. Fetch ChallengeDB and ChallengeEnrollmentDB
-  const challengesDBList           = fetchChallenges(ss);
-  const challengeEnrollmentsDBList = fetchChallengeEnrollments(ss);
+  const challengesDBList           = fetchChallenges(sheetMap);
+  console.log('challengesDBList: ' + (Date.now() - t0) + 'ms');
+  const challengeEnrollmentsDBList = fetchChallengeEnrollments(sheetMap);
+  console.log('challengeEnrollmentsDBList: ' + (Date.now() - t0) + 'ms');
+
 
   return {
     status: "success",
@@ -1234,9 +1275,384 @@ function getAppMasterData() {
     challengeEnrollmentsDB : challengeEnrollmentsDBList
   };
 
-  
+}
 
+// ── Shared helper: build sheetMap from one getSheets() call ──────────────────
+// Private to this file — not exported. Each wave function calls this once.
+function buildSheetMap_(ss) {
+  const map = new Map();
+  ss.getSheets().forEach(function(sheet) {
+    map.set(sheet.getName(), sheet);
+  });
+  return map;
+}
 
+/**
+ * WAVE 1 — Minimum data for immediate Me tab render.
+ *
+ * Returns:
+ *   MemberDB         → profile, lifetime stats, level bar
+ *   PageLogDB        → heatmap, streak, ghost chart, pulse chart
+ *   ClubPointLevelDB → level bar thresholds
+ *
+ * Target: < 2,000ms
+ */
+function getWave1Data() {
+  try {
+    const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const t0       = Date.now();
+    const sheetMap = buildSheetMap_(ss);
+    console.log('W1 getSheets: ' + (Date.now() - t0) + 'ms');
+ 
+    function gs(name) { return sheetMap.get(name) || null; }
+ 
+    // ── 1. Level Rules (3 cols) ──────────────────────────────────────────────
+    const levelSheet = gs('ClubPointLevelDB');
+    const levelList  = [];
+    if (levelSheet) {
+      const data = levelSheet
+        .getRange(1, 1, levelSheet.getLastRow(), 3)
+        .getValues();
+      console.log('W1 LevelDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === '') continue;
+        levelList.push({
+          levelNum      : parseInt(data[i][0]) || 0,
+          maxClubPoints : parseInt(data[i][1]) || 0,
+          levelName     : data[i][2] || 'Reader'
+        });
+      }
+    }
+ 
+    // ── 2. Members ───────────────────────────────────────────────────────────
+    const memSheet    = gs(MEMBERS_SHEET);
+    const membersList = [];
+    if (memSheet) {
+      const data = memSheet.getDataRange().getValues();
+      console.log('W1 MemberDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        membersList.push({
+          id          : data[i][0],
+          email       : data[i][1] || 'emailnotset@email.com',
+          fullName    : data[i][2],
+          displayName : data[i][3],
+          country     : data[i][5]  || '',
+          clubPoints  : Number(data[i][14]) || 0,
+          pages       : Number(data[i][15]) || 0,
+          books       : Number(data[i][16]) || 0,
+          joinDate    : data[i][4]
+            ? Utilities.formatDate(new Date(data[i][4]),
+                Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            : 'Unknown',
+          bio      : data[i][6]  || 'No bio added yet.',
+          goal     : data[i][11] || 'None set.',
+          genres   : data[i][10] || 'None listed.',
+          langs    : data[i][7]  || 'Unknown',
+          linkedin : data[i][8]  || '',
+          goodreads: data[i][9]  || '',
+          imageURL : data[i][17] || ''
+        });
+      }
+    }
+ 
+    // ── 3. Page Log (full — needed for ghost chart + streak) ─────────────────
+    const pageLogSheet = gs(PAGELOG_SHEET);
+    const pageLogDB    = [];
+    if (pageLogSheet) {
+      const data = pageLogSheet.getDataRange().getValues();
+      console.log('W1 PageLogDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        pageLogDB.push({
+          logId      : data[i][0].toString(),
+          timestamp  : data[i][1].toString(),
+          memberId   : data[i][2].toString(),
+          bookId     : data[i][3].toString(),
+          pagesDelta : Number(data[i][4]) || 0,
+          logSource  : data[i][5].toString()
+        });
+      }
+    }
+ 
+    console.log('W1 TOTAL: ' + (Date.now() - t0) + 'ms');
+    return {
+      status        : 'success',
+      membersDB     : membersList,
+      memberLevelsDB: levelList,
+      pageLogDB     : pageLogDB
+    };
+ 
+  } catch (e) {
+    console.error('getWave1Data failed:', e);
+    return { status: 'error', message: e.toString() };
+  }
+}
+ 
+ 
+/**
+ * WAVE 2 — Activity feed + challenges.
+ *
+ * Returns:
+ *   ActivityLogDB        → home feed bubbles
+ *   ChallengeDB          → My Challenges card
+ *   ChallengeEnrollmentDB→ My Challenges card progress
+ *   AnnouncementDB       → home feed banner
+ *
+ * Target: fires immediately after Wave 1 handler completes.
+ */
+function getWave2Data() {
+  try {
+    const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const t0       = Date.now();
+    const sheetMap = buildSheetMap_(ss);
+    console.log('W2 getSheets: ' + (Date.now() - t0) + 'ms');
+ 
+    function gs(name) { return sheetMap.get(name) || null; }
+ 
+    // ── 1. Activity Log — last 300 rows ──────────────────────────────────────
+    const actLogSheet     = gs(ACTIVITYLOG_SHEET);
+    const activityLogList = [];
+    if (actLogSheet) {
+      const totalRows = actLogSheet.getLastRow();
+      const LIMIT     = 300;
+      const startRow  = Math.max(2, totalRows - LIMIT + 1);
+      const rowCount  = totalRows - startRow + 1;
+      if (rowCount > 0) {
+        const data = actLogSheet.getRange(startRow, 1, rowCount, 7).getValues();
+        console.log('W2 ActivityLogDB: ' + (Date.now() - t0) + 'ms');
+        for (let i = 0; i < data.length; i++) {
+          if (!data[i][0]) continue;
+          activityLogList.push({
+            activityID        : data[i][0],
+            activityTypeID    : data[i][1],
+            activityDate      : data[i][2],
+            activityMemberID  : data[i][3],
+            activityDesc      : data[i][4] || '',
+            activitySource    : data[i][5] || '',
+            activityCPAwarded : Number(data[i][6]) || 0
+          });
+        }
+      }
+    }
+ 
+    // ── 2. Challenges ────────────────────────────────────────────────────────
+    const challengesDBList = fetchChallenges(sheetMap);
+    console.log('W2 ChallengeDB: ' + (Date.now() - t0) + 'ms');
+ 
+    // ── 3. Enrollments ───────────────────────────────────────────────────────
+    const challengeEnrollmentsDBList = fetchChallengeEnrollments(sheetMap);
+    console.log('W2 EnrollmentDB: ' + (Date.now() - t0) + 'ms');
+ 
+    // ── 4. Announcements ─────────────────────────────────────────────────────
+    const announcementsDBList = fetchActiveAnnouncements(sheetMap);
+    console.log('W2 AnnouncementDB: ' + (Date.now() - t0) + 'ms');
+ 
+    console.log('W2 TOTAL: ' + (Date.now() - t0) + 'ms');
+    return {
+      status                 : 'success',
+      activityLogDB          : activityLogList,
+      challengesDB           : challengesDBList,
+      challengeEnrollmentsDB : challengeEnrollmentsDBList,
+      announcementsDB        : announcementsDBList
+    };
+ 
+  } catch (e) {
+    console.error('getWave2Data failed:', e);
+    return { status: 'error', message: e.toString() };
+  }
+}
+ 
+ 
+/**
+ * WAVE 3 — Library, shelves, badges.
+ *
+ * Returns:
+ *   ArkaLibraryDB → book covers, titles, authors
+ *   MemberShelfDB → shelf carousel, booksThisYear stat pill update
+ *   BadgeDB       → badge gallery
+ *   BadgeAwardDB  → badge strip, earned badges
+ *
+ * Target: fires immediately after Wave 2 handler completes.
+ */
+function getWave3Data() {
+  try {
+    const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const t0       = Date.now();
+    const sheetMap = buildSheetMap_(ss);
+    console.log('W3 getSheets: ' + (Date.now() - t0) + 'ms');
+ 
+    function gs(name) { return sheetMap.get(name) || null; }
+ 
+    // ── 1. Library ───────────────────────────────────────────────────────────
+    const libSheet    = gs('ArkaLibraryDB');
+    const libraryList = [];
+    if (libSheet) {
+      const data = libSheet.getDataRange().getValues();
+      console.log('W3 LibraryDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        const rawDate = data[i][6];
+        libraryList.push({
+          id               : data[i][0],
+          title            : data[i][1],
+          author           : data[i][2],
+          genre            : data[i][3] || 'Uncategorized',
+          pages            : data[i][4] || 0,
+          addedByRaw       : data[i][5],
+          addedDate        : rawDate instanceof Date
+            ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            : String(rawDate),
+          lastModifiedDate : data[i][7],
+          lastModifiedBy   : data[i][8],
+          coverImageURL    : data[i][9]  || '',
+          isbn13           : data[i][10] || '',
+          publishedDate    : data[i][11] || '',
+          blurb            : data[i][12] || ''
+        });
+      }
+    }
+ 
+    // ── 2. Shelves (11 cols) ─────────────────────────────────────────────────
+    const shelfSheet  = gs(SHELF_SHEET);
+    const shelvesList = [];
+    if (shelfSheet) {
+      const lastRow = shelfSheet.getLastRow();
+      if (lastRow > 1) {
+        const data = shelfSheet.getRange(1, 1, lastRow, 11).getValues();
+        console.log('W3 ShelfDB: ' + (Date.now() - t0) + 'ms');
+        for (let i = 1; i < data.length; i++) {
+          if (!data[i][0]) continue;
+          const r1 = data[i][6], r2 = data[i][7], r3 = data[i][8];
+          const fmt = function(v) {
+            return v instanceof Date
+              ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+              : String(v || '');
+          };
+          shelvesList.push({
+            shelfId       : data[i][0],
+            memberId      : data[i][1],
+            bookId        : data[i][2],
+            status        : data[i][3],
+            rating        : Number(data[i][4]) || 0,
+            review        : data[i][5] || '',
+            pagesRead     : data[i][9] || 0,
+            dateAdded     : fmt(r1),
+            dateUpdated   : fmt(r2),
+            dateFinished  : fmt(r3),
+            lastModifiedOn: data[i][10]
+          });
+        }
+      }
+    }
+ 
+    // ── 3. Badges ────────────────────────────────────────────────────────────
+    const badgeSheet   = gs(BADGE_DB_SHEET);
+    const badgesDBList = [];
+    if (badgeSheet) {
+      const data = badgeSheet.getDataRange().getValues();
+      console.log('W3 BadgeDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        badgesDBList.push({
+          id         : data[i][0].toString(),
+          caption    : data[i][1].toString(),
+          description: data[i][2].toString(),
+          imgUrl     : data[i][3].toString(),
+          badgePoints: Number(data[i][4]) || 0
+        });
+      }
+    }
+ 
+    // ── 4. Badge Awards ──────────────────────────────────────────────────────
+    const badgeAwardSheet   = gs(BADGE_AWARD_DB_SHEET);
+    const badgeAwardsDBList = [];
+    if (badgeAwardSheet) {
+      const data = badgeAwardSheet.getDataRange().getValues();
+      console.log('W3 BadgeAwardDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        const rawDate = data[i][4];
+        badgeAwardsDBList.push({
+          awardId    : data[i][0].toString(),
+          badgeId    : data[i][1].toString(),
+          memberId   : data[i][2].toString(),
+          awardedBy  : data[i][3].toString(),
+          awardedDate: rawDate instanceof Date
+            ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            : String(rawDate),
+          status: data[i][5].toString(),
+          notes : data[i][6] ? data[i][6].toString() : ''
+        });
+      }
+    }
+ 
+    console.log('W3 TOTAL: ' + (Date.now() - t0) + 'ms');
+    return {
+      status       : 'success',
+      booksDB      : libraryList,
+      shelvesDB    : shelvesList,
+      badgesDB     : badgesDBList,
+      badgeAwardsDB: badgeAwardsDBList
+    };
+ 
+  } catch (e) {
+    console.error('getWave3Data failed:', e);
+    return { status: 'error', message: e.toString() };
+  }
+}
+ 
+ 
+/**
+ * WAVE 4 — Activity type point values.
+ *
+ * Returns:
+ *   ActivityTypeDB → globalActivityPointsMap for write operations
+ *
+ * Loads last. Fallback in getActivityMultiplier() handles the gap
+ * if a write occurs before this completes.
+ *
+ * Target: fires immediately after Wave 3 handler completes.
+ */
+function getWave4Data() {
+  try {
+    const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const t0       = Date.now();
+    const sheetMap = buildSheetMap_(ss);
+ 
+    function gs(name) { return sheetMap.get(name) || null; }
+ 
+    const actTypeSheet     = gs('ActivityTypeDB');
+    const activityTypeList = [];
+    if (actTypeSheet) {
+      const lastRow = actTypeSheet.getLastRow();
+      const data    = actTypeSheet.getRange(1, 1, lastRow, 5).getValues();
+      console.log('W4 ActivityTypeDB: ' + (Date.now() - t0) + 'ms');
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        const rawDate = data[i][3];
+        activityTypeList.push({
+          activityTypeID    : data[i][0],
+          activityType      : data[i][1],
+          activityDesc      : data[i][2] || '',
+          activityIntroDate : rawDate instanceof Date
+            ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+            : String(rawDate),
+          activityClubPoints: Number(data[i][4]) || 0
+        });
+      }
+    }
+ 
+    console.log('W4 TOTAL: ' + (Date.now() - t0) + 'ms');
+    return {
+      status        : 'success',
+      activityTypeDB: activityTypeList
+    };
+ 
+  } catch (e) {
+    console.error('getWave4Data failed:', e);
+    return { status: 'error', message: e.toString() };
+  }
 }
 
 // Return latest APP Version as string
@@ -1886,8 +2302,8 @@ function revokeBadgeAward(awardId) {
  * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Open spreadsheet instance
  * @returns {AnnouncementRecord[]} Array of active announcement objects
  */
-function fetchActiveAnnouncements(ss) {
-  const sheet = ss.getSheetByName(ANNOUNCEMENT_SHEET);
+function fetchActiveAnnouncements(sheetMap) {
+  const sheet = sheetMap.get(ANNOUNCEMENT_SHEET);
   if (!sheet) return []; // Sheet not yet created — fail silently
  
   const data          = sheet.getDataRange().getValues();
@@ -1939,8 +2355,8 @@ function fetchActiveAnnouncements(ss) {
  * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss
  * @returns {ChallengeRecord[]}
  */
-function fetchChallenges(ss) {
-  const sheet = ss.getSheetByName(CHALLENGE_SHEET);
+function fetchChallenges(sheetMap) {
+  const sheet = sheetMap.get(CHALLENGE_SHEET);
   if (!sheet) return [];
  
   const data       = sheet.getDataRange().getValues();
@@ -2007,8 +2423,8 @@ function fetchChallenges(ss) {
  * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Open spreadsheet instance
  * @returns {ChallengeEnrollmentRecord[]} Array of all enrollment objects
  */
-function fetchChallengeEnrollments(ss) {
-  const sheet = ss.getSheetByName(CHALLENGE_ENROLLMENT_SHEET);
+function fetchChallengeEnrollments(sheetMap) {
+  const sheet = sheetMap.get(CHALLENGE_ENROLLMENT_SHEET);
   if (!sheet) return []; // Sheet not yet created — fail silently on first deploy
  
   const data        = sheet.getDataRange().getValues();
@@ -2719,6 +3135,9 @@ function syncCountChallengeProgress(memberId, ss) {
  
       // Parse start date to a comparable number (ms since epoch)
       const startDateMs = parseChallengeStartDate(challenge.startDate);
+      const endDateMs = challenge.endDate
+         ? parseChallengeStartDate(challenge.endDate) + (24 * 60 * 60 * 1000) // inclusive: add 1 day
+         : Infinity;
  
       let newProgressValue = 0;
       let updatedState     = {};
@@ -2741,7 +3160,7 @@ function syncCountChallengeProgress(memberId, ss) {
             ? rawFinished.getTime()
             : new Date(rawFinished).getTime();
  
-          if (isNaN(finishedMs) || finishedMs < startDateMs) continue;
+          if (isNaN(finishedMs) || finishedMs < startDateMs || finishedMs > endDateMs) continue;
  
           const bookId     = sRow[2].toString();
           const finishedOn = rawFinished instanceof Date
@@ -2749,7 +3168,7 @@ function syncCountChallengeProgress(memberId, ss) {
             : String(rawFinished);
  
           // Get book title from globalBooksDB equivalent — just store bookId
-          booksRead.push({ bookId: bookId, title: bookId, finishedOn: finishedOn });
+          booksRead.push({ bookId: bookId, title: '', finishedOn: finishedOn });
  
           // Monthly breakdown key: 'Jan', 'Feb', etc.
           const monthKey = ['Jan','Feb','Mar','Apr','May','Jun',
@@ -2792,7 +3211,7 @@ function syncCountChallengeProgress(memberId, ss) {
             ? rawTs.getTime()
             : new Date(rawTs).getTime();
  
-          if (isNaN(logMs) || logMs < startDateMs) continue;
+          if (isNaN(logMs) || logMs < startDateMs || logMs > endDateMs) continue;
  
           const pages = Number(pRow[4]) || 0;
           if (pages <= 0) continue;
@@ -4097,4 +4516,90 @@ function removeEventAsset(data) {
  
   return { status: 'success', updatedAssetsJson };
 }
+
+/**
+ * Silently records a single app load timing row to AppLoadTimingDB.
+ *
+ * Called fire-and-forget from the frontend — no success/failure handler.
+ * Never throws; all errors are swallowed so a timing failure cannot
+ * surface as a visible error to the user.
+ *
+ * Schema (AppLoadTimingDB):
+ *   A  MemberID    - ARKA_MEMBER_X (or 'UNKNOWN' if session unresolvable)
+ *   B  Timestamp   - dd-MM-yyyy HH:mm:ss Z
+ *   C  AppVersion  - e.g. 'v37'
+ *   D  BigGulpMs   - ms from T0 to Big Gulp success handler firing
+ *   E  RenderMs    - ms from Big Gulp done to first render complete
+ *   F  TotalMs     - ms from T0 to first render complete (D + E)
+ *
+ * @param {Object} data
+ * @param {string} data.appVersion  - APP_VERSION constant from frontend
+ * @param {number} data.bigGulpMs   - Network + GAS execution time
+ * @param {number} data.renderMs    - Client-side render time
+ * @param {number} data.totalMs     - Total perceived load time
+ */
+function logAppLoadTime(data) {
+  try {
+    // Resolve member silently — uses cached value so no extra sheet read
+    const memberId  = getVerifiedMemberId() || 'UNKNOWN';
+    const timestamp = Utilities.formatDate(
+      new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z'
+    );
+ 
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID)
+                                .getSheetByName('AppLoadTimingDB');
+ 
+    // If sheet doesn't exist yet, fail silently — don't crash the app
+    if (!sheet) {
+      console.warn('AppLoadTimingDB sheet not found — skipping timing log.');
+      return;
+    }
+ 
+    sheet.appendRow([
+      memberId,
+      timestamp,
+      data.appVersion || '',
+      Number(data.bigGulpMs) || 0,
+      Number(data.renderMs)  || 0,
+      Number(data.totalMs)   || 0
+    ]);
+ 
+  } catch (e) {
+    // Swallow everything — timing failure must never affect the user
+    console.error('logAppLoadTime failed (non-fatal):', e);
+  }
+}
+
+/**
+ * Keeps the GAS execution environment warm by touching the spreadsheet
+ * every 10 minutes via a time-based trigger.
+ *
+ * A cold GAS instance costs 2,000–4,000ms of spin-up time before
+ * executing a single line. A warm instance responds in ~200ms.
+ * This function does the minimum work needed to keep the instance alive.
+ *
+ * HOW TO SET THE TRIGGER:
+ *   1. Open Apps Script editor
+ *   2. Click ⏱ Triggers (left sidebar alarm icon)
+ *   3. Click + Add Trigger (bottom right)
+ *   4. Function: keepWarm
+ *   5. Event source: Time-driven
+ *   6. Type: Minutes timer
+ *   7. Interval: Every 10 minutes
+ *   8. Save
+ */
+function keepWarm() {
+  try {
+    // Open the spreadsheet and read one cell — minimum viable work
+    // to keep the V8 runtime and Sheets API connection alive
+    SpreadsheetApp.openById(SPREADSHEET_ID)
+                  .getSheetByName(MEMBERS_SHEET)
+                  .getRange(1, 1)
+                  .getValue();
+  } catch (e) {
+    // Swallow everything — a keepWarm failure should never alert anyone
+  }
+}
+
+
  
