@@ -3263,7 +3263,7 @@
        * const (not let) so it cannot be accidentally overwritten later.
        */
       const APP_LOAD_T0 = Date.now();
-      let currentAppVersion = "v38.3"; 
+      let currentAppVersion = "v39"; 
       let activeEmail = "";  
       let currentUser = ""; 
       /**
@@ -4004,7 +4004,7 @@
            * @param {string} fnName      - Backend GAS function name to call
            * @param {number} retryCount  - Internal use only, do not pass
            */
-          function fireWave(waveKey, fnName, retryCount) {
+          window.fireWave = function fireWave(waveKey, fnName, retryCount) {
             retryCount = retryCount || 0;
     
             google.script.run
@@ -4041,12 +4041,12 @@
               [fnName]();  // Calls google.script.run.getWave1Data() etc.
           }
     
-          // ── Fire all four waves simultaneously ───────────────────────────────────
-          fireWave('w1', 'getWave1Data');
-          fireWave('w2', 'getWave2Data');
-          fireWave('w3', 'getWave3Data');
-          fireWave('w4', 'getWave4Data');
-    
+          // W1 and W2 fire simultaneously — both are needed for Me tab
+          // W3 and W4 fire from applyWave1() once W1 returns
+          window.fireWave('w1', 'getWave1Data');
+          window.fireWave('w2', 'getWave2Data');
+          window.fireWave('w3', 'getWave3Data');
+          window.fireWave('w4', 'getWave4Data');
         }, 50);
       }
 
