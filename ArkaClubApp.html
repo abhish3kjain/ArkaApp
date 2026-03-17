@@ -2391,7 +2391,15 @@
               Loading books...
             </div>
             
-            <input type="text" id="librarySearch" placeholder="Search title, author, or genre..." onkeyup="filterLibrary()" style="margin-bottom: 20px;">
+            <div id="libSortChips"
+                  style="display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;
+                        padding-bottom:4px;-ms-overflow-style:none;scrollbar-width:none;">
+            </div>
+      
+            <input type="text" id="librarySearch"
+                    placeholder="Search title, author, or genre..."
+                    oninput="debouncedFilterLibrary()"
+                    style="margin-bottom:16px;">
             
             <div id="libraryLoading" style="text-align: center; color: #7f8c8d; padding: 20px;">
               Dusting off the bookshelves...
@@ -2430,37 +2438,175 @@
               </div>
             </div>
 
-            <div id="addStepForm" style="display: none;">
-              <div class="form-grid" style="display: grid; gap: 20px; margin-top: 10px;">
-                <div>
-                  <label class="form-label">Book Title</label>
-                  <input type="text" id="newBookTitle" placeholder="e.g., Project Hail Mary">
+            <div id="addStepForm" style="display:none;">
+              <!-- Hidden inputs for internal state -->
+              <input type="hidden" id="bookCoverBase64" value="">
+              <input type="hidden" id="bookCoverSourceUrl" value="">
+            
+              <!-- ── ISBN Quick Fill ─────────────────────────────────────────────────── -->
+              <div style="background:#EAF3DE;border:0.5px solid #C0DD97;border-radius:12px;
+                          padding:14px 16px;margin-bottom:18px;">
+                <div style="font-size:0.82rem;font-weight:600;color:#3B6D11;margin-bottom:4px;">
+                  Have the ISBN-13? Auto-fill the form
                 </div>
-                <div>
-                  <label class="form-label">Author Name</label>
-                  <input type="text" id="newBookAuthor" placeholder="e.g., Andy Weir">
+                <div style="font-size:0.78rem;color:#3B6D11;opacity:0.85;margin-bottom:10px;">
+                  Enter the 13-digit number from the back of the book.
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="display:flex;gap:8px;">
+                  <input type="text" id="isbnSearchInput"
+                        placeholder="e.g. 9780593135204"
+                        maxlength="17"
+                        style="flex:1;margin:0;font-size:0.9rem;"
+                        oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,13)">
+                  <button onclick="searchByIsbn()"
+                          id="isbnSearchBtn"
+                          style="width:auto;padding:6px 14px;font-size:0.85rem;
+                                white-space:nowrap;background:#3B6D11;color:white;
+                                border:none;border-radius:8px;">
+                    Search
+                  </button>
+                </div>
+                <div id="isbnSearchStatus"
+                    style="font-size:0.75rem;color:#3B6D11;margin-top:6px;min-height:16px;"></div>
+              </div>
+            
+              <!-- ── ESSENTIAL ──────────────────────────────────────────────────────── -->
+              <div style="font-size:0.68rem;font-weight:600;color:#7f8c8d;
+                          text-transform:uppercase;letter-spacing:0.6px;margin:0 0 8px;">
+                Essential
+              </div>
+              <div style="background:white;border:0.5px solid #ecf0f1;border-radius:12px;
+                          padding:14px 16px;margin-bottom:14px;">
+            
+                <label class="form-label">Title <span style="color:#e74c3c;">*</span></label>
+                <input type="text" id="newBookTitle" placeholder="e.g. Project Hail Mary">
+            
+                <label class="form-label">Author <span style="color:#e74c3c;">*</span></label>
+                <input type="text" id="newBookAuthor" placeholder="e.g. Andy Weir">
+            
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                   <div>
-                    <label class="form-label">Genre</label>
-                    <input type="text" id="newBookGenre" placeholder="e.g., Sci-Fi">
+                    <label class="form-label">Pages <span style="color:#e74c3c;">*</span></label>
+                    <input type="number" id="newBookPages" placeholder="e.g. 476" min="1">
                   </div>
                   <div>
-                    <label class="form-label">Total Pages</label>
-                    <input type="number" id="newBookPages" placeholder="0">
+                    <label class="form-label">Published year</label>
+                    <input type="text" id="newBookPublishedDate"
+                          placeholder="e.g. 2021"
+                          maxlength="4"
+                          oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)">
                   </div>
                 </div>
-                <div>
-                  <label class="form-label">Cover Image URL (Optional)</label>
-                  <input type="url" id="newBookCover" placeholder="https://...">
+              </div>
+            
+              <!-- ── GENRE TAG INPUT ────────────────────────────────────────────────── -->
+              <div style="font-size:0.68rem;font-weight:600;color:#7f8c8d;
+                          text-transform:uppercase;letter-spacing:0.6px;margin:0 0 8px;">
+                Genre <span style="color:#e74c3c;">*</span>
+              </div>
+              <div style="background:white;border:0.5px solid #ecf0f1;border-radius:12px;
+                          padding:14px 16px;margin-bottom:14px;">
+            
+                <!-- Tag chips appear here -->
+                <div id="genreTagsContainer"
+                    style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:0;">
+                </div>
+            
+                <input type="text" id="newBookGenreInput"
+                      placeholder="Type a genre then press Enter or comma…"
+                      style="margin:0;"
+                      onkeydown="handleGenreKeydown(event)">
+                <p style="font-size:0.72rem;color:#95a5a6;margin:5px 0 0;">
+                  Press Enter or , to add · tap × to remove
+                </p>
+                <!-- Hidden field that stores the final comma-separated genre string -->
+                <input type="hidden" id="newBookGenre" value="">
+              </div>
+            
+              <!-- ── COVER ──────────────────────────────────────────────────────────── -->
+              <div style="font-size:0.68rem;font-weight:600;color:#7f8c8d;
+                          text-transform:uppercase;letter-spacing:0.6px;margin:0 0 8px;">
+                Cover
+              </div>
+              <div style="background:white;border:0.5px solid #ecf0f1;border-radius:12px;
+                          padding:14px 16px;margin-bottom:14px;">
+                <div style="display:flex;gap:14px;align-items:flex-start;">
+            
+                  <!-- Preview -->
+                  <div id="bookCoverPreviewWrap"
+                      style="flex-shrink:0;width:72px;height:108px;border-radius:4px 6px 6px 4px;
+                              background:#ecf0f1;border:0.5px solid #ddd;overflow:hidden;
+                              display:flex;align-items:center;justify-content:center;">
+                    <span id="bookCoverPreviewPlaceholder"
+                          style="font-size:0.62rem;color:#bdc3c7;text-align:center;padding:4px;
+                                line-height:1.3;">
+                      No cover
+                    </span>
+                    <img id="bookCoverPreviewImg" src="" alt="Cover preview"
+                        style="display:none;width:100%;height:100%;object-fit:cover;">
+                  </div>
+            
+                  <div style="flex:1;min-width:0;">
+                    <div id="bookCoverStatusMsg"
+                        style="font-size:0.78rem;color:#27ae60;margin-bottom:8px;display:none;
+                                line-height:1.4;">
+                      <!-- Filled when ISBN search finds a cover -->
+                    </div>
+                    <p style="font-size:0.78rem;color:#7f8c8d;margin:0 0 8px;">
+                      ISBN search auto-fills the cover. Or upload from your device:
+                    </p>
+                    <input type="file" id="bookCoverFileInput" accept="image/*"
+                          style="display:none;" onchange="handleBookCoverSelect(event)">
+                    <button onclick="document.getElementById('bookCoverFileInput').click()"
+                            style="width:100%;font-size:0.82rem;padding:8px;background:none;
+                                  border:1px solid #bdc3c7;border-radius:8px;color:#2c3e50;
+                                  cursor:pointer;">
+                      Choose image from device
+                    </button>
+                    <p style="font-size:0.68rem;color:#95a5a6;margin:5px 0 0;">
+                      Resized to ~240×360px before upload · ~50KB
+                    </p>
+                  </div>
+            
                 </div>
               </div>
-              
-              <div style="margin-top: 30px; display: flex; gap: 10px;">
-                <button id="finalSubmitBtn" onclick="submitNewBook()" class="btn-primary" style="flex: 2; background-color: #2ecc71;">🚀 Add to Library</button>
-                <button onclick="showAddBookSearch()" class="btn-secondary" style="flex: 1;">Cancel</button>
+            
+              <!-- ── DETAILS (OPTIONAL) ─────────────────────────────────────────────── -->
+              <div style="font-size:0.68rem;font-weight:600;color:#7f8c8d;
+                          text-transform:uppercase;letter-spacing:0.6px;margin:0 0 8px;">
+                Details
+                <span style="font-weight:400;font-size:0.68rem;text-transform:none;
+                            margin-left:4px;color:#bdc3c7;">optional</span>
               </div>
-            </div>
+              <div style="background:white;border:0.5px solid #ecf0f1;border-radius:12px;
+                          padding:14px 16px;margin-bottom:22px;">
+            
+                <label class="form-label">ISBN-13</label>
+                <input type="text" id="newBookIsbn13"
+                      placeholder="9780593135204"
+                      maxlength="13"
+                      style="margin-bottom:14px;"
+                      oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,13)">
+            
+                <label class="form-label">Blurb / description</label>
+                <textarea id="newBookBlurb" rows="3"
+                          placeholder="A short summary of the book…"
+                          style="resize:vertical;margin:0;"></textarea>
+              </div>
+            
+              <!-- ── Actions ────────────────────────────────────────────────────────── -->
+              <div style="display:flex;gap:10px;">
+                <button id="finalSubmitBtn" onclick="submitNewBook()"
+                        class="btn-primary"
+                        style="flex:2;background-color:#2ecc71;">
+                  🚀 Add to Library
+                </button>
+                <button onclick="showAddBookSearch()" class="btn-secondary" style="flex:1;">
+                  Cancel
+                </button>
+              </div>
+            
+            </div><!-- end addStepForm -->
           </div>
         </div>
       </div>
@@ -6175,20 +6321,286 @@
         renderDiscoverTab();
       }
 
-      function filterLibrary() {
-        const query = document.getElementById('librarySearch').value.toLowerCase();
-        const filtered = globalBooksDB.filter(book => {
-          return (
-            book.title.toLowerCase().includes(query) ||
-            book.author.toLowerCase().includes(query) ||
-            book.genre.toLowerCase().includes(query)
-          );
-        });
-        renderLibrary(filtered);
-      }
-
       function closeModal(modalId) {
         document.getElementById(modalId).style.display = 'none';
+      }
+
+      // ── Sort state ────────────────────────────────────────────────────────────
+      // Tracks which sort is currently active in the All Books tab.
+      // Values: 'recent' | 'az' | 'rated' | 'mostread'
+      var currentLibrarySort = 'recent';
+    
+    
+      /**
+       * Sort configuration — defines label, key, and comparator for each option.
+       * Adding a new sort later = add one entry here, nothing else changes.
+       *
+       * @type {Array<{ key: string, label: string, sort: function }>}
+       */
+      var LIBRARY_SORT_OPTIONS = [
+        {
+          key  : 'recent',
+          label: 'Recently Added',
+          // globalBooksDB is in insertion order (oldest first) — reverse for newest first
+          sort : function(books) {
+            return books.slice().reverse();
+          }
+        },
+        {
+          key  : 'az',
+          label: 'A – Z',
+          sort : function(books) {
+            return books.slice().sort(function(a, b) {
+              return a.title.localeCompare(b.title);
+            });
+          }
+        },
+        {
+          key  : 'rated',
+          label: 'Top Rated',
+          sort : function(books) {
+            // Build avg rating from globalShelvesDB — O(n) once per sort
+            var ratingMap = new Map(); // bookId → { sum, count }
+            globalShelvesDB.forEach(function(s) {
+              if (!s.rating || s.rating <= 0) return;
+              if (!ratingMap.has(s.bookId)) ratingMap.set(s.bookId, { sum: 0, count: 0 });
+              var r = ratingMap.get(s.bookId);
+              r.sum   += s.rating;
+              r.count += 1;
+            });
+    
+            return books.slice().sort(function(a, b) {
+              var ra = ratingMap.get(a.id);
+              var rb = ratingMap.get(b.id);
+              var avgA = ra && ra.count > 0 ? ra.sum / ra.count : 0;
+              var avgB = rb && rb.count > 0 ? rb.sum / rb.count : 0;
+              if (avgB !== avgA) return avgB - avgA;
+              // Tiebreak: more ratings wins
+              var countA = ra ? ra.count : 0;
+              var countB = rb ? rb.count : 0;
+              return countB - countA;
+            });
+          }
+        },
+        {
+          key  : 'mostread',
+          label: 'Most Read',
+          sort : function(books) {
+            // Count unique members who have this book on their shelf (any status)
+            var readerMap = new Map(); // bookId → Set of memberIds
+            globalShelvesDB.forEach(function(s) {
+              if (!readerMap.has(s.bookId)) readerMap.set(s.bookId, new Set());
+              readerMap.get(s.bookId).add(s.memberId);
+            });
+    
+            return books.slice().sort(function(a, b) {
+              var ra = readerMap.get(a.id);
+              var rb = readerMap.get(b.id);
+              var countA = ra ? ra.size : 0;
+              var countB = rb ? rb.size : 0;
+              return countB - countA;
+            });
+          }
+        }
+      ];
+    
+    
+      /**
+       * Renders the sort chip strip above the search input.
+       * Active chip gets dark fill matching the app style.
+       * Called once by loadLibraryCatalog() — chips don't re-render on filter.
+       */
+      function renderSortChips() {
+        var container = document.getElementById('libSortChips');
+        if (!container) return;
+    
+        container.innerHTML = LIBRARY_SORT_OPTIONS.map(function(opt) {
+          var isActive = opt.key === currentLibrarySort;
+          return '<div class="genre-chip"' +
+                ' style="' + (isActive
+                  ? 'background:#2c3e50;color:white;border-color:#2c3e50;'
+                  : '') + '"' +
+                ' onclick="switchLibrarySort(\'' + opt.key + '\')">' +
+                  opt.label +
+                '</div>';
+        }).join('');
+      }
+    
+    
+      /**
+       * Switches the active sort, updates the chip strip, and re-renders the list.
+       * Preserves any active search query.
+       *
+       * @param {string} sortKey - One of the keys in LIBRARY_SORT_OPTIONS
+       */
+      function switchLibrarySort(sortKey) {
+        currentLibrarySort = sortKey;
+        renderSortChips();
+        filterLibrary(); // Re-apply current search with new sort
+      }
+    
+    
+      /**
+       * Debounced wrapper for filterLibrary.
+       * Waits 180ms after the last keypress before filtering —
+       * prevents a full grid re-render on every single character typed.
+       * Replaces the direct onkeyup="filterLibrary()" call.
+       */
+      var _filterLibraryTimer = null;
+      function debouncedFilterLibrary() {
+        clearTimeout(_filterLibraryTimer);
+        _filterLibraryTimer = setTimeout(function() {
+          filterLibrary();
+        }, 180);
+      }
+    
+    
+      /**
+       * Filters globalBooksDB by the current search query, then sorts by
+       * currentLibrarySort, then renders the result.
+       *
+       * Called by:
+       *   - debouncedFilterLibrary() — user is typing
+       *   - switchLibrarySort()      — user tapped a sort chip
+       *   - loadLibraryCatalog()     — initial render
+       */
+      function filterLibrary() {
+        var query    = (document.getElementById('librarySearch').value || '').toLowerCase().trim();
+        var filtered = query
+          ? globalBooksDB.filter(function(book) {
+              return (book.title  || '').toLowerCase().includes(query) ||
+                    (book.author || '').toLowerCase().includes(query) ||
+                    (book.genre  || '').toLowerCase().includes(query);
+            })
+          : globalBooksDB.slice();
+    
+        // Apply active sort
+        var sortOpt = LIBRARY_SORT_OPTIONS.find(function(o) { return o.key === currentLibrarySort; });
+        var sorted  = sortOpt ? sortOpt.sort(filtered) : filtered;
+    
+        renderLibrary(sorted);
+      }
+    
+    
+      /**
+       * Renders the All Books grid.
+       *
+       * CHANGE 1: real cover images.
+       * Each book now shows coverImageURL as <img> if available,
+       * with auto-cover (coloured spine) as fallback — same pattern
+       * used in shelf carousel, challenge view, and feed tiles.
+       *
+       * @param {Array} booksArray - Filtered and sorted array to render
+       */
+      function renderLibrary(booksArray) {
+        var grid = document.getElementById('libraryGrid');
+        grid.innerHTML = '';
+    
+        var countEl = document.getElementById('libraryBookCount');
+        if (countEl) {
+          countEl.innerText = 'Showing ' + booksArray.length +
+            (booksArray.length === 1 ? ' book' : ' books');
+        }
+    
+        if (booksArray.length === 0) {
+          grid.innerHTML = '<p style="text-align:center;color:#7f8c8d;padding:20px;">' +
+            'No books found. Be the first to add one!</p>';
+          return;
+        }
+    
+        booksArray.forEach(function(book) {
+          var card       = document.createElement('div');
+          card.className = 'book-card';
+    
+          var btnState   = getShelfButtonState(book.id);
+          var safeTitle  = escapeHtml(book.title);
+          var safeAuthor = escapeHtml(book.author);
+    
+          // ── Cover — real image with auto-cover fallback ──────────────────────────
+          // IMPORTANT: both the <img> and the auto-cover div must have margin-right:15px
+          // so the book-info text block has consistent spacing in both cases.
+          var coverHtml;
+          if (book.coverImageURL) {
+            coverHtml =
+              '<img src="' + book.coverImageURL + '"' +
+              '     class="book-cover"' +
+              '     style="object-fit:cover;border-radius:4px 6px 6px 4px;' +
+              '            box-shadow:2px 2px 6px rgba(0,0,0,0.12);"' +
+              '     onerror="this.style.display=\'none\';' +
+              '              this.nextElementSibling.style.display=\'flex\';">' +
+              // Fallback div shown only if the img fails to load
+              '<div style="display:none;" class="book-cover auto-cover"' +
+              '     style="background-color:' + getBookColor(book.title) + ';">' +
+              '  <div class="auto-cover-title">' + safeTitle + '</div>' +
+              '  <div class="auto-cover-divider"></div>' +
+              '  <div class="auto-cover-author">' + safeAuthor + '</div>' +
+              '</div>';
+          } else {
+            coverHtml =
+              '<div class="book-cover auto-cover"' +
+              '     style="background-color:' + getBookColor(book.title) + ';">' +
+              '  <div class="auto-cover-title">' + safeTitle + '</div>' +
+              '  <div class="auto-cover-divider"></div>' +
+              '  <div class="auto-cover-author">' + safeAuthor + '</div>' +
+              '</div>';
+          }
+    
+          card.innerHTML =
+            '<div style="display:flex;width:100%;align-items:center;cursor:pointer;' +
+            '            position:relative;overflow:hidden;"' +
+            '     onclick="openBookDetailView(\'' + book.id + '\', \'library\')">' +
+    
+              coverHtml +
+    
+              '<div class="book-info" style="flex:1;min-width:0;padding-right:45px;">' +
+                '<div class="book-title"' +
+                '     style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;' +
+                '            overflow:hidden;white-space:normal;width:100%;line-height:1.2;"' +
+                '     title="' + safeTitle + '">' + safeTitle + '</div>' +
+                '<div class="book-author" style="white-space:nowrap;overflow:hidden;' +
+                '     text-overflow:ellipsis;">by ' + safeAuthor + '</div>' +
+                '<div class="book-meta" style="font-size:0.8rem;color:#95a5a6;">' +
+                  book.pages + ' pages | ' + escapeHtml(book.genre) +
+                '</div>' +
+              '</div>' +
+    
+              '<button class="book-action-btn btn-accent"' +
+              '        onclick="event.stopPropagation();openShelfModal(\'' + book.id + '\',\'false\')"' +
+              '        style="position:absolute;right:0;bottom:0;width:32px;height:32px;' +
+              '               padding:0;display:flex;align-items:center;justify-content:center;' +
+              '               border-radius:8px 0 8px 0;font-size:0.9rem;z-index:10;border:none;">' +
+                btnState.icon +
+              '</button>' +
+    
+            '</div>';
+    
+          grid.appendChild(card);
+        });
+      }
+    
+    
+      /**
+       * Entry point called when the Library view is opened or refreshed.
+       * Renders sort chips, then the full book list.
+       * Replaces the previous version which did not render sort chips.
+       */
+      function loadLibraryCatalog() {
+        if (!isAppDataLoaded) {
+          document.getElementById('libraryGrid').innerHTML   = '';
+          document.getElementById('libraryLoading').style.display = 'block';
+          return;
+        }
+        document.getElementById('libraryLoading').style.display = 'none';
+    
+        // Reset search input and sort state on fresh open
+        var searchEl = document.getElementById('librarySearch');
+        if (searchEl) searchEl.value = '';
+        currentLibrarySort = 'recent';
+    
+        renderSortChips();
+        filterLibrary();           // renders with default sort
+        calculateLibraryPulse();
+        renderDiscoverTab();
       }
 
       /**
@@ -6452,57 +6864,6 @@
       }
 
 
-      function renderLibrary(booksArray) {
-        const grid = document.getElementById('libraryGrid');
-        grid.innerHTML = ""; 
-
-        const countElement = document.getElementById('libraryBookCount');
-        if (countElement) {
-          const bookWord = booksArray.length === 1 ? "book" : "books";
-          countElement.innerText = `Showing ${booksArray.length} ${bookWord}`;
-        }
-
-        if (booksArray.length === 0) {
-          grid.innerHTML = "<p style='text-align:center; color:#7f8c8d; padding: 20px;'>No books found. Be the first to add one!</p>";
-          return;
-        }
-
-        booksArray.forEach(book => {
-          let card = document.createElement('div');
-          card.className = "book-card";
-          
-          const coverColor = getBookColor(book.title);
-          const safeTitle = book.title.replace(/[\r\n]+/g, " ").replace(/'/g, "\\'").replace(/"/g, '&quot;');
-
-          // Calculate the correct button text dynamically
-          const btnState = getShelfButtonState(book.id);
-
-          card.innerHTML = `
-            <div style="display: flex; width: 100%; align-items: center; cursor: pointer; position: relative; overflow: hidden;" onclick="openBookDetailView('${book.id}', 'library')">
-              
-              <div class="auto-cover" style="background-color: ${coverColor}; flex-shrink: 0;">
-                <div class="auto-cover-title">${book.title}</div>
-                <div class="auto-cover-divider"></div>
-                <div class="auto-cover-author">${book.author}</div>
-              </div>
-              
-              <div class="book-info" style="flex: 1; min-width: 0; padding-right: 45px;"> 
-                <div class="book-title" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; width: 100%; line-height: 1.2;" title="${book.title}">${book.title}</div>
-                <div class="book-author" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">by ${book.author}</div>
-                <div class="book-meta" style="font-size: 0.8rem; color: #95a5a6;">${book.pages} pages | ${book.genre}</div>
-              </div>
-
-              <button class="book-action-btn btn-accent" 
-                onclick="event.stopPropagation(); openShelfModal('${book.id}', 'false')" 
-                style="position: absolute; right: 0; bottom: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px 0 8px 0; font-size: 0.9rem; z-index: 10; border: none;">
-                  ${btnState.icon}
-              </button>
-            </div>
-          `;
-
-          grid.appendChild(card);
-        });
-      }
 
       let currentViewedBook = {}; 
 
@@ -6540,15 +6901,19 @@
         let adder = membersMap.get(book.addedByRaw);
         document.getElementById('detailAddedBy').innerText = adder ? adder.displayName : book.addedByRaw;
 
-        // Cover setup
+        // Cover setup — real image if available, auto-cover as fallback
+        // Size: 90×135px to match the detail view layout
         const coverColor = getBookColor(book.title);
-        document.getElementById('detailCoverContainer').innerHTML = `
-          <div class="auto-cover" style="background-color: ${coverColor}; width: 90px; height: 135px; margin-right: 15px; font-size: 1.1rem;">
-            <div class="auto-cover-title" style="font-size: 0.65rem;">${book.title}</div>
-            <div class="auto-cover-divider"></div>
-            <div class="auto-cover-author" style="font-size: 0.6rem;">${book.author}</div>
-          </div>
-        `;
+        if (book.coverImageURL) {
+          document.getElementById('detailCoverContainer').innerHTML =
+            `<img src="${book.coverImageURL}"
+                  id="detailCoverImg"
+                  style="width:90px;height:135px;object-fit:cover;border-radius:4px 6px 6px 4px;
+                        margin-right:15px;flex-shrink:0;box-shadow:3px 3px 8px rgba(0,0,0,0.15);"
+                  onerror="showDetailAutoCover('${book.id}')">`;
+        } else {
+          showDetailAutoCover(book.id);
+        }
 
         // --- SMART BUTTON LOGIC ---
         let shelfBtnContainer = document.getElementById('detailActionContainer');
@@ -6723,7 +7088,8 @@
         if (!hasAny) {
           activityHtml = `<p style="color:#7f8c8d;text-align:center;margin-top:20px;">Nobody has shelved this yet. Be the first!</p>`;
         }
-        
+
+        document.getElementById('detailActivityLoading').style.display = 'none';
         document.getElementById('detailShelvesContainer').innerHTML = activityHtml;
 
         // Fetch and render Book Posts (async — shows loading state immediately)
@@ -6808,6 +7174,19 @@
         }
 
         document.getElementById('detailReviewsContainer').innerHTML = reviewsHtml;
+      }
+
+      function showDetailAutoCover(bookId) {
+        var book = booksMap.get(bookId);
+        if (!book) return;
+        var coverColor = getBookColor(book.title);
+        document.getElementById('detailCoverContainer').innerHTML =
+          '<div class="auto-cover" style="background-color:' + coverColor + ';' +
+          'width:90px;height:135px;margin-right:15px;flex-shrink:0;font-size:1.1rem;">' +
+          '<div class="auto-cover-title" style="font-size:0.65rem;">' + escapeHtml(book.title) + '</div>' +
+          '<div class="auto-cover-divider"></div>' +
+          '<div class="auto-cover-author" style="font-size:0.6rem;">' + escapeHtml(book.author) + '</div>' +
+          '</div>';
       }
 
       /**
@@ -7288,19 +7667,34 @@
                 const safeTitle = book.title.replace(/[\r\n]+/g, " ").replace(/'/g, "\\'").replace(/"/g, '"');
                 const btnState = getShelfButtonState(book.id);
 
+                // Cover — 45×65px, real image or auto-cover fallback
+                const feedCoverColor = getBookColor(book.title);
+                const feedAutoCover =
+                  `<div class="auto-cover" style="background-color:${feedCoverColor};` +
+                  `width:45px;height:65px;margin-right:12px;flex-shrink:0;` +
+                  `font-size:0.7rem;border-radius:2px 4px 4px 2px;">` +
+                  `<div class="auto-cover-title" style="font-size:0.35rem;-webkit-line-clamp:5;">${book.title}</div>` +
+                  `</div>`;
+ 
+                const feedCoverHtml = book.coverImageURL
+                  ? `<img src="${book.coverImageURL}"
+                          style="width:45px;height:65px;object-fit:cover;border-radius:2px 4px 4px 2px;
+                                margin-right:12px;flex-shrink:0;box-shadow:1px 1px 4px rgba(0,0,0,0.12);"
+                          onerror="showFeedAutoCover(this, '${book.id}')">`
+                  : buildFeedAutoCover(book);
+                
                 embeddedTileHtml = `
                 <div class="feed-embedded-tile" onclick="openBookDetailView('${book.id}', 'home')">
-                  <div class="auto-cover" style="background-color: ${coverColor}; width: 45px; height: 65px; margin-right: 12px; font-size: 0.7rem; border-radius: 2px 4px 4px 2px;">
-                    <div class="auto-cover-title" style="font-size: 0.35rem; -webkit-line-clamp: 5;">${book.title}</div>
-                  </div>
+                  ${feedCoverHtml}
                   <div class="feed-tile-info">
                     <div class="feed-tile-title">${book.title}</div>
                     <div class="feed-tile-author">by ${book.author}</div>
                     <div style="font-size: 0.7rem; color: #95a5a6;">${book.genre}</div>
                   </div>
-                  <button class="book-action-btn btn-accent" 
-                    onclick="event.stopPropagation(); openShelfModal('${book.id}', 'false')" 
-                    style="width: 30px; height: 30px; padding: 0; border-radius: 6px; flex-shrink: 0; display:flex; align-items:center; justify-content:center;">
+                  <button class="book-action-btn btn-accent"
+                    onclick="event.stopPropagation(); openShelfModal('${book.id}', 'false')"
+                    style="width:30px;height:30px;padding:0;border-radius:6px;flex-shrink:0;
+                           display:flex;align-items:center;justify-content:center;">
                       ${btnState.icon}
                   </button>
                 </div>`;
@@ -7349,6 +7743,33 @@
             
             feedContainer.appendChild(card);
         });
+      }
+
+      /**
+       * Called by onerror on feed tile cover images.
+       * Replaces the broken img with an auto-cover div.
+       * @param {HTMLElement} imgEl - The failed img element
+       * @param {string} bookId
+       */
+      function showFeedAutoCover(imgEl, bookId) {
+        var book = booksMap.get(bookId);
+        if (!book) return;
+        var div = document.createElement('div');
+        div.innerHTML = buildFeedAutoCover(book);
+        imgEl.parentNode.replaceChild(div.firstChild, imgEl);
+      }
+
+      /**
+       * Builds the auto-cover HTML string for the feed tile.
+       * @param {Object} book
+       * @returns {string}
+       */
+      function buildFeedAutoCover(book) {
+        return '<div class="auto-cover" style="background-color:' + getBookColor(book.title) + ';' +
+              'width:45px;height:65px;margin-right:12px;flex-shrink:0;' +
+              'font-size:0.7rem;border-radius:2px 4px 4px 2px;">' +
+              '<div class="auto-cover-title" style="font-size:0.35rem;-webkit-line-clamp:5;">' +
+              escapeHtml(book.title) + '</div></div>';
       }
 
       // --- BACKGROUND MULTIUSER SYNC - UPdates from Other Members instead of relying on local sync---
@@ -7914,30 +8335,698 @@
         document.getElementById('newBookTitle').value = query;
       }
 
-      function openEditBookWorkspace(bookId) {
-        const book = booksMap.get(bookId);
-        if (!book) return;
-
-        document.getElementById('workspaceBookId').value = bookId;
-        
-        switchTab('library'); // Route cleanly
-        document.getElementById('libraryMainCard').style.display = 'none';
-        document.getElementById('libAddBookWorkspace').style.display = 'block';
-
-        // Jump straight to the Form (Skip Search)
-        document.getElementById('addStepSearch').style.display = 'none';
-        document.getElementById('addStepForm').style.display = 'block';
-        
-        // Pre-fill the Form
-        document.querySelector('#libAddBookWorkspace h2').innerText = "Edit Book Info";
-        document.getElementById('newBookTitle').value = book.title;
-        document.getElementById('newBookAuthor').value = book.author;
-        document.getElementById('newBookGenre').value = book.genre;
-        document.getElementById('newBookPages').value = book.pages;
-        document.getElementById('newBookCover').value = book.coverImageURL || "";
-        
-        document.getElementById('finalSubmitBtn').innerText = "💾 Save Changes";
+      // ── Genre tag state ────────────────────────────────────────────────────────
+      // Simple array of current genre strings — synced to #newBookGenre hidden input
+      var bookFormGenreTags = [];
+    
+    
+      /**
+       * Handles keydown in the genre input.
+       * Adds a tag on Enter or comma keypress.
+       * Removes the last tag on Backspace if input is empty.
+       *
+       * @param {KeyboardEvent} event
+       */
+      function handleGenreKeydown(event) {
+        const input = document.getElementById('newBookGenreInput');
+        const val   = (input.value || '').trim().replace(/,/g, '');
+    
+        if (event.key === 'Enter' || event.key === ',') {
+          event.preventDefault();
+          if (val) addGenreTag(val);
+          input.value = '';
+          return;
+        }
+    
+        if (event.key === 'Backspace' && input.value === '' && bookFormGenreTags.length > 0) {
+          removeGenreTag(bookFormGenreTags.length - 1);
+        }
       }
+    
+    
+      /**
+       * Adds a genre tag to the tag list and re-renders the chips.
+       * Deduplicates case-insensitively.
+       *
+       * @param {string} genre - Raw genre string to add
+       */
+      function addGenreTag(genre) {
+        var clean = genre.trim();
+        if (!clean) return;
+    
+        var alreadyExists = bookFormGenreTags.some(function(g) {
+          return g.toLowerCase() === clean.toLowerCase();
+        });
+        if (alreadyExists) return;
+    
+        bookFormGenreTags.push(clean);
+        renderGenreTags();
+        syncGenreHiddenInput();
+      }
+    
+    
+      /**
+       * Removes a genre tag by index and re-renders the chips.
+       *
+       * @param {number} index - Index in bookFormGenreTags to remove
+       */
+      function removeGenreTag(index) {
+        bookFormGenreTags.splice(index, 1);
+        renderGenreTags();
+        syncGenreHiddenInput();
+      }
+    
+    
+      /**
+       * Re-renders the genre chip row from bookFormGenreTags.
+       */
+      function renderGenreTags() {
+        var container = document.getElementById('genreTagsContainer');
+        if (!container) return;
+    
+        container.innerHTML = bookFormGenreTags.map(function(genre, idx) {
+          return '<span style="display:inline-flex;align-items:center;gap:4px;' +
+                'background:#EEEDFE;color:#534AB7;font-size:0.78rem;' +
+                'padding:3px 10px 3px 12px;border-radius:20px;' +
+                'border:0.5px solid #AFA9EC;">' +
+                  escapeHtml(genre) +
+                  '<span onclick="removeGenreTag(' + idx + ')" ' +
+                        'style="cursor:pointer;font-size:1rem;line-height:1;' +
+                                'opacity:0.6;margin-left:2px;">×</span>' +
+                '</span>';
+        }).join('');
+      }
+    
+    
+      /**
+       * Syncs bookFormGenreTags array into the hidden #newBookGenre input
+       * as a comma-separated string for form submission.
+       */
+      function syncGenreHiddenInput() {
+        var hidden = document.getElementById('newBookGenre');
+        if (hidden) hidden.value = bookFormGenreTags.join(', ');
+      }
+    
+    
+      /**
+       * Clears all genre tags — used when opening a fresh form.
+       */
+      function clearGenreTags() {
+        bookFormGenreTags = [];
+        renderGenreTags();
+        syncGenreHiddenInput();
+        var input = document.getElementById('newBookGenreInput');
+        if (input) input.value = '';
+      }
+    
+    
+      /**
+       * Pre-populates genre tags from a comma-separated string.
+       * Used by ISBN auto-fill and edit mode pre-fill.
+       *
+       * @param {string} genreStr - e.g. "Sci-Fi, Adventure"
+       */
+      function setGenreTags(genreStr) {
+        clearGenreTags();
+        if (!genreStr) return;
+        genreStr.split(',').forEach(function(g) {
+          var clean = g.trim();
+          if (clean) addGenreTag(clean);
+        });
+      }
+    
+    
+      // ── Cover helpers ──────────────────────────────────────────────────────────
+    
+      /**
+       * Shows the cover preview image in the form.
+       * Accepts either a base64 string or a URL.
+       *
+       * @param {string} src         - base64 data URI or https:// URL
+       * @param {string} [statusMsg] - Optional message shown below the preview
+       */
+      function showBookCoverPreview(src, statusMsg) {
+        var img         = document.getElementById('bookCoverPreviewImg');
+        var placeholder = document.getElementById('bookCoverPreviewPlaceholder');
+        var statusEl    = document.getElementById('bookCoverStatusMsg');
+    
+        if (src) {
+          img.src              = src;
+          img.style.display    = 'block';
+          placeholder.style.display = 'none';
+        } else {
+          img.style.display    = 'none';
+          placeholder.style.display = '';
+        }
+    
+        if (statusEl) {
+          if (statusMsg) {
+            statusEl.innerText    = statusMsg;
+            statusEl.style.display = 'block';
+          } else {
+            statusEl.style.display = 'none';
+          }
+        }
+      }
+    
+    
+      /**
+       * Clears the cover preview back to the "No cover" placeholder.
+       */
+      function clearBookCoverPreview() {
+        document.getElementById('bookCoverBase64').value      = '';
+        document.getElementById('bookCoverSourceUrl').value   = '';
+        showBookCoverPreview('');
+      }
+    
+    
+      /**
+       * Handles file input change for book cover upload.
+       * Resizes the selected image to 80×120px JPEG via canvas before storing
+       * as base64 — keeps upload size ~10-20KB regardless of original file size.
+       *
+       * @param {Event} event - File input change event
+       */
+      function handleBookCoverSelect(event) {
+        var file = event.target.files[0];
+        if (!file) return;
+    
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var img   = new Image();
+          img.onload = function() {
+            // ── Canvas resize to 80×120 ──────────────────────────────────────
+            // Maintain aspect ratio: fit within 80×120, centred crop if needed
+            var TARGET_W = 240;
+            var TARGET_H = 360;
+    
+            var canvas = document.createElement('canvas');
+            canvas.width  = TARGET_W;
+            canvas.height = TARGET_H;
+            var ctx = canvas.getContext('2d');
+    
+            // Fill with a neutral background in case the image has transparency
+            ctx.fillStyle = '#f8f8f8';
+            ctx.fillRect(0, 0, TARGET_W, TARGET_H);
+    
+            // Scale to fill (cover), then crop centre
+            var scale    = Math.max(TARGET_W / img.width, TARGET_H / img.height);
+            var scaledW  = img.width  * scale;
+            var scaledH  = img.height * scale;
+            var offsetX  = (TARGET_W - scaledW) / 2;
+            var offsetY  = (TARGET_H - scaledH) / 2;
+            ctx.drawImage(img, offsetX, offsetY, scaledW, scaledH);
+    
+            // JPEG quality 0.75 — typically 10-20KB at this size
+            var base64 = canvas.toDataURL('image/jpeg', 0.75);
+    
+            // Store in hidden field and show preview
+            document.getElementById('bookCoverBase64').value    = base64;
+            document.getElementById('bookCoverSourceUrl').value = 'device';
+            showBookCoverPreview(base64);
+    
+            // Reset the status message (device upload takes priority silently)
+            var statusEl = document.getElementById('bookCoverStatusMsg');
+            if (statusEl) statusEl.style.display = 'none';
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    
+    
+      // ── ISBN Search ────────────────────────────────────────────────────────────
+    
+      /**
+       * Searches Open Library by ISBN-13 and auto-fills the form fields.
+       * Called by the Search button in the ISBN panel.
+       *
+       * Open Library API (no key needed):
+       *   https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&jscmd=details&format=json
+       *
+       * Cover image:
+       *   https://covers.openlibrary.org/b/isbn/{isbn}-M.jpg
+       *
+       * On success: fills title, author, pages, published year, blurb, genre, ISBN field.
+       * Cover is fetched as a URL — loaded into the preview with an "Image found" message.
+       * The member can still override with a device upload.
+       */
+      function searchByIsbn() {
+        var isbn   = (document.getElementById('isbnSearchInput').value || '').replace(/[^0-9]/g, '');
+        var status = document.getElementById('isbnSearchStatus');
+        var btn    = document.getElementById('isbnSearchBtn');
+    
+        // ── Validate ISBN-13 ──────────────────────────────────────────────────
+        if (isbn.length !== 13) {
+          status.innerText      = 'Please enter a 13-digit ISBN.';
+          status.style.color    = '#e74c3c';
+          return;
+        }
+    
+        if (!validateIsbn13Checksum(isbn)) {
+          status.innerText   = 'ISBN-13 checksum invalid — please double-check the number.';
+          status.style.color = '#e74c3c';
+          return;
+        }
+    
+        btn.disabled  = true;
+        btn.innerText = 'Searching…';
+        status.innerText   = 'Looking up on Open Library…';
+        status.style.color = '#3B6D11';
+    
+        var url = 'https://openlibrary.org/api/books?bibkeys=ISBN:' + isbn +
+                  '&jscmd=details&format=json';
+    
+        fetch(url)
+          .then(function(res) { return res.json(); })
+          .then(function(json) {
+            btn.disabled  = false;
+            btn.innerText = 'Search';
+    
+            var key  = 'ISBN:' + isbn;
+            var book = json[key];
+    
+            if (!book || !book.details) {
+              status.innerText   = 'Book not found on Open Library. Fill in manually.';
+              status.style.color = '#e67e22';
+              return;
+            }
+    
+            var details = book.details;
+    
+            // ── Fill Essential fields ────────────────────────────────────────
+            var titleEl = document.getElementById('newBookTitle');
+            if (titleEl && details.title) titleEl.value = details.title;
+    
+            var authorEl = document.getElementById('newBookAuthor');
+            if (authorEl && details.authors && details.authors.length > 0) {
+              // Structure 1 — name is inline on the edition record
+              var inlineNames = details.authors
+                .filter(function(a) { return a.name; })
+                .map(function(a) { return a.name; });
+
+              if (inlineNames.length > 0) {
+                // Names available directly — use them
+                authorEl.value = inlineNames.join(', ');
+              } else {
+                // Structure 2 — authors are key references, need a second fetch
+                // Take first author only to keep it simple
+                var authorKey = details.authors[0].key; // e.g. "/authors/OL7353479A"
+                if (authorKey) {
+                  fetch('https://openlibrary.org' + authorKey + '.json')
+                    .then(function(r) { return r.json(); })
+                    .then(function(author) {
+                      if (author.name && authorEl) {
+                        authorEl.value = author.name;
+                      }
+                    })
+                    .catch(function() {}); // Fail silently — user can type manually
+                }
+              }
+            }
+            // Structure 3 (no authors on edition) is handled by the work fetch
+            // which can be extended similarly if needed
+    
+            var pagesEl = document.getElementById('newBookPages');
+            if (pagesEl && details.number_of_pages) pagesEl.value = details.number_of_pages;
+    
+            var yearEl = document.getElementById('newBookPublishedDate');
+            if (yearEl && details.publish_date) {
+              // Extract just the 4-digit year from strings like "May 4, 2021" or "2021"
+              var yearMatch = details.publish_date.match(/\d{4}/);
+              if (yearMatch) yearEl.value = yearMatch[0];
+            }
+    
+            // Try description on the edition first (occasionally present)
+            var blurbEl = document.getElementById('newBookBlurb');
+            var editionDesc = details.description
+              ? (typeof details.description === 'string'
+                  ? details.description
+                  : (details.description.value || ''))
+              : '';
+
+            if (blurbEl && editionDesc) {
+              // Edition has a description — use it directly
+              blurbEl.value = editionDesc.slice(0, 500);
+            } else if (details.works && details.works.length > 0) {
+              // No edition description — fetch from the parent Work record
+              var workKey = details.works[0].key; // e.g. "/works/OL45883W"
+              fetch('https://openlibrary.org' + workKey + '.json')
+                .then(function(r) { return r.json(); })
+                .then(function(work) {
+                  if (!work.description || !blurbEl) return;
+                  var workDesc = typeof work.description === 'string'
+                    ? work.description
+                    : (work.description.value || '');
+                  if (workDesc) blurbEl.value = workDesc.slice(0, 500);
+                })
+                .catch(function() {}); // Fail silently — blurb is optional
+            }
+    
+            // ── Genre from subjects ──────────────────────────────────────────
+            if (details.subjects && details.subjects.length > 0) {
+              // Take first 3 subjects as genre tags
+              var genreGuesses = details.subjects
+                .slice(0, 3)
+                .map(function(s) {
+                  // Subjects can be long phrases — take first two words
+                  return s.split(',')[0].trim().split(' ').slice(0, 2).join(' ');
+                })
+                .filter(function(s) { return s.length > 0; });
+              setGenreTags(genreGuesses.join(', '));
+            }
+    
+            // ── Cover from Open Library ──────────────────────────────────────
+            var coverUrl = 'https://covers.openlibrary.org/b/isbn/' + isbn + '-M.jpg';
+            // Store the URL — we'll pass it to backend if no device upload overrides
+            document.getElementById('bookCoverSourceUrl').value = coverUrl;
+    
+            // Load the cover into the preview
+            var testImg   = new Image();
+            testImg.onload = function() {
+              // Cover found — resize to 160x240 via canvas and store as base64
+              // This way the backend always receives base64, regardless of source
+              var canvas = document.createElement('canvas');
+              canvas.width  = 240;
+              canvas.height = 360;
+              var ctx = canvas.getContext('2d');
+              ctx.fillStyle = '#f8f8f8';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              var scale   = Math.max(canvas.width / testImg.width, canvas.height / testImg.height);
+              var sw      = testImg.width  * scale;
+              var sh      = testImg.height * scale;
+              ctx.drawImage(testImg, (canvas.width - sw) / 2, (canvas.height - sh) / 2, sw, sh);
+              var base64 = canvas.toDataURL('image/jpeg', 0.75);
+    
+              document.getElementById('bookCoverBase64').value = base64;
+              showBookCoverPreview(
+                base64,
+                'Cover found on Open Library. Upload from device to override.'
+              );
+            };
+            testImg.onerror = function() {
+              // Open Library has no cover — show placeholder
+              clearBookCoverPreview();
+              showBookCoverPreview('', '');
+            };
+            // Open Library returns a 1px placeholder if no cover — check for it
+            testImg.crossOrigin = 'anonymous';
+            testImg.src = coverUrl + '?t=' + Date.now(); // Cache-bust
+    
+            var authorFilled = document.getElementById('newBookAuthor').value.trim();
+            status.innerText   = authorFilled
+              ? 'Found! Review and confirm the details below.'
+              : 'Partially found — please verify and fill in any missing fields.';
+            status.style.color = authorFilled ? '#27ae60' : '#e67e22';
+          })
+          .catch(function(err) {
+            btn.disabled  = false;
+            btn.innerText = 'Search';
+            status.innerText   = 'Search failed. Check your connection and try again.';
+            status.style.color = '#e74c3c';
+            console.error('ISBN search error:', err);
+          });
+      }
+    
+    
+      /**
+       * Validates an ISBN-13 string using the mod-10 checksum algorithm.
+       * The last digit is a check digit — this catches most typos.
+       *
+       * @param {string} isbn - 13 numeric characters, no spaces
+       * @returns {boolean}
+       */
+      function validateIsbn13Checksum(isbn) {
+        if (isbn.length !== 13) return false;
+        var sum = 0;
+        for (var i = 0; i < 12; i++) {
+          var digit = parseInt(isbn[i]);
+          if (isNaN(digit)) return false;
+          sum += digit * (i % 2 === 0 ? 1 : 3);
+        }
+        var checkDigit = (10 - (sum % 10)) % 10;
+        return checkDigit === parseInt(isbn[12]);
+      }
+    
+    
+      /**
+       * Validates the published year input.
+       * Must be 4 digits, between 1000 and current year.
+       *
+       * @param {string} yearStr
+       * @returns {{ valid: boolean, message: string }}
+       */
+      function validatePublishedYear(yearStr) {
+        if (!yearStr) return { valid: true, message: '' }; // Optional field
+        var year = parseInt(yearStr);
+        if (isNaN(year) || yearStr.length !== 4) {
+          return { valid: false, message: 'Year must be a 4-digit number.' };
+        }
+        var currentYear = new Date().getFullYear();
+        if (year < 1000 || year > currentYear) {
+          return { valid: false, message: 'Year must be between 1000 and ' + currentYear + '.' };
+        }
+        return { valid: true, message: '' };
+      }
+    
+    
+      // ── Form reset ─────────────────────────────────────────────────────────────
+    
+      /**
+       * Resets the entire add/edit form to a blank state.
+       * Called when opening the add workspace fresh.
+       */
+      function resetBookForm() {
+        var ids = ['newBookTitle', 'newBookAuthor', 'newBookPages',
+                  'newBookPublishedDate', 'newBookIsbn13', 'newBookBlurb',
+                  'isbnSearchInput', 'newBookGenreInput'];
+        ids.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+    
+        document.getElementById('isbnSearchStatus').innerText = '';
+        clearGenreTags();
+        clearBookCoverPreview();
+        document.getElementById('bookCoverBase64').value    = '';
+        document.getElementById('bookCoverSourceUrl').value = '';
+        document.getElementById('bookCoverFileInput').value = '';
+      }
+    
+    
+      // ── Form submission ────────────────────────────────────────────────────────
+    
+      /**
+       * Reads the form, validates required fields, and calls the backend.
+       * Handles both Add (no workspaceBookId) and Edit (workspaceBookId set) modes.
+       */
+      function submitNewBook() {
+        var btn       = document.getElementById('finalSubmitBtn');
+        var editingId = document.getElementById('workspaceBookId').value;
+    
+        // ── Read field values ──────────────────────────────────────────────────
+        var title         = (document.getElementById('newBookTitle').value         || '').trim();
+        var author        = (document.getElementById('newBookAuthor').value        || '').trim();
+        var pages         = document.getElementById('newBookPages').value;
+        var genre         = (document.getElementById('newBookGenre').value         || '').trim();
+        var isbn13        = (document.getElementById('newBookIsbn13').value        || '').trim();
+        var publishedDate = (document.getElementById('newBookPublishedDate').value || '').trim();
+        var blurb         = (document.getElementById('newBookBlurb').value         || '').trim();
+        var coverBase64   = document.getElementById('bookCoverBase64').value;
+    
+        // ── Validation ─────────────────────────────────────────────────────────
+        if (!title) {
+          showToast('Title is required.');
+          document.getElementById('newBookTitle').focus();
+          return;
+        }
+        if (!author) {
+          showToast('Author is required.');
+          document.getElementById('newBookAuthor').focus();
+          return;
+        }
+        if (!pages || Number(pages) < 1) {
+          showToast('Please enter a valid page count.');
+          document.getElementById('newBookPages').focus();
+          return;
+        }
+        if (!genre) {
+          showToast('Please add at least one genre.');
+          document.getElementById('newBookGenreInput').focus();
+          return;
+        }
+    
+        // Year validation (optional field)
+        var yearCheck = validatePublishedYear(publishedDate);
+        if (!yearCheck.valid) {
+          showToast(yearCheck.message);
+          document.getElementById('newBookPublishedDate').focus();
+          return;
+        }
+    
+        // ISBN validation (optional field — but if filled must be valid)
+        if (isbn13 && isbn13.length > 0) {
+          if (isbn13.length !== 13 || !validateIsbn13Checksum(isbn13)) {
+            showToast('ISBN-13 must be exactly 13 digits and pass the checksum check.');
+            document.getElementById('newBookIsbn13').focus();
+            return;
+          }
+        }
+    
+        // ── Build payload ──────────────────────────────────────────────────────
+        var bookPayload = {
+          bookId         : editingId,
+          title          : title,
+          author         : author,
+          genre          : genre,
+          pages          : pages,
+          isbn13         : isbn13,
+          publishedDate  : publishedDate,
+          blurb          : blurb,
+          coverBase64    : coverBase64,         // Base64 JPEG string or '' if no cover
+          activityPointsMap: globalActivityPointsMap
+        };
+    
+        btn.disabled  = true;
+        btn.innerText = 'Processing…';
+    
+        var backendFunction = editingId ? 'updateLibraryBook' : 'addBookToLibrary';
+    
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btn.disabled  = false;
+            btn.innerText = editingId ? '💾 Save Changes' : '🚀 Add to Library';
+    
+            if (res.status !== 'success') {
+              showToast(res.message || 'Something went wrong.');
+              return;
+            }
+    
+            showToast(editingId ? 'Book updated! ✏️' : 'Book added to Library! 📚');
+    
+            // ── Update local globals instantly ──────────────────────────────
+            var now           = new Date();
+            var fullDateStamp = getArkaTimestamp(now, 'FULL');
+            var shortDate     = getArkaTimestamp(now, 'SHORT');
+            var finalCoverURL = res.coverImageURL || '';
+    
+            if (editingId) {
+              var bIdx = globalBooksDB.findIndex(function(b) { return b.id === editingId; });
+              if (bIdx > -1) {
+                globalBooksDB[bIdx].title         = title;
+                globalBooksDB[bIdx].author        = author;
+                globalBooksDB[bIdx].genre         = genre;
+                globalBooksDB[bIdx].pages         = Number(pages) || 0;
+                globalBooksDB[bIdx].isbn13        = isbn13;
+                globalBooksDB[bIdx].publishedDate = publishedDate;
+                globalBooksDB[bIdx].blurb         = blurb;
+                if (finalCoverURL) globalBooksDB[bIdx].coverImageURL = finalCoverURL;
+                globalBooksDB[bIdx].lastModifiedDate = fullDateStamp;
+                globalBooksDB[bIdx].lastModifiedBy   = currentUser;
+                // Keep booksMap in sync
+                booksMap.set(editingId, globalBooksDB[bIdx]);
+              }
+            } else {
+              var newBook = {
+                id              : res.bookId,
+                title           : title,
+                author          : author,
+                genre           : genre,
+                pages           : Number(pages) || 0,
+                addedByRaw      : currentUser,
+                addedDate       : shortDate,
+                coverImageURL   : finalCoverURL,
+                lastModifiedDate: '',
+                lastModifiedBy  : '',
+                isbn13          : isbn13,
+                publishedDate   : publishedDate,
+                blurb           : blurb
+              };
+              globalBooksDB.push(newBook);
+              booksMap.set(res.bookId, newBook);
+            }
+    
+            if (res.newActivity) globalActivityLogDB.push(res.newActivity);
+    
+            // Invalidate and refresh local cache reference
+            if (typeof invalidateSmallDbCache === 'function') invalidateSmallDbCache();
+    
+            if (editingId) {
+              openBookDetailView(editingId, lastViewBeforeDetails);
+            } else {
+              hideAddBookWorkspace();
+            }
+          })
+          .withFailureHandler(function() {
+            btn.disabled  = false;
+            btn.innerText = editingId ? '💾 Save Changes' : '🚀 Add to Library';
+            showToast('Request failed. Please try again.');
+          })
+          [backendFunction](bookPayload);
+      }
+    
+    
+      /**
+       * Opens the edit workspace pre-filled with an existing book's data.
+       * Replaces the old version — now handles genres as tags and cover preview.
+       *
+       * @param {string} bookId - ARKA_BOOK_X to edit
+       */
+      function openEditBookWorkspace(bookId) {
+        var book = booksMap.get(bookId);
+        if (!book) return;
+    
+        document.getElementById('workspaceBookId').value = bookId;
+    
+        switchTab('library');
+        document.getElementById('libraryMainCard').style.display     = 'none';
+        document.getElementById('libAddBookWorkspace').style.display = 'block';
+    
+        // Skip to form step directly
+        document.getElementById('addStepSearch').style.display = 'none';
+        document.getElementById('addStepForm').style.display   = 'block';
+    
+        document.querySelector('#libAddBookWorkspace h2').innerText = 'Edit Book Info';
+        document.getElementById('finalSubmitBtn').innerText         = '💾 Save Changes';
+    
+        // Reset first, then pre-fill
+        resetBookForm();
+    
+        document.getElementById('newBookTitle').value         = book.title   || '';
+        document.getElementById('newBookAuthor').value        = book.author  || '';
+        document.getElementById('newBookPages').value         = book.pages   || '';
+        document.getElementById('newBookPublishedDate').value = book.publishedDate || '';
+        document.getElementById('newBookIsbn13').value        = book.isbn13  || '';
+        document.getElementById('newBookBlurb').value         = book.blurb   || '';
+    
+        // Genre tags
+        setGenreTags(book.genre || '');
+    
+        // Cover preview — show existing cover if available
+        if (book.coverImageURL) {
+          showBookCoverPreview(
+            book.coverImageURL,
+            'Current cover loaded. Upload from device to replace.'
+          );
+          // Don't set bookCoverBase64 — empty means "keep existing" in the backend
+        }
+      }
+    
+    
+      /**
+       * Override showAddBookWorkspace to reset the form on open.
+       * Wraps the existing function — paste this AFTER the original definition
+       * or replace the original entirely.
+       */
+      var _originalShowAddBookWorkspace = showAddBookWorkspace;
+      showAddBookWorkspace = function() {
+        _originalShowAddBookWorkspace();
+        resetBookForm();
+        document.getElementById('workspaceBookId').value     = '';
+        document.getElementById('finalSubmitBtn').innerText  = '🚀 Add to Library';
+        document.querySelector('#libAddBookWorkspace h2').innerText = 'Add New Book';
+      };
+      
 
       // --- THE SEARCH LOGIC ---
       function handleWorkspaceSearch() {
@@ -7977,96 +9066,7 @@
         noMatchArea.style.display = 'block';
       }
 
-      // --- SUBMIT NEW BOOK TO THE BACK END FUNCTION TO ADD TO LIBRARY ---
-      function submitNewBook() {
-        const btn = document.getElementById('finalSubmitBtn');
-        const editingId = document.getElementById('workspaceBookId').value;
-
-        const bookData = {
-          bookId: editingId, // Will be empty for new books
-          title: document.getElementById('newBookTitle').value.trim(),
-          author: document.getElementById('newBookAuthor').value.trim(),
-          genre: document.getElementById('newBookGenre').value.trim(),
-          pages: document.getElementById('newBookPages').value,
-          coverUrl: document.getElementById('newBookCover').value.trim()
-        };
-
-        if (!bookData.title || !bookData.author) {
-          showToast("Title and Author are required!");
-          return;
-        }
-
-        btn.disabled = true;
-        btn.innerText = "Processing...";
-
-        // --- DETERMINE BACKEND ROUTE ---
-        const backendFunction = editingId ? "updateLibraryBook" : "addBookToLibrary";
-
-        google.script.run.withSuccessHandler(function(res) {
-          btn.disabled = false;
-          btn.innerText = editingId ? "💾 Save Changes" : "🚀 Add to Library";
-          
-          if (res.status === "success") {
-            showToast(editingId ? "Book updated! ✏️" : "Book added to Library! 📚");
-
-
-            // Generate the same date format used in your GS (dd-MMM-yyyy)
-            const now = new Date();
-            const fullDateStamp = getArkaTimestamp(now, 'FULL');  // dd-MM-yyyy HH:mm:ss Z
-            const shortDate = getArkaTimestamp(now, 'SHORT'); // dd-MMM-yyyy
-
-            // 1. Update local DB instantly
-            if (editingId) {
-              const bIdx = globalBooksDB.findIndex(b => b.id === editingId);
-              if (bIdx > -1) {
-                globalBooksDB[bIdx] = { 
-                  ...globalBooksDB[bIdx], 
-                  ...bookData, 
-                  coverImageURL: bookData.coverUrl,
-                  lastModifiedON: fullDateStamp, // Matches your DB header exactly
-                  lastModifiedBy: currentUser,
-                  isbn13: bookData.isbn13 || "",              
-                  publishedDate: bookData.publishedDate || "",
-                  blurb: bookData.blurb || "",
-                  activityPointsMap: globalActivityPointsMap 
-                };
-              }
-            } else {
-                globalBooksDB.push({
-                id: res.bookId,
-                title: bookData.title,
-                author: bookData.author,
-                genre: bookData.genre,
-                pages: bookData.pages,
-                addedByRaw: currentUser,           // Crucial for the "New Arrivals" name
-                addedDate: shortDate,          // Matches your spreadsheet format
-                coverImageURL: bookData.coverUrl,  // Ensures image shows immediately
-                // We can leave modified fields blank/null for a new entry
-                lastModifiedDate: "",
-                lastModifiedBy: "",
-                isbn13: bookData.isbn13 || "",              
-                publishedDate: bookData.publishedDate || "",
-                blurb: bookData.blurb || "",
-                activityPointsMap: globalActivityPointsMap
-              });
-            }
-
-            if (res.newActivity) globalActivityLogDB.push(res.newActivity);
-            
-            // 2. Return to either the Book Detail or the Library
-            if (editingId) {
-              // Pass 'lastViewBeforeDetails' so the Back button still knows where to go!
-              openBookDetailView(editingId, lastViewBeforeDetails);
-              document.getElementById('libAddBookWorkspace').style.display = 'none';
-            } else {
-              hideAddBookWorkspace();
-            }
-            loadLibraryCatalog();
-          } else {
-            alert(res.message);
-          }
-        })[backendFunction](bookData); // Dynamically calls the right GS function
-      }
+      
 
       /**
        * Arka Date Engine
