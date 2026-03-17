@@ -118,7 +118,7 @@
  * @property {string} completedOn          - dd-MM-yyyy HH:mm:ss Z or blank   (Col I)
  */
 
-const APP_VERSION = "v39.3";  //Cache System Built
+const APP_VERSION = "v40.2";  
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -136,6 +136,7 @@ const CHALLENGE_SHEET            = "ChallengeDB";
 const CHALLENGE_ENROLLMENT_SHEET = "ChallengeEnrollmentDB";
 const BADGE_IMAGES_FOLDER_ID  = '1WLX0fy5RkuvMzpQwCkQjjSVlFTajxY59';
 const EVENT_ASSETS_FOLDER_ID = '1R0-aaxcymLuemLRXK2E_E0sqYEQdFC37';
+const BOOK_COVERS_FOLDER_ID = '1a4CaUw3OjxkZQrvMxOtwFZWuWvc_-taD';
 /**
  * Member IDs that have administrative privileges.
  * Update this array to add or remove admins.
@@ -561,70 +562,145 @@ function getLibraryCatalog() {
 }
 
 /**
- * 8. Add a new book to the Arka Library
- * @param {Object} bookData - Title, author, genre, pages, coverUrl
+ * Adds a new book to the Arka Library.
+ *
+ * Accepts all 13 ArkaLibraryDB columns including the three new fields:
+ * isbn13 (Col K), publishedDate (Col L), blurb (Col M).
+ *
+ * Cover handling:
+ *   - If bookData.coverBase64 is provided → upload to Drive → store URL
+ *   - If bookData.coverBase64 is absent   → store '' (no cover)
+ *
+ * @param {Object} bookData
+ * @param {string} bookData.title
+ * @param {string} bookData.author
+ * @param {string} bookData.genre        - Comma-separated genres e.g. "Sci-Fi, Adventure"
+ * @param {number} bookData.pages
+ * @param {string} [bookData.coverBase64] - Base64 JPEG from frontend canvas (optional)
+ * @param {string} [bookData.isbn13]      - 13-digit string (optional)
+ * @param {string} [bookData.publishedDate] - e.g. "2021" or "2021-05-04"
+ * @param {string} [bookData.blurb]       - Short description (optional)
+ * @param {Object} bookData.activityPointsMap
+ * @returns {{ status: string, bookId?: string, newActivity?: Object, message?: string }}
  */
 function addBookToLibrary(bookData) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
+ 
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(LIBRARY_SHEET);
-  const data = sheet.getDataRange().getValues();
-  
-  // Security Check: Ensure the user is who they say they are
-  const currentMemberId = getVerifiedMemberId(); 
-  if (!currentMemberId) return { status: "error", message: "Unauthorized session." };
-
- // Failsafe: Fuzzy match to prevent adding "The Hobbit" if "Hobbit, The" exists
+  const data  = sheet.getDataRange().getValues();
+ 
+  // ── Duplicate check (fuzzy title match) ───────────────────────────────────
   const normalizedNewTitle = normalizeTitleInternal(bookData.title);
-  
   for (let i = 1; i < data.length; i++) {
-    const existingTitle = data[i][1]; // Column B
-    if (normalizeTitleInternal(existingTitle) === normalizedNewTitle) {
-      return { 
-        status: "error", 
-        message: "Duplicate Alert! '" + existingTitle + "' is already in the library." 
+    if (normalizeTitleInternal(data[i][1]) === normalizedNewTitle) {
+      return {
+        status : 'error',
+        message: 'Duplicate alert! "' + data[i][1] + '" is already in the library.'
       };
     }
   }
-
-  // Generate ID and Dates
+ 
+  // ── Generate sequential book ID ────────────────────────────────────────────
   let newBookNum = 1;
   if (data.length > 1) {
-    let lastIdString = data[data.length - 1][0]; 
-    let lastNum = parseInt(lastIdString.split('_')[2]);
+    const lastId  = data[data.length - 1][0].toString();
+    const lastNum = parseInt(lastId.split('_')[2]);
     if (!isNaN(lastNum)) newBookNum = lastNum + 1;
   }
-  const newBookId = "ARKA_BOOK_" + newBookNum;
-
-  const dateFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MMM-yyyy");
-  const dateTimeFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss Z");
-
-  // Save Book
-  const newRow = [
-    newBookId, 
-    bookData.title.trim(), 
-    bookData.author.trim(), 
-    bookData.genre.trim(), 
-    Number(bookData.pages) || 0, 
-    currentMemberId, 
-    dateFormatted, 
-    dateTimeFormatted, 
-    currentMemberId, 
-    bookData.coverUrl || ""
-  ];
-  sheet.appendRow(newRow);
-
-  // LOG ACTIVITY
+  const newBookId = 'ARKA_BOOK_' + newBookNum;
+ 
+  const dateFormatted     = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MMM-yyyy');
+  const dateTimeFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z');
+ 
+  // ── Upload cover to Drive if provided ─────────────────────────────────────
+  let coverImageURL = '';
+  if (bookData.coverBase64) {
+    coverImageURL = uploadBookCover_(newBookId, bookData.coverBase64);
+  }
+ 
+  // ── Append row — all 13 columns ───────────────────────────────────────────
+  // Col: A           B                    C                    D
+  //      BookID      Title                Author               Genre
+  //      E           F                    G                    H
+  //      Pages       AddedBy              AddedDate            LastModifiedDate
+  //      I           J                    K                    L          M
+  //      LastModBy   CoverURL             ISBN13               PubDate    Blurb
+  sheet.appendRow([
+    newBookId,
+    bookData.title.trim(),
+    bookData.author.trim(),
+    (bookData.genre || '').trim(),
+    Number(bookData.pages) || 0,
+    currentMemberId,
+    dateFormatted,
+    dateTimeFormatted,
+    currentMemberId,
+    coverImageURL,
+    (bookData.isbn13       || '').trim(),
+    (bookData.publishedDate || '').trim(),
+    (bookData.blurb        || '').trim()
+  ]);
+ 
+  // ── Log activity ───────────────────────────────────────────────────────────
   let newActivity = null;
-  try { 
-    newActivity = logActivity(currentMemberId, "ARKA_ACTTYP_BOOKADDED", 1, newBookId, bookData.activityPointsMap || {});
+  try {
+    newActivity = logActivity(
+      currentMemberId,
+      'ARKA_ACTTYP_BOOKADDED',
+      1,
+      newBookId,
+      bookData.activityPointsMap || {}
+    );
   } catch(e) {}
-
-  return { 
-    status: "success", 
-    message: "Book added to Arka Library!", 
-    bookId: newBookId,
-    newActivity: newActivity 
+ 
+  // Invalidate library cache so next load reflects the new book
+  invalidateCacheKey(CACHE_KEYS.library);
+ 
+  return {
+    status     : 'success',
+    message    : 'Book added to Arka Library!',
+    bookId     : newBookId,
+    coverImageURL,
+    newActivity
   };
+}
+
+
+/**
+ * PRIVATE HELPER: Uploads a book cover image to Drive and returns the thumbnail URL.
+ * Reuses the same pattern as profile pic and badge image uploads.
+ *
+ * @param {string} bookId     - ARKA_BOOK_X (used as filename prefix)
+ * @param {string} base64Data - Base64 data URI from frontend canvas (image/jpeg)
+ * @returns {string} Google Drive thumbnail URL or '' on failure
+ */
+function uploadBookCover_(bookId, base64Data) {
+  try {
+    const folder   = DriveApp.getFolderById(BOOK_COVERS_FOLDER_ID);
+    const fileName = bookId + '_thumb.jpg';
+ 
+    // Delete any existing cover for this book — keeps folder clean
+    const existingFiles = folder.getFilesByName(fileName);
+    while (existingFiles.hasNext()) existingFiles.next().setTrashed(true);
+ 
+    // Decode base64 (strip data URI prefix if present)
+    const rawBase64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+    const blob      = Utilities.newBlob(
+      Utilities.base64Decode(rawBase64),
+      'image/jpeg',
+      fileName
+    );
+    const newFile = folder.createFile(blob);
+ 
+    // sz=w160 — double the 80px display size for retina screens, still tiny file
+    return 'https://drive.google.com/thumbnail?id=' + newFile.getId() + '&sz=w160';
+ 
+  } catch (e) {
+    console.error('uploadBookCover_ failed for ' + bookId + ':', e);
+    return '';
+  }
 }
 
 /**
@@ -850,149 +926,99 @@ function updateMemberShelf(shelfData) {
 }
 
 /**
- * 10. Update an existing book in the Arka Library
- * Used when someone edits a typo in a book title or updates the page count.
+ * Updates an existing book record in the Arka Library.
+ *
+ * Cover handling:
+ *   - coverBase64 provided → upload new image, overwrite existing
+ *   - coverBase64 absent   → keep existing coverImageURL unchanged
+ *
+ * @param {Object} bookData
+ * @param {string} bookData.bookId         - ARKA_BOOK_X to update
+ * @param {string} bookData.title
+ * @param {string} bookData.author
+ * @param {string} bookData.genre
+ * @param {number} bookData.pages
+ * @param {string} [bookData.coverBase64]  - New cover image (optional — omit to keep existing)
+ * @param {string} [bookData.isbn13]
+ * @param {string} [bookData.publishedDate]
+ * @param {string} [bookData.blurb]
+ * @param {Object} bookData.activityPointsMap
+ * @returns {{ status: string, newActivity?: Object, coverImageURL?: string, message?: string }}
  */
 function updateLibraryBook(bookData) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const currentMemberId = getVerifiedMemberId();
+  if (!currentMemberId) return { status: 'error', message: 'Unauthorized session.' };
+ 
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(LIBRARY_SHEET);
-  const data = sheet.getDataRange().getValues();
-  
-  const currentMemberId = getVerifiedMemberId(); // Secure, one-line lookup!
-  if (!currentMemberId) return { status: "error", message: "User Not Found." };
-
-  let existingRowIndex = -1;
+  const data  = sheet.getDataRange().getValues();
+ 
+  // ── Find the row to update ─────────────────────────────────────────────────
+  let rowIndex = -1;
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === bookData.bookId) { 
-      existingRowIndex = i + 1; 
+    if (data[i][0].toString() === bookData.bookId.toString()) {
+      rowIndex = i;
       break;
     }
   }
-
-  if (existingRowIndex === -1) {
-    return { status: "error", message: "Book not found in the club library." };
+  if (rowIndex === -1) return { status: 'error', message: 'Book not found.' };
+ 
+  const dateTimeFormatted = Utilities.formatDate(
+    new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z'
+  );
+ 
+  // ── Cover: upload new if provided, otherwise keep existing ─────────────────
+  let coverImageURL = data[rowIndex][9] || ''; // Col J — existing URL
+  if (bookData.coverBase64) {
+    const uploaded = uploadBookCover_(bookData.bookId, bookData.coverBase64);
+    if (uploaded) coverImageURL = uploaded; // Only overwrite on successful upload
   }
-
-  const dateTimeFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss Z");
-
-  // Perform surgical updates only on provided fields
-  if (bookData.title) sheet.getRange(existingRowIndex, 2).setValue(bookData.title.trim());       
-  if (bookData.author) sheet.getRange(existingRowIndex, 3).setValue(bookData.author.trim());      
-  if (bookData.genre) sheet.getRange(existingRowIndex, 4).setValue(bookData.genre.trim());        
-  if (bookData.pages !== undefined) sheet.getRange(existingRowIndex, 5).setValue(Number(bookData.pages) || 0); 
-  
-  sheet.getRange(existingRowIndex, 8).setValue(dateTimeFormatted);                                
-  sheet.getRange(existingRowIndex, 9).setValue(currentMemberId);                                  
-  
-  if (bookData.coverUrl !== undefined) sheet.getRange(existingRowIndex, 10).setValue(bookData.coverUrl.trim()); 
-
-  // --- LOG THE ACTIVITY ---
+ 
+  // ── Batch update columns B–M + H (LastModifiedDate) + I (LastModifiedBy) ───
+  // Sheet row = rowIndex + 1 (1-based), starting at Col B (col 2)
+  // Columns B C D E | H I J K L M
+  // We update B–E (core) and H–M (metadata + new fields) in two ranges
+ 
+  // Cols B–E: Title, Author, Genre, Pages
+  sheet.getRange(rowIndex + 1, 2, 1, 4).setValues([[
+    bookData.title.trim(),
+    bookData.author.trim(),
+    (bookData.genre || '').trim(),
+    Number(bookData.pages) || 0
+  ]]);
+ 
+  // Cols H–M: LastModifiedDate, LastModifiedBy, CoverURL, ISBN13, PubDate, Blurb
+  sheet.getRange(rowIndex + 1, 8, 1, 6).setValues([[
+    dateTimeFormatted,
+    currentMemberId,
+    coverImageURL,
+    (bookData.isbn13        || '').trim(),
+    (bookData.publishedDate || '').trim(),
+    (bookData.blurb         || '').trim()
+  ]]);
+ 
+  // ── Log activity ───────────────────────────────────────────────────────────
   let newActivity = null;
-  try { 
-    newActivity = logActivity(currentMemberId, "ARKA_ACTTYP_BOOKUPDATE", 1, bookData.bookId, bookData.activityPointsMap || {});
+  try {
+    newActivity = logActivity(
+      currentMemberId,
+      'ARKA_ACTTYP_BOOKUPDATE',
+      1,
+      bookData.bookId,
+      bookData.activityPointsMap || {}
+    );
   } catch(e) {}
-  
-  return { 
-    status: "success", 
-    message: "Library book updated successfully!",
-    newActivity: newActivity // Return this for local sync!
+ 
+  // Invalidate library cache
+  invalidateCacheKey(CACHE_KEYS.library);
+ 
+  return {
+    status       : 'success',
+    coverImageURL,
+    newActivity
   };
 }
 
-/**
- * 11. Fetch full details for the Book View
- * Compiles a specific book's data along with all the community reviews and ratings.
- */
-function getFullBookDetails(bookId) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  
-  const libData = ss.getSheetByName("ArkaLibraryDB").getDataRange().getValues();
-  let bookData = null;
-  for (let i = 1; i < libData.length; i++) {
-    if (libData[i][0] === bookId) {
-      let rawDate = libData[i][6];
-      let safeDateString = rawDate instanceof Date ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), "dd-MMM-yyyy") : String(rawDate);
-
-      bookData = {
-        id: libData[i][0],
-        title: libData[i][1],
-        author: libData[i][2],
-        genre: libData[i][3],
-        pages: libData[i][4],
-        addedByRaw: libData[i][5], 
-        addedDate: safeDateString
-      };
-      break;
-    }
-  }
-  if (!bookData) return { status: "error", message: "Book not found." };
-
-  bookData.addedByName = bookData.addedByRaw; 
-  const memData = ss.getSheetByName(MEMBERS_SHEET).getDataRange().getValues();
-  
-  if (String(bookData.addedByRaw).startsWith("ARKA_MEMBER_")) {
-    for (let i = 1; i < memData.length; i++) {
-      if (memData[i][0] === bookData.addedByRaw) {
-        bookData.addedByName = memData[i][3]; 
-        break;
-      }
-    }
-  }
-
-  // Aggregate Reviews and Stats
-  const shelfData = ss.getSheetByName("MemberShelfDB").getDataRange().getValues();
-  let totalRatingSum = 0;
-  let ratingCount = 0;
-  let reviewCount = 0;
-  
-  let clubActivity = {
-    "Reading": [],
-    "Finished": [],
-    "To Read": []
-  };
-
-  for (let i = 1; i < shelfData.length; i++) {
-    if (shelfData[i][2] === bookId) { 
-      let memberId = shelfData[i][1];
-      let status = shelfData[i][3];
-      let rating = Number(shelfData[i][4]) || 0;
-      let review = shelfData[i][5] || "";
-      let pagesRead = shelfData[i][9] || 0;
-
-      let displayName = "Unknown Reader";
-      for (let m = 1; m < memData.length; m++) {
-        if (memData[m][0] === memberId) {
-          displayName = memData[m][3];
-          break;
-        }
-      }
-
-      if (rating > 0) {
-        totalRatingSum += rating;
-        ratingCount++;
-      }
-      if (review.trim().length > 0) {
-        reviewCount++;
-      }
-
-      if (clubActivity[status]) {
-        clubActivity[status].push({
-          name: displayName,
-          rating: rating,
-          review: review,
-          pagesRead: pagesRead
-        });
-      }
-    }
-  }
-
-  bookData.avgRating = ratingCount > 0 ? (totalRatingSum / ratingCount).toFixed(1) : "0.0";
-  bookData.totalRatings = ratingCount;
-  bookData.totalReviews = reviewCount;
-  bookData.activity = clubActivity;
-
-  return { status: "success", data: bookData };
-}
 
 /**
  * 12. The "Big Gulp" — fetches all app data in a single backend call.
