@@ -3917,30 +3917,34 @@
         google.script.run.withSuccessHandler(routeUser).initializeUser();
       };
 
-      /**
+       /**
        * Routes the user after initializeUser() responds.
        *
-       * v38.3 FOUR-WAVE PROGRESSIVE LOADING:
+       * v38.4 — CONCURRENT WAVE LOADING:
+       * All four waves fire simultaneously instead of sequentially.
+       * Each wave applies its data and renders immediately on arrival.
+       * Total load time ≈ slowest single wave instead of sum of all waves.
        *
-       *   Wave 1 (~1,500ms) — MemberDB + PageLogDB + LevelDB
-       *     → Me tab renders: profile, level bar, heatmap, streak, ghost chart
+       * Wave 1 — MemberDB + PageLogDB + LevelDB
+       *   → Me tab: profile, level bar, heatmap, streak, ghost chart
        *
-       *   Wave 2 (~1,800ms) — ActivityLogDB + ChallengeDB + EnrollmentDB + AnnouncementDB
-       *     → My Challenges card, Home feed, announcement banner
+       * Wave 2 — ActivityLogDB + ChallengeDB + EnrollmentDB + AnnouncementDB
+       *   → My Challenges card, Home feed, announcement banner
        *
-       *   Wave 3 (~2,000ms) — LibraryDB + ShelfDB + BadgeDB + BadgeAwardDB
-       *     → Me tab shelves + badges, Library view, Members leaderboard
+       * Wave 3 — LibraryDB + ShelfDB + BadgeDB + BadgeAwardDB
+       *   → Me tab shelves + badges + genre DNA, Library, Members
        *
-       *   Wave 4 (~1,400ms) — ActivityTypeDB
-       *     → globalActivityPointsMap for write operations
+       * Wave 4 — ActivityTypeDB
+       *   → globalActivityPointsMap for all write operations
        *
-       * @param {Object} response - Data from initializeUser()
+       * @param {Object} response - Data returned from initializeUser()
        */
       function routeUser(response) {
         currentAppVersion = response.version;
         const versionEl = document.getElementById('appVersionDisplay');
         if (versionEl) versionEl.innerText = 'Arka Readers Club App ' + currentAppVersion;
     
+        // ── New member — lock into registration, no data loading needed ──────────
         if (response.status === 'new') {
           activeEmail = response.email;
           document.getElementById('userEmail').innerText = activeEmail;
@@ -3949,195 +3953,99 @@
           return;
         }
     
-        // Show app shell immediately
+        // ── Returning member ──────────────────────────────────────────────────────
+        // Set currentUser immediately so wave handlers never find it empty,
+        // even if Wave 2 or Wave 3 arrives before Wave 1.
+        currentUser = response.memberID;
+    
         document.getElementById('headerText').innerText = 'ARKA READERS CLUB';
         document.getElementById('bottomNav').style.display = 'flex';
         switchTab('me');
+    
+        // Quote loads in parallel — gives user something to read immediately
         google.script.run.withSuccessHandler(renderQuote).getRandomQuote();
     
-        // ── WAVE 1 ───────────────────────────────────────────────────────────────
+        // Small delay so the Me tab shell paints before GAS calls fire
         setTimeout(function() {
-          google.script.run
-            .withSuccessHandler(function(w1) {
-              if (!w1 || w1.status === 'error') { showToast('Load failed. Please refresh.'); return; }
     
-              // Populate Wave 1 globals
-              currentUser          = response.memberID;
-              globalMembersDB      = w1.membersDB      || [];
-              globalMemberLevelsDB = w1.memberLevelsDB || [];
-              globalPageLogDB      = w1.pageLogDB      || [];
+          // ── Shared coordination state ───────────────────────────────────────────
+          // Tracks how many waves have completed so we know when all are done.
+          // wavesFailed counts retries that permanently failed.
+          var wavesComplete = 0;
+          var TOTAL_WAVES   = 4;
     
-              // Build essential maps
-              membersMap = new Map(globalMembersDB.map(function(m) { return [m.id, m]; }));
+          /**
+           * Called by each wave success handler.
+           * Applies wave data and renders immediately — no waiting for other waves.
+           * Once all waves are done, runs a final reconciliation render.
+           *
+           * @param {string} waveKey - 'w1' | 'w2' | 'w3' | 'w4'
+           * @param {Object} data    - The wave response from the backend
+           */
+          function onWaveComplete(waveKey, data) {
+            wavesComplete++;
     
-              // Mark app as usable — Me tab can render
-              isAppDataLoaded = true;
+            if (waveKey === 'w1') applyWave1(data, response);
+            if (waveKey === 'w2') applyWave2(data);
+            if (waveKey === 'w3') applyWave3(data);
+            if (waveKey === 'w4') applyWave4(data);
     
-              // Render Me tab with Wave 1 data
-              // populateMePage: name, points, level bar, lifetime stats from MemberDB
-              // renderHeatmap:  heatmap squares, streak, ghost chart (all from PageLogDB)
-              populateMePage(response.memberID);
-              renderHeatmap(currentUser);
+            // Once all four waves are done (including any that failed after retry),
+            // run a final reconciliation render to catch any ordering edge cases
+            if (wavesComplete === TOTAL_WAVES) onAllWavesComplete();
+          }
     
-              // Log Wave 1 timing
-              (function() {
-                try {
-                  const w1Ms = Date.now() - APP_LOAD_T0;
-                  google.script.run.logAppLoadTime({
-                    appVersion: currentAppVersion + '_W1',
-                    bigGulpMs: w1Ms, renderMs: 0, totalMs: w1Ms
-                  });
-                } catch(e) {}
-              })();
+          /**
+           * Fires a single wave backend call with one automatic retry.
+           * If the retry also fails, the wave is skipped and the counter
+           * is still incremented so the app never hangs.
+           *
+           * @param {string} waveKey     - 'w1' | 'w2' | 'w3' | 'w4'
+           * @param {string} fnName      - Backend GAS function name to call
+           * @param {number} retryCount  - Internal use only, do not pass
+           */
+          function fireWave(waveKey, fnName, retryCount) {
+            retryCount = retryCount || 0;
     
-              // ── WAVE 2 ─────────────────────────────────────────────────────────
-              google.script.run
-                .withSuccessHandler(function(w2) {
-                  if (!w2 || w2.status === 'error') return;
-    
-                  // Populate Wave 2 globals
-                  globalActivityLogDB          = w2.activityLogDB          || [];
-                  globalChallengesDB           = w2.challengesDB           || [];
-                  globalChallengeEnrollmentsDB = w2.challengeEnrollmentsDB || [];
-                  globalAnnouncementsDB        = w2.announcementsDB        || [];
-    
-                  // Build maps
-                  challengesMap = new Map(
-                    globalChallengesDB.map(function(c) { return [c.challengeId, c]; })
-                  );
-                  myEnrollmentsMap = new Map();
-                  globalChallengeEnrollmentsDB
-                    .filter(function(e) { return e.memberId === currentUser; })
-                    .forEach(function(e) { myEnrollmentsMap.set(e.challengeId, e); });
-    
-                  isWave2Loaded = true;
-    
-                  // Render sections that needed Wave 2
-                  if (document.getElementById('meView').style.display === 'block') {
-                    renderMyChallengesCard();
-                    renderHomeFeed(currentUser, 'meActivityFeed');
+            google.script.run
+              .withSuccessHandler(function(data) {
+                if (!data || data.status === 'error') {
+                  console.warn(waveKey + ' returned error: ' + (data && data.message));
+                  if (retryCount < 1) {
+                    // Retry once after 2 seconds — covers transient GAS quota hits
+                    setTimeout(function() {
+                      fireWave(waveKey, fnName, retryCount + 1);
+                    }, 2000);
+                  } else {
+                    // Give up — increment counter so app doesn't hang forever
+                    console.error(waveKey + ' failed after retry — skipping.');
+                    wavesComplete++;
+                    if (wavesComplete === TOTAL_WAVES) onAllWavesComplete();
                   }
-                  // Banner always renders — it's shown on homeView but
-                  // its data is now ready regardless of which view is active
-                  renderAnnouncementsBanner();
-
-                  if (document.getElementById('homeView').style.display === 'block') {
-                    document.getElementById('feedLoadingText').style.display = 'none';
-                    renderAnnouncementsBanner();
-                    renderHomeFeed();
-                    fetchLatestActivities();
-                  }
-
-                  if (document.getElementById('challengesView').style.display === 'block') {
-                    renderChallengesView();
-                  }
+                  return;
+                }
+                onWaveComplete(waveKey, data);
+              })
+              .withFailureHandler(function() {
+                console.warn(waveKey + ' network failure');
+                if (retryCount < 1) {
+                  setTimeout(function() {
+                    fireWave(waveKey, fnName, retryCount + 1);
+                  }, 2000);
+                } else {
+                  console.error(waveKey + ' failed after retry — skipping.');
+                  wavesComplete++;
+                  if (wavesComplete === TOTAL_WAVES) onAllWavesComplete();
+                }
+              })
+              [fnName]();  // Calls google.script.run.getWave1Data() etc.
+          }
     
-                  // ── WAVE 3 ───────────────────────────────────────────────────────
-                  google.script.run
-                    .withSuccessHandler(function(w3) {
-                      if (!w3 || w3.status === 'error') return;
-    
-                      // Populate Wave 3 globals
-                      globalBooksDB       = w3.booksDB       || [];
-                      globalShelvesDB     = w3.shelvesDB     || [];
-                      globalBadgesDB      = w3.badgesDB      || [];
-                      globalBadgeAwardsDB = w3.badgeAwardsDB || [];
-    
-                      // Build maps
-                      booksMap   = new Map(globalBooksDB.map(function(b) { return [b.id, b]; }));
-                      shelvesMap = new Map(globalShelvesDB.map(function(s) { return [s.shelfId, s]; }));
-    
-                      myShelfIndexByBook = new Map();
-                      globalShelvesDB.forEach(function(s) {
-                        if (s.memberId !== currentUser) return;
-                        if (!myShelfIndexByBook.has(s.bookId)) myShelfIndexByBook.set(s.bookId, []);
-                        myShelfIndexByBook.get(s.bookId).push(s);
-                      });
-    
-                      badgesMap        = new Map(globalBadgesDB.map(function(b) { return [b.id, b]; }));
-                      memberBadgeIndex = new Map();
-                      globalBadgeAwardsDB.forEach(function(award) {
-                        if (award.status !== 'Active') return;
-                        if (!memberBadgeIndex.has(award.memberId)) memberBadgeIndex.set(award.memberId, []);
-                        memberBadgeIndex.get(award.memberId).push(award);
-                      });
-    
-                      isWave3Loaded = true;
-    
-                      // Render sections that needed Wave 3
-                      if (document.getElementById('meView').style.display === 'block') {
-                        renderUserShelves(currentUser, 'meDashboardContainer');
-                        renderMeShelfTiles(currentUser);
-                        renderBadgeStrip(currentUser, 'meBadgeSectionContainer', true);
-                        // Update booksThisYear stat pill now that ShelfDB is available
-                        updateBooksThisYearPill(currentUser);
-                        // Now that Wave 3 data is loaded, re-run them directly:
-                        const userLogs = globalPageLogDB.filter(function(log) {
-                          return log.memberId === currentUser;
-                        });
-                        renderHistoricalGraphs(userLogs, currentUser);  // fixes "Over the Years" books bar
-                        renderGenreWordCloud(currentUser);              // fixes Genre
-                      }
-                      if (document.getElementById('libraryView').style.display === 'block') {
-                        loadLibraryCatalog();
-                      }
-                      if (document.getElementById('membersView').style.display === 'block') {
-                        loadMembersDirectory();
-                      }
-                      if (document.getElementById('badgesView').style.display === 'block') {
-                        renderBadgeGallery();
-                      }
-    
-                      // Log full load timing (W1 start → W3 complete)
-                      (function() {
-                        try {
-                          const totalMs = Date.now() - APP_LOAD_T0;
-                          google.script.run.logAppLoadTime({
-                            appVersion: currentAppVersion + '_W3',
-                            bigGulpMs: totalMs, renderMs: 0, totalMs: totalMs
-                          });
-                        } catch(e) {}
-                      })();
-    
-                      // ── WAVE 4 ─────────────────────────────────────────────────
-                      google.script.run
-                        .withSuccessHandler(function(w4) {
-                          if (!w4 || w4.status === 'error') return;
-    
-                          globalActivityTypeDB = w4.activityTypeDB || [];
-                          actTypeMap = new Map(
-                            globalActivityTypeDB.map(function(a) { return [a.activityTypeID, a]; })
-                          );
-                          // Build the points map used by all write operations
-                          globalActivityPointsMap = {};
-                          actTypeMap.forEach(function(obj, id) {
-                            globalActivityPointsMap[id] = obj.activityClubPoints || 0;
-                          });
-    
-                          isWave4Loaded = true;
-                        })
-                        .withFailureHandler(function() {
-                          console.warn('Wave 4 failed — write ops will use backend fallback.');
-                        })
-                        .getWave4Data();
-    
-                    })
-                    .withFailureHandler(function() {
-                      console.warn('Wave 3 failed — library and shelves unavailable.');
-                    })
-                    .getWave3Data();
-    
-                })
-                .withFailureHandler(function() {
-                  console.warn('Wave 2 failed — feed and challenges unavailable.');
-                })
-                .getWave2Data();
-    
-            })
-            .withFailureHandler(function() {
-              showToast('Failed to load. Please refresh the page.');
-            })
-            .getWave1Data();
+          // ── Fire all four waves simultaneously ───────────────────────────────────
+          fireWave('w1', 'getWave1Data');
+          fireWave('w2', 'getWave2Data');
+          fireWave('w3', 'getWave3Data');
+          fireWave('w4', 'getWave4Data');
     
         }, 50);
       }
@@ -4402,6 +4310,7 @@
             });
             renderHistoricalGraphs(userLogs, currentUser);
             renderGenreWordCloud(currentUser);
+            renderReadingPulse(userLogs);
           }
         }
 
@@ -9462,7 +9371,7 @@
         
         if (myYearlyChartInstance) myYearlyChartInstance.destroy();
         if (myCumulativeChartInstance) myCumulativeChartInstance.destroy();
-        if (myReadingPulseInstance) { myReadingPulseInstance.destroy(); myReadingPulseInstance = null; }
+        //if (myReadingPulseInstance) { myReadingPulseInstance.destroy(); myReadingPulseInstance = null; }  //Was causing to not load reading pulse
 
         if (!userLogs || userLogs.length === 0) {
           yearlyContainer.style.display = 'none';
@@ -14087,24 +13996,282 @@
         return lines;
       }
 
+       // ============================================================================
+      // WAVE APPLY FUNCTIONS — v38.4
+      // Each function is called by onWaveComplete() the moment its wave arrives.
+      // They apply data to globals, build maps, and render visible UI immediately.
+      // ============================================================================
+    
+    
+      /**
+       * Applies Wave 1 data: MemberDB + PageLogDB + ClubPointLevelDB.
+       * Renders the Me tab profile, level bar, heatmap and streak immediately.
+       *
+       * @param {Object} w1       - Response from getWave1Data()
+       * @param {Object} response - Original initializeUser() response (for memberID)
+       */
+      function applyWave1(w1, response) {
+        // Populate Wave 1 globals
+        globalMembersDB      = w1.membersDB      || [];
+        globalMemberLevelsDB = w1.memberLevelsDB || [];
+        globalPageLogDB      = w1.pageLogDB      || [];
+    
+        // Build essential O(1) map
+        membersMap = new Map(globalMembersDB.map(function(m) { return [m.id, m]; }));
+    
+        // Mark app as usable — Me tab guards (isAppDataLoaded) now pass
+        isAppDataLoaded = true;
+    
+        // Render Me tab immediately with Wave 1 data
+        populateMePage(currentUser);   // profile name, points, level bar, lifetime stats
+        renderHeatmap(currentUser);    // 52-week grid, streak, reading pulse, ghost chart
+    
+        // Log Wave 1 timing to AppLoadTimingDB
+        try {
+          var w1Ms = Date.now() - APP_LOAD_T0;
+          google.script.run.logAppLoadTime({
+            appVersion: currentAppVersion + '_W1',
+            bigGulpMs : w1Ms,
+            renderMs  : 0,
+            totalMs   : w1Ms
+          });
+        } catch(e) {}
+      }
+    
+    
+      /**
+       * Applies Wave 2 data: ActivityLogDB + ChallengeDB + EnrollmentDB + AnnouncementDB.
+       * Renders the My Challenges card, activity feed, and announcement banner.
+       *
+       * @param {Object} w2 - Response from getWave2Data()
+       */
+      function applyWave2(w2) {
+        // Populate Wave 2 globals
+        globalActivityLogDB          = w2.activityLogDB          || [];
+        globalChallengesDB           = w2.challengesDB           || [];
+        globalChallengeEnrollmentsDB = w2.challengeEnrollmentsDB || [];
+        globalAnnouncementsDB        = w2.announcementsDB        || [];
+    
+        // Build O(1) challenge lookup maps
+        challengesMap = new Map(
+          globalChallengesDB.map(function(c) { return [c.challengeId, c]; })
+        );
+    
+        // Build per-user enrollment map for the current user only
+        myEnrollmentsMap = new Map();
+        globalChallengeEnrollmentsDB
+          .filter(function(e) { return e.memberId === currentUser; })
+          .forEach(function(e) { myEnrollmentsMap.set(e.challengeId, e); });
+    
+        isWave2Loaded = true;
+    
+        // Render immediately — announcements banner always fires regardless of active view
+        renderAnnouncementsBanner();
+    
+        // Me tab — challenges card and personal activity feed
+        if (document.getElementById('meView').style.display === 'block') {
+          renderMyChallengesCard();
+          renderHomeFeed(currentUser, 'meActivityFeed');
+        }
+    
+        // Home tab — full feed and latest activities sync
+        if (document.getElementById('homeView').style.display === 'block') {
+          var feedLoading = document.getElementById('feedLoadingText');
+          if (feedLoading) feedLoading.style.display = 'none';
+          renderHomeFeed();
+          fetchLatestActivities();
+        }
+    
+        // Challenges view — if user navigated there before Wave 2 finished
+        if (document.getElementById('challengesView').style.display === 'block') {
+          renderChallengesView();
+        }
+      }
+    
+    
+      /**
+       * Applies Wave 3 data: LibraryDB + MemberShelfDB + BadgeDB + BadgeAwardDB.
+       * Renders Me tab shelves, badges, genre DNA, Over the Years chart.
+       * Also renders Library, Members, and Badges views if currently open.
+       *
+       * @param {Object} w3 - Response from getWave3Data()
+       */
+      function applyWave3(w3) {
+        // Populate Wave 3 globals
+        globalBooksDB       = w3.booksDB       || [];
+        globalShelvesDB     = w3.shelvesDB     || [];
+        globalBadgesDB      = w3.badgesDB      || [];
+        globalBadgeAwardsDB = w3.badgeAwardsDB || [];
+    
+        // Build O(1) lookup maps
+        booksMap   = new Map(globalBooksDB.map(function(b)  { return [b.id,       b]; }));
+        shelvesMap = new Map(globalShelvesDB.map(function(s) { return [s.shelfId, s]; }));
+    
+        // Build current user's shelf index — keyed by bookId for O(1) lookup
+        myShelfIndexByBook = new Map();
+        globalShelvesDB.forEach(function(s) {
+          if (s.memberId !== currentUser) return;
+          if (!myShelfIndexByBook.has(s.bookId)) myShelfIndexByBook.set(s.bookId, []);
+          myShelfIndexByBook.get(s.bookId).push(s);
+        });
+    
+        // Build badge maps
+        badgesMap = new Map(globalBadgesDB.map(function(b) { return [b.id, b]; }));
+        memberBadgeIndex = new Map();
+        globalBadgeAwardsDB.forEach(function(award) {
+          if (award.status !== 'Active') return;
+          if (!memberBadgeIndex.has(award.memberId)) memberBadgeIndex.set(award.memberId, []);
+          memberBadgeIndex.get(award.memberId).push(award);
+        });
+    
+        isWave3Loaded = true;
+    
+        // ── Me tab — fill in sections that needed Wave 3 ─────────────────────────
+        if (document.getElementById('meView').style.display === 'block') {
+          renderUserShelves(currentUser, 'meDashboardContainer');
+          renderMeShelfTiles(currentUser);
+          renderBadgeStrip(currentUser, 'meBadgeSectionContainer', true);
+          updateBooksThisYearPill(currentUser);
+    
+          // Re-render carousel cards that ran in Wave 1 with empty ShelfDB/booksMap
+          // renderHistoricalGraphs: fixes the "Over the Years" books finished bar
+          // renderGenreWordCloud:   fixes the Genre DNA card
+          var userLogs = globalPageLogDB.filter(function(log) {
+            return log.memberId === currentUser;
+          });
+          renderHistoricalGraphs(userLogs, currentUser);
+          renderGenreWordCloud(currentUser);
+          renderReadingPulse(userLogs);
+        }
+    
+        // ── Other views if user navigated there before Wave 3 finished ───────────
+        if (document.getElementById('libraryView').style.display === 'block') {
+          loadLibraryCatalog();
+        }
+        if (document.getElementById('membersView').style.display === 'block') {
+          loadMembersDirectory();
+        }
+        if (document.getElementById('badgesView').style.display === 'block') {
+          renderBadgeGallery();
+        }
+    
+        // Log Wave 3 timing — this is the "everything visible" milestone
+        try {
+          var totalMs = Date.now() - APP_LOAD_T0;
+          google.script.run.logAppLoadTime({
+            appVersion: currentAppVersion + '_W3',
+            bigGulpMs : totalMs,
+            renderMs  : 0,
+            totalMs   : totalMs
+          });
+        } catch(e) {}
+      }
+    
+    
+      /**
+       * Applies Wave 4 data: ActivityTypeDB.
+       * Builds globalActivityPointsMap used by all write operations.
+       * If a write occurred before Wave 4 arrived, the backend fallback
+       * in getActivityMultiplier() handles it automatically.
+       *
+       * @param {Object} w4 - Response from getWave4Data()
+       */
+      function applyWave4(w4) {
+        globalActivityTypeDB = w4.activityTypeDB || [];
+    
+        // Build O(1) activity type map
+        actTypeMap = new Map(
+          globalActivityTypeDB.map(function(a) { return [a.activityTypeID, a]; })
+        );
+    
+        // Build the flat points map sent with every backend write call
+        globalActivityPointsMap = {};
+        actTypeMap.forEach(function(obj, id) {
+          globalActivityPointsMap[id] = obj.activityClubPoints || 0;
+        });
+    
+        isWave4Loaded = true;
+      }
+    
+    
+      /**
+       * Final reconciliation render — called once ALL four waves are complete.
+       *
+       * Handles the edge case where waves arrived out of order and a view
+       * needed data from two waves but one arrived after the view-specific
+       * render had already run.
+       *
+       * For example: user is on Me tab, Wave 3 arrives before Wave 2.
+       * applyWave3() renders shelves and badges but renderMyChallengesCard()
+       * inside applyWave2() hasn't run yet. This function catches that.
+       */
+      function onAllWavesComplete() {
+        // ── Me tab — full re-render now all data is guaranteed available ──────────
+        if (document.getElementById('meView').style.display === 'block') {
+          renderMyChallengesCard();
+          renderUserShelves(currentUser, 'meDashboardContainer');
+          renderMeShelfTiles(currentUser);
+          renderBadgeStrip(currentUser, 'meBadgeSectionContainer', true);
+          updateBooksThisYearPill(currentUser);
+          var userLogs = globalPageLogDB.filter(function(log) {
+            return log.memberId === currentUser;
+          });
+          renderHistoricalGraphs(userLogs, currentUser);
+          renderGenreWordCloud(currentUser);
+          renderReadingPulse(userLogs);
+        }
+    
+        // ── Other views — refresh if open ─────────────────────────────────────────
+        if (document.getElementById('homeView').style.display === 'block') {
+          renderAnnouncementsBanner();
+          renderHomeFeed();
+        }
+        if (document.getElementById('libraryView').style.display === 'block') {
+          loadLibraryCatalog();
+        }
+        if (document.getElementById('membersView').style.display === 'block') {
+          loadMembersDirectory();
+        }
+        if (document.getElementById('badgesView').style.display === 'block') {
+          renderBadgeGallery();
+        }
+        if (document.getElementById('challengesView').style.display === 'block') {
+          renderChallengesView();
+        }
+    
+        // Log total load time — ALL waves done
+        try {
+          var totalMs = Date.now() - APP_LOAD_T0;
+          google.script.run.logAppLoadTime({
+            appVersion: currentAppVersion + '_ALL',
+            bigGulpMs : totalMs,
+            renderMs  : 0,
+            totalMs   : totalMs
+          });
+        } catch(e) {}
+      }
+    
+    
       /**
        * Updates the "books this year" stat pill on the Me tab.
-       * Called by the Wave 3 handler once globalShelvesDB is populated.
-       * Runs the same ShelfDB scan that renderHeatmap() used to do inline.
+       * Called by applyWave3() once globalShelvesDB is populated.
        *
-       * @param {string} memberId
+       * renderHeatmap() (Wave 1) leaves this pill at 0 because ShelfDB
+       * is not available yet. This function corrects it when Wave 3 arrives.
+       *
+       * @param {string} memberId - The member ID whose pill to update
        */
       function updateBooksThisYearPill(memberId) {
-        const el = document.getElementById('meStatBooksYear');
+        var el = document.getElementById('meStatBooksYear');
         if (!el) return;
     
-        const currentYear = new Date().getFullYear();
-        let   booksThisYear = 0;
+        var currentYear  = new Date().getFullYear();
+        var booksThisYear = 0;
     
         globalShelvesDB
           .filter(function(s) { return s.memberId === memberId && s.status === 'Finished'; })
           .forEach(function(shelf) {
-            const finishDate = parseGoogleDate(
+            var finishDate = parseGoogleDate(
               shelf.dateFinished || shelf.dateUpdated || shelf.lastModifiedOn
             );
             if (finishDate.getFullYear() === currentYear) booksThisYear++;
