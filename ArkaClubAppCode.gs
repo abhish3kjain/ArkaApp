@@ -118,7 +118,7 @@
  * @property {string} completedOn          - dd-MM-yyyy HH:mm:ss Z or blank   (Col I)
  */
 
-const APP_VERSION = "v38.5";
+const APP_VERSION = "v39.3";  //Cache System Built
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -164,6 +164,7 @@ function doGet(e) {
  */
 
 function initializeUser() {
+  const t0 = Date.now();
   const email = Session.getActiveUser().getEmail(); // Get their Google email
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(MEMBERS_SHEET);
   const data = sheet.getDataRange().getValues();
@@ -178,12 +179,14 @@ function initializeUser() {
       let now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss Z");
       
       // Update their 'LastAccessed' timestamp
-      sheet.getRange(row, 13).setValue(now); 
+      sheet.getRange(row, 13).setValue(now);
+      console.log('initializeUser total: ' + (Date.now() - t0) + 'ms'); 
       return { status: "exists", memberID: data[i][0], version: APP_VERSION };
     }
   }
   // If no match is found, they are a new user
-  return { status: "new", email: email, version: APP_VERSION }; 
+  console.log('initializeUser total: ' + (Date.now() - t0) + 'ms');
+  return { status: "new", email: email, version: APP_VERSION };
 }
 
 /**
@@ -1144,10 +1147,7 @@ function getAppMasterData() {
 
       activityTypeList.push({
         activityTypeID: activityTypeData[i][0],
-        activityType: activityTypeData[i][1],
-        activityDesc: activityTypeData[i][2] || "",
-        activityIntroDate: safeDateString,
-        activityClubPoints: Number(activityTypeData[i][4]) || 0        
+        activityClubPoints: Number(activityTypeData[i][1]) || 0        
       });
     }
   }
@@ -1300,68 +1300,23 @@ function buildSheetMap_(ss) {
 function getWave1Data() {
   try {
     const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const t0       = Date.now();
-    const sheetMap = buildSheetMap_(ss);
-    console.log('W1 getSheets: ' + (Date.now() - t0) + 'ms');
- 
-    function gs(name) { return sheetMap.get(name) || null; }
- 
     // ── 1. Level Rules (3 cols) ──────────────────────────────────────────────
-    const levelSheet = gs('ClubPointLevelDB');
-    const levelList  = [];
-    if (levelSheet) {
-      const data = levelSheet
-        .getRange(1, 1, levelSheet.getLastRow(), 3)
-        .getValues();
-      console.log('W1 LevelDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < data.length; i++) {
-        if (data[i][0] === '') continue;
-        levelList.push({
-          levelNum      : parseInt(data[i][0]) || 0,
-          maxClubPoints : parseInt(data[i][1]) || 0,
-          levelName     : data[i][2] || 'Reader'
-        });
-      }
-    }
+    const levelList = getCachedDb(CACHE_KEYS.clublevels)
+      || (function() {
+        const fresh = buildClubLevelList_(ss);
+        setCachedDb(CACHE_KEYS.clublevels, fresh);
+        return fresh;
+      })();
  
-    // ── 2. Members ───────────────────────────────────────────────────────────
-    const memSheet    = gs(MEMBERS_SHEET);
-    const membersList = [];
-    if (memSheet) {
-      const data = memSheet.getDataRange().getValues();
-      console.log('W1 MemberDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < data.length; i++) {
-        if (!data[i][0]) continue;
-        membersList.push({
-          id          : data[i][0],
-          email       : data[i][1] || 'emailnotset@email.com',
-          fullName    : data[i][2],
-          displayName : data[i][3],
-          country     : data[i][5]  || '',
-          clubPoints  : Number(data[i][14]) || 0,
-          pages       : Number(data[i][15]) || 0,
-          books       : Number(data[i][16]) || 0,
-          joinDate    : data[i][4]
-            ? Utilities.formatDate(new Date(data[i][4]),
-                Session.getScriptTimeZone(), 'dd-MMM-yyyy')
-            : 'Unknown',
-          bio      : data[i][6]  || 'No bio added yet.',
-          goal     : data[i][11] || 'None set.',
-          genres   : data[i][10] || 'None listed.',
-          langs    : data[i][7]  || 'Unknown',
-          linkedin : data[i][8]  || '',
-          goodreads: data[i][9]  || '',
-          imageURL : data[i][17] || ''
-        });
-      }
-    }
+    // ── 2. Members — never cached, always fresh ───────────────────────────────
+    // Changes on every point award, profile update, and nightly MasterEngine sync
+    const membersList = buildMembersList_(ss);
  
     // ── 3. Page Log (full — needed for ghost chart + streak) ─────────────────
-    const pageLogSheet = gs(PAGELOG_SHEET);
+    const pageLogSheet = ss.getSheetByName(PAGELOG_SHEET);
     const pageLogDB    = [];
     if (pageLogSheet) {
       const data = pageLogSheet.getDataRange().getValues();
-      console.log('W1 PageLogDB: ' + (Date.now() - t0) + 'ms');
       for (let i = 1; i < data.length; i++) {
         if (!data[i][0]) continue;
         pageLogDB.push({
@@ -1374,8 +1329,7 @@ function getWave1Data() {
         });
       }
     }
- 
-    console.log('W1 TOTAL: ' + (Date.now() - t0) + 'ms');
+
     return {
       status        : 'success',
       membersDB     : membersList,
@@ -1403,15 +1357,11 @@ function getWave1Data() {
  */
 function getWave2Data() {
   try {
-    const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const t0       = Date.now();
-    const sheetMap = buildSheetMap_(ss);
-    console.log('W2 getSheets: ' + (Date.now() - t0) + 'ms');
- 
-    function gs(name) { return sheetMap.get(name) || null; }
- 
-    // ── 1. Activity Log — last 300 rows ──────────────────────────────────────
-    const actLogSheet     = gs(ACTIVITYLOG_SHEET);
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    // ── 1. Activity Log — always fresh, never cached ──────────────────────────
+    // Changes on every user action so caching would serve stale feed data
+    const actLogSheet     = ss.getSheetByName(ACTIVITYLOG_SHEET);
     const activityLogList = [];
     if (actLogSheet) {
       const totalRows = actLogSheet.getLastRow();
@@ -1420,7 +1370,6 @@ function getWave2Data() {
       const rowCount  = totalRows - startRow + 1;
       if (rowCount > 0) {
         const data = actLogSheet.getRange(startRow, 1, rowCount, 7).getValues();
-        console.log('W2 ActivityLogDB: ' + (Date.now() - t0) + 'ms');
         for (let i = 0; i < data.length; i++) {
           if (!data[i][0]) continue;
           activityLogList.push({
@@ -1437,18 +1386,29 @@ function getWave2Data() {
     }
  
     // ── 2. Challenges ────────────────────────────────────────────────────────
-    const challengesDBList = fetchChallenges(sheetMap);
-    console.log('W2 ChallengeDB: ' + (Date.now() - t0) + 'ms');
+    const challengesDBList = getCachedDb(CACHE_KEYS.challenges)
+      || (function() {
+        const fresh = fetchChallenges(ss);
+        setCachedDb(CACHE_KEYS.challenges, fresh);
+        return fresh;
+      })();
  
     // ── 3. Enrollments ───────────────────────────────────────────────────────
-    const challengeEnrollmentsDBList = fetchChallengeEnrollments(sheetMap);
-    console.log('W2 EnrollmentDB: ' + (Date.now() - t0) + 'ms');
+    const challengeEnrollmentsDBList = getCachedDb(CACHE_KEYS.enrollments)
+      || (function() {
+        const fresh = fetchChallengeEnrollments(ss);
+        setCachedDb(CACHE_KEYS.enrollments, fresh);
+        return fresh;
+      })();
  
     // ── 4. Announcements ─────────────────────────────────────────────────────
-    const announcementsDBList = fetchActiveAnnouncements(sheetMap);
-    console.log('W2 AnnouncementDB: ' + (Date.now() - t0) + 'ms');
- 
-    console.log('W2 TOTAL: ' + (Date.now() - t0) + 'ms');
+    const announcementsDBList = getCachedDb(CACHE_KEYS.announcements)
+      || (function() {
+        const fresh = fetchActiveAnnouncements(ss);
+        setCachedDb(CACHE_KEYS.announcements, fresh);
+        return fresh;
+      })();
+
     return {
       status                 : 'success',
       activityLogDB          : activityLogList,
@@ -1478,18 +1438,12 @@ function getWave2Data() {
 function getWave3Data() {
   try {
     const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const t0       = Date.now();
-    const sheetMap = buildSheetMap_(ss);
-    console.log('W3 getSheets: ' + (Date.now() - t0) + 'ms');
- 
-    function gs(name) { return sheetMap.get(name) || null; }
- 
+
     // ── 1. Library ───────────────────────────────────────────────────────────
-    const libSheet    = gs('ArkaLibraryDB');
+    const libSheet    = ss.getSheetByName('ArkaLibraryDB');
     const libraryList = [];
     if (libSheet) {
       const data = libSheet.getDataRange().getValues();
-      console.log('W3 LibraryDB: ' + (Date.now() - t0) + 'ms');
       for (let i = 1; i < data.length; i++) {
         if (!data[i][0]) continue;
         const rawDate = data[i][6];
@@ -1514,13 +1468,12 @@ function getWave3Data() {
     }
  
     // ── 2. Shelves (11 cols) ─────────────────────────────────────────────────
-    const shelfSheet  = gs(SHELF_SHEET);
+    const shelfSheet  = ss.getSheetByName(SHELF_SHEET);
     const shelvesList = [];
     if (shelfSheet) {
       const lastRow = shelfSheet.getLastRow();
       if (lastRow > 1) {
         const data = shelfSheet.getRange(1, 1, lastRow, 11).getValues();
-        console.log('W3 ShelfDB: ' + (Date.now() - t0) + 'ms');
         for (let i = 1; i < data.length; i++) {
           if (!data[i][0]) continue;
           const r1 = data[i][6], r2 = data[i][7], r3 = data[i][8];
@@ -1547,47 +1500,22 @@ function getWave3Data() {
     }
  
     // ── 3. Badges ────────────────────────────────────────────────────────────
-    const badgeSheet   = gs(BADGE_DB_SHEET);
-    const badgesDBList = [];
-    if (badgeSheet) {
-      const data = badgeSheet.getDataRange().getValues();
-      console.log('W3 BadgeDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < data.length; i++) {
-        if (!data[i][0]) continue;
-        badgesDBList.push({
-          id         : data[i][0].toString(),
-          caption    : data[i][1].toString(),
-          description: data[i][2].toString(),
-          imgUrl     : data[i][3].toString(),
-          badgePoints: Number(data[i][4]) || 0
-        });
-      }
-    }
+
+    const badgesDBList = getCachedDb(CACHE_KEYS.badges)
+      || (function() {
+        const fresh = buildBadgesDBList_(ss);
+        setCachedDb(CACHE_KEYS.badges, fresh);
+        return fresh;
+      })();
  
     // ── 4. Badge Awards ──────────────────────────────────────────────────────
-    const badgeAwardSheet   = gs(BADGE_AWARD_DB_SHEET);
-    const badgeAwardsDBList = [];
-    if (badgeAwardSheet) {
-      const data = badgeAwardSheet.getDataRange().getValues();
-      console.log('W3 BadgeAwardDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < data.length; i++) {
-        if (!data[i][0]) continue;
-        const rawDate = data[i][4];
-        badgeAwardsDBList.push({
-          awardId    : data[i][0].toString(),
-          badgeId    : data[i][1].toString(),
-          memberId   : data[i][2].toString(),
-          awardedBy  : data[i][3].toString(),
-          awardedDate: rawDate instanceof Date
-            ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
-            : String(rawDate),
-          status: data[i][5].toString(),
-          notes : data[i][6] ? data[i][6].toString() : ''
-        });
-      }
-    }
- 
-    console.log('W3 TOTAL: ' + (Date.now() - t0) + 'ms');
+    const badgeAwardsDBList = getCachedDb(CACHE_KEYS.badgeAwards)
+      || (function() {
+        const fresh = buildBadgeAwardsDBList_(ss);
+        setCachedDb(CACHE_KEYS.badgeAwards, fresh);
+        return fresh;
+      })();
+    
     return {
       status       : 'success',
       booksDB      : libraryList,
@@ -1606,44 +1534,49 @@ function getWave3Data() {
 /**
  * WAVE 4 — Activity type point values.
  *
- * Returns:
- *   ActivityTypeDB → globalActivityPointsMap for write operations
+ * Reads ActivityTypeDB (Col A: TypeID, Col B: ActivityClubPoints) and
+ * returns the data needed to build globalActivityPointsMap on the frontend.
  *
- * Loads last. Fallback in getActivityMultiplier() handles the gap
- * if a write occurs before this completes.
+ * CACHE BEHAVIOUR:
+ *   Hit  → returns cached array instantly, no sheet read (~1ms)
+ *   Miss → reads sheet via buildActivityTypeList_(), writes to cache,
+ *           returns fresh data
  *
- * Target: fires immediately after Wave 3 handler completes.
+ * Cache is invalidated by invalidateCacheKey(CACHE_KEYS.activityTypes)
+ * which should be called from any function that modifies ActivityTypeDB
+ * (currently only done via direct spreadsheet edits — no app UI for this).
+ *
+ * Falls back gracefully: if Wave 4 hasn't completed when a write operation
+ * fires, getActivityMultiplier() reads ActivityTypeDB directly from the
+ * sheet as a safety net.
+ *
+ * @returns {{
+ *   status:         string,
+ *   activityTypeDB: Array<{ activityTypeID: string, activityClubPoints: number }>
+ * }}
  */
 function getWave4Data() {
   try {
-    const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const t0       = Date.now();
-    const sheetMap = buildSheetMap_(ss);
- 
-    function gs(name) { return sheetMap.get(name) || null; }
- 
-    const actTypeSheet     = gs('ActivityTypeDB');
-    const activityTypeList = [];
-    if (actTypeSheet) {
-      const lastRow = actTypeSheet.getLastRow();
-      const data    = actTypeSheet.getRange(1, 1, lastRow, 5).getValues();
-      console.log('W4 ActivityTypeDB: ' + (Date.now() - t0) + 'ms');
-      for (let i = 1; i < data.length; i++) {
-        if (!data[i][0]) continue;
-        const rawDate = data[i][3];
-        activityTypeList.push({
-          activityTypeID    : data[i][0],
-          activityType      : data[i][1],
-          activityDesc      : data[i][2] || '',
-          activityIntroDate : rawDate instanceof Date
-            ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
-            : String(rawDate),
-          activityClubPoints: Number(data[i][4]) || 0
-        });
-      }
+    // ── Cache check — no sheet read needed on hit ────────────────────────────
+    const cachedActivityTypes = getCachedDb(CACHE_KEYS.activityTypes);
+    if (cachedActivityTypes) {
+      return {
+        status        : 'success',
+        activityTypeDB: cachedActivityTypes
+      };
     }
  
-    console.log('W4 TOTAL: ' + (Date.now() - t0) + 'ms');
+    // ── Cache miss — read from sheet ─────────────────────────────────────────
+    const ss       = SpreadsheetApp.openById(SPREADSHEET_ID);
+ 
+    // Delegate the actual sheet read to the private helper.
+    // buildActivityTypeList_ reads only 2 columns (A + B) — TypeID and Points.
+    const activityTypeList = buildActivityTypeList_(ss);
+ 
+    // Store in cache for subsequent loads — TTL is CACHE_TTL (21600s / 6 hours)
+    setCachedDb(CACHE_KEYS.activityTypes, activityTypeList);
+ 
+
     return {
       status        : 'success',
       activityTypeDB: activityTypeList
@@ -2006,23 +1939,31 @@ function getNextActivityNumber(logSheet) {
 
 /**
  * PRIVATE HELPER: Returns the cp multiplier for a given activity type.
+ *
  * Uses the client-provided map when available — no sheet read needed.
- * Falls back to a live ActivityTypeDB read for internal callers like
- * registerNewMember that have no frontend context to pass a map.
- * @param {string} activityTypeID
- * @param {Object} clientPointsMap - globalActivityPointsMap from frontend.
- * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Only used on fallback.
- * @returns {number} The points multiplier value.
+ * Falls back to a live ActivityTypeDB read for internal callers (e.g.
+ * registerNewMember) that have no frontend context to pass a map.
+ *
+ * NOTE: ActivityClubPoints is now in Col B (index 1), moved from Col E (index 4).
+ *
+ * @param {string} activityTypeID   - e.g. 'ARKA_ACTTYP_BOOKREAD'
+ * @param {Object} clientPointsMap  - globalActivityPointsMap from frontend
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Used only on fallback
+ * @returns {number} The points multiplier value
  */
 function getActivityMultiplier(activityTypeID, clientPointsMap, ss) {
+  // Fast path — use the pre-built map sent from the frontend
   if (clientPointsMap && clientPointsMap[activityTypeID] !== undefined) {
     return Number(clientPointsMap[activityTypeID]) || 0;
   }
-  // Fallback: read the sheet (internal callers with no client map)
-  const typeData = ss.getSheetByName("ActivityTypeDB").getDataRange().getValues();
+ 
+  // Fallback — read directly from sheet (internal callers with no client map)
+  // ActivityClubPoints is now Col B (index 1)
+  const actTypSheet = ss.getSheetByName('ActivityTypeDB');
+  const typeData = actTypSheet.getRange(1,1,actTypSheet.getLastRow(),2).getValues();
   for (let i = 1; i < typeData.length; i++) {
     if (typeData[i][0] === activityTypeID) {
-      return Number(typeData[i][4]) || 0;
+      return Number(typeData[i][1]) || 0;  // Col B (was Col E / index 4)
     }
   }
   return 0;
@@ -2125,6 +2066,7 @@ function addNewBadge(badgeData) {
   const badgeImgUrl = 'https://drive.google.com/thumbnail?id=' + newFile.getId() + '&sz=w400';
  
   const badgePoints = Number(badgeData.badgePoints) || 0;
+  invalidateCacheKey(CACHE_KEYS.badges);
   sheet.appendRow([badgeId, badgeData.caption.trim(), badgeData.description.trim(), badgeImgUrl, badgePoints]);
  
   return {
@@ -2181,7 +2123,8 @@ function awardBadgeToMember(awardData) {
   }
   const awardId      = 'ARKA_AWARD_' + newNum;
   const dateFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MMM-yyyy');
- 
+  
+  invalidateCacheKey(CACHE_KEYS.badgeAwards);
   awardSheet.appendRow([
     awardId,
     awardData.badgeId,
@@ -2249,7 +2192,7 @@ function revokeBadgeAward(awardId) {
  
   for (let i = 1; i < data.length; i++) {
     if (data[i][0].toString() !== awardId.toString()) continue;
- 
+    invalidateCacheKey(CACHE_KEYS.badgeAwards);
     awardSheet.getRange(i + 1, 6).setValue('Revoked');
     updateMemberBadgeCache(ss, data[i][2], data[i][1], 'remove');
 
@@ -2302,8 +2245,8 @@ function revokeBadgeAward(awardId) {
  * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Open spreadsheet instance
  * @returns {AnnouncementRecord[]} Array of active announcement objects
  */
-function fetchActiveAnnouncements(sheetMap) {
-  const sheet = sheetMap.get(ANNOUNCEMENT_SHEET);
+function fetchActiveAnnouncements(ss) {
+  const sheet = ss.getSheetByName(ANNOUNCEMENT_SHEET);
   if (!sheet) return []; // Sheet not yet created — fail silently
  
   const data          = sheet.getDataRange().getValues();
@@ -2355,8 +2298,8 @@ function fetchActiveAnnouncements(sheetMap) {
  * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss
  * @returns {ChallengeRecord[]}
  */
-function fetchChallenges(sheetMap) {
-  const sheet = sheetMap.get(CHALLENGE_SHEET);
+function fetchChallenges(ss) {
+  const sheet = ss.getSheetByName(CHALLENGE_SHEET);
   if (!sheet) return [];
  
   const data       = sheet.getDataRange().getValues();
@@ -2408,6 +2351,263 @@ function fetchChallenges(sheetMap) {
  
   return challenges;
 }
+
+/**
+ * PRIVATE HELPER: Reads ClubPointLevelDB and returns an array of level rule objects.
+ *
+ * Used by getWave1Data() to build globalMemberLevelsDB.
+ * Accepts ss directly — Wave 1 only reads 3 sheets total so buildSheetMap_()
+ * is not worth calling just for this one lookup.
+ *
+ * Column mapping (0-indexed):
+ *   A=0  levelNum       — sequential rank (1, 2, 3...)
+ *   B=1  maxClubPoints  — XP ceiling for this level
+ *   C=2  levelName      — display title e.g. "Bookworm"
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss
+ *   Open spreadsheet instance from SpreadsheetApp.openById()
+ *
+ * @returns {Array<{
+ *   levelNum:      number,
+ *   maxClubPoints: number,
+ *   levelName:     string
+ * }>} Sorted array of level rules. Empty array if sheet not found.
+ */
+function buildClubLevelList_(ss) {
+  const sheet     = ss.getSheetByName('ClubPointLevelDB');
+  const levelList = [];
+
+  if (!sheet) {
+    console.warn('buildClubLevelList_: ClubPointLevelDB sheet not found.');
+    return levelList;
+  }
+
+  // Read only 3 columns — all that ClubPointLevelDB contains
+  const data = sheet.getRange(1, 1, sheet.getLastRow(), 3).getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    // Skip blank rows — Col A (levelNum) must be present
+    if (data[i][0] === '' || data[i][0] === null) continue;
+
+    levelList.push({
+      levelNum      : parseInt(data[i][0]) || 0,   // Col A
+      maxClubPoints : parseInt(data[i][1]) || 0,   // Col B
+      levelName     : data[i][2] || 'Reader'       // Col C
+    });
+  }
+
+  return levelList;
+}
+
+/**
+ * PRIVATE HELPER: Reads MemberDB and returns an array of member objects.
+ *
+ * Used by getWave1Data() to build globalMembersDB.
+ * Accepts ss directly — same pattern as buildClubLevelList_().
+ *
+ * Column mapping (0-indexed):
+ *   A=0   id (ARKA_MEMBER_X)
+ *   B=1   email
+ *   C=2   fullName
+ *   D=3   displayName
+ *   E=4   joinDate
+ *   F=5   country
+ *   G=6   bio
+ *   H=7   langs
+ *   I=8   linkedin
+ *   J=9   goodreads
+ *   K=10  genres
+ *   L=11  goal
+ *   O=14  clubPoints
+ *   P=15  pages
+ *   Q=16  books
+ *   R=17  imageURL
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss
+ *   Open spreadsheet instance from SpreadsheetApp.openById()
+ *
+ * @returns {Array<{
+ *   id: string, email: string, fullName: string, displayName: string,
+ *   country: string, clubPoints: number, pages: number, books: number,
+ *   joinDate: string, bio: string, goal: string, genres: string,
+ *   langs: string, linkedin: string, goodreads: string, imageURL: string
+ * }>} Array of member objects. Empty array if sheet not found.
+ */
+function buildMembersList_(ss) {
+  const sheet       = ss.getSheetByName(MEMBERS_SHEET);
+  const membersList = [];
+
+  if (!sheet) {
+    console.warn('buildMembersList_: ' + MEMBERS_SHEET + ' sheet not found.');
+    return membersList;
+  }
+
+  // Full getDataRange() — MemberDB is small (one row per member)
+  // and we need cols spread across A–R (18 cols) so getDataRange is fine
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    // Skip blank rows — Col A (id) must be present
+    if (!data[i][0]) continue;
+
+    membersList.push({
+      id          : data[i][0],
+      email       : data[i][1]  || 'emailnotset@email.com',
+      fullName    : data[i][2],
+      displayName : data[i][3],
+      country     : data[i][5]  || '',
+      clubPoints  : Number(data[i][14]) || 0,  // Col O
+      pages       : Number(data[i][15]) || 0,  // Col P
+      books       : Number(data[i][16]) || 0,  // Col Q
+      joinDate    : data[i][4]
+        ? Utilities.formatDate(
+            new Date(data[i][4]),
+            Session.getScriptTimeZone(),
+            'dd-MMM-yyyy'
+          )
+        : 'Unknown',
+      bio      : data[i][6]  || 'No bio added yet.',
+      goal     : data[i][11] || 'None set.',
+      genres   : data[i][10] || 'None listed.',
+      langs    : data[i][7]  || 'Unknown',
+      linkedin : data[i][8]  || '',
+      goodreads: data[i][9]  || '',
+      imageURL : data[i][17] || ''              // Col R
+    });
+  }
+
+  return membersList;
+}
+
+/**
+ * PRIVATE HELPER: Reads BadgeDB and returns an array of badge objects.
+ *
+ * Column mapping (0-indexed):
+ *   A=0  id           B=1  caption    C=2  description
+ *   D=3  imgUrl       E=4  badgePoints
+ *
+ * @param {Map<string, GoogleAppsScript.Spreadsheet.Sheet>} sheetMap
+ * @returns {Array<{id, caption, description, imgUrl, badgePoints}>}
+ */
+function buildBadgesDBList_(ss) {
+  const sheet        = ss.getSheetByName(BADGE_DB_SHEET) || null;
+  const badgesDBList = [];
+
+  if (!sheet) {
+    console.warn('buildBadgesDBList_: ' + BADGE_DB_SHEET + ' not found.');
+    return badgesDBList;
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    badgesDBList.push({
+      id         : data[i][0].toString(),
+      caption    : data[i][1].toString(),
+      description: data[i][2].toString(),
+      imgUrl     : data[i][3].toString(),
+      badgePoints: Number(data[i][4]) || 0
+    });
+  }
+
+  return badgesDBList;
+}
+
+
+/**
+ * PRIVATE HELPER: Reads BadgeAwardDB and returns an array of award objects.
+ *
+ * All records returned — frontend filters to Active status as needed.
+ *
+ * Column mapping (0-indexed):
+ *   A=0  awardId      B=1  badgeId      C=2  memberId
+ *   D=3  awardedBy    E=4  awardedDate  F=5  status    G=6  notes
+ *
+ * @param {Map<string, GoogleAppsScript.Spreadsheet.Sheet>} sheetMap
+ * @returns {Array<{awardId, badgeId, memberId, awardedBy, awardedDate, status, notes}>}
+ */
+function buildBadgeAwardsDBList_(ss) {
+  const sheet             = ss.getSheetByName(BADGE_AWARD_DB_SHEET) || null;
+  const badgeAwardsDBList = [];
+
+  if (!sheet) {
+    console.warn('buildBadgeAwardsDBList_: ' + BADGE_AWARD_DB_SHEET + ' not found.');
+    return badgeAwardsDBList;
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+
+    const rawDate = data[i][4];
+    badgeAwardsDBList.push({
+      awardId    : data[i][0].toString(),
+      badgeId    : data[i][1].toString(),
+      memberId   : data[i][2].toString(),
+      awardedBy  : data[i][3].toString(),
+      awardedDate: rawDate instanceof Date
+        ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'dd-MMM-yyyy')
+        : String(rawDate || ''),
+      status: data[i][5].toString(),
+      notes : data[i][6] ? data[i][6].toString() : ''
+    });
+  }
+
+  return badgeAwardsDBList;
+}
+
+/**
+ * PRIVATE HELPER: Reads ActivityTypeDB and returns an array of activity type objects.
+ *
+ * NOTE: ActivityClubPoints is in Col B (index 1) following the Col B migration.
+ * If your sheet still has it in Col E (index 4), update the index below.
+ *
+ * Column mapping after Col B migration (0-indexed):
+ *   A=0  activityTypeID (ARKA_ACTTYP_X)
+ *   B=1  activityClubPoints  ← MOVED from Col E
+ *   C=2  activityType (human-readable name)
+ *   D=3  activityDesc
+ *   E=4  activityIntroDate
+ *
+ * Only 2 columns are read (A + B) — the frontend only needs TypeID and Points.
+ * The human-readable name and description are unused at runtime.
+ *
+ *@param ss --> Sheet object
+ * @returns {Array<{
+ *   activityTypeID:     string,
+ *   activityClubPoints: number
+ * }>} Array of activity type objects. Empty array if sheet not found.
+ */
+function buildActivityTypeList_(ss) {
+  const sheet            = ss.getSheetByName('ActivityTypeDB') || null;
+  const activityTypeList = [];
+ 
+  if (!sheet) {
+    console.warn('buildActivityTypeList_: ActivityTypeDB not found in sheetMap.');
+    return activityTypeList;
+  }
+ 
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return activityTypeList; // Header only — no data rows
+ 
+  // Read only 2 columns (A + B) — TypeID and Points
+  // This is the minimum needed and avoids shipping unused columns
+  const data = sheet.getRange(1, 1, lastRow, 2).getValues();
+ 
+  for (let i = 1; i < data.length; i++) {
+    // Skip blank rows — Col A (activityTypeID) must be present
+    if (!data[i][0]) continue;
+ 
+    activityTypeList.push({
+      activityTypeID    : data[i][0],           // Col A — TypeID
+      activityClubPoints: Number(data[i][1]) || 0  // Col B — Points
+    });
+  }
+ 
+  return activityTypeList;
+}
  
  
 /**
@@ -2423,8 +2623,8 @@ function fetchChallenges(sheetMap) {
  * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss - Open spreadsheet instance
  * @returns {ChallengeEnrollmentRecord[]} Array of all enrollment objects
  */
-function fetchChallengeEnrollments(sheetMap) {
-  const sheet = sheetMap.get(CHALLENGE_ENROLLMENT_SHEET);
+function fetchChallengeEnrollments(ss) {
+  const sheet = ss.getSheetByName(CHALLENGE_ENROLLMENT_SHEET);
   if (!sheet) return []; // Sheet not yet created — fail silently on first deploy
  
   const data        = sheet.getDataRange().getValues();
@@ -2565,6 +2765,7 @@ function saveChallenge(data) {
       createdBy: originalCreatedBy, createdOn: originalCreatedOn,
       enrollPoints, finishPoints, winPoints
     };
+    invalidateCacheKey(CACHE_KEYS.challenges);
     return { status: 'success', challenge: updatedChallenge, isUpdate: true };
   }
  
@@ -2596,7 +2797,8 @@ function saveChallenge(data) {
     createdBy: currentMemberId, createdOn: timestamp,
     enrollPoints, finishPoints, winPoints
   };
- 
+
+  invalidateCacheKey(CACHE_KEYS.challenges);
   return { status: 'success', challenge: newChallenge, isUpdate: false };
 }
 
@@ -2682,6 +2884,7 @@ function enrollInChallenge(data) {
     enrollmentId, data.challengeId, currentMemberId, timestamp,
     'Active', 0, JSON.stringify(initialProgressState), timestamp, ''
   ];
+  invalidateCacheKey(CACHE_KEYS.enrollments);
   enrollmentSheet.appendRow(newRow);
  
   // ── Log ENROLL activity with per-challenge points via directCp ─────────
@@ -2705,7 +2908,7 @@ function enrollInChallenge(data) {
     progressStateJson: JSON.stringify(initialProgressState),
     lastProgressUpdate: timestamp, completedOn: ''
   };
- 
+  
   return { status: 'success', enrollment: newEnrollment };
 }
 
@@ -2893,6 +3096,7 @@ function dropFromChallenge(challengeId) {
     if (enrollmentRows[i][2].toString() !== currentMemberId) continue;
     if (enrollmentRows[i][4].toString() === 'Dropped') continue; // Already dropped
  
+    invalidateCacheKey(CACHE_KEYS.enrollments);
     enrollmentSheet.getRange(i + 1, 5).setValue('Dropped'); // Col E = enrollmentStatus
     return { status: 'success' };
   }
@@ -3006,6 +3210,7 @@ function saveChallengeProgress(data) {
   const completedOnVal = (isNewFinish || isNewWin) ? timestamp : existingRow[8].toString();
  
   // ── Write updated row columns E–I in one range call ──────────────────────
+  invalidateCacheKey(CACHE_KEYS.enrollments);
   enrollmentSheet.getRange(targetRowIndex, 5, 1, 5).setValues([[
     newStatus,              // E — enrollmentStatus
     newProgressValue,       // F — currentProgressValue
@@ -3571,6 +3776,7 @@ function archiveChallenge(challengeId) {
   for (let i = 1; i < sheetData.length; i++) {
     if (sheetData[i][0].toString() !== challengeId.toString()) continue;
     challengeSheet.getRange(i + 1, 10).setValue('Archived'); // Col J = status
+    invalidateCacheKey(CACHE_KEYS.challenges);
     return { status: 'success' };
   }
  
@@ -3626,6 +3832,7 @@ function saveAnnouncement(data) {
       if (rows[i][0].toString() !== data.announcementId.toString()) continue;
  
       // Update editable columns B–E; preserve createdBy (G) and createdOn (H)
+      invalidateCacheKey(CACHE_KEYS.announcements);     //Delete Cache
       sheet.getRange(i + 1, 2, 1, 4).setValues([[title, body, isPinned, expiryDate]]);
  
       return {
@@ -3655,7 +3862,7 @@ function saveAnnouncement(data) {
     if (!isNaN(lastNum)) newNum = lastNum + 1;
   }
   const announcementId = 'ARKA_ANN_' + newNum;
- 
+  invalidateCacheKey(CACHE_KEYS.announcements);
   sheet.appendRow([
     announcementId,  // Col A — ID
     title,           // Col B — Title
@@ -3711,6 +3918,7 @@ function archiveAnnouncement(announcementId) {
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0].toString() !== announcementId.toString()) continue;
+    invalidateCacheKey(CACHE_KEYS.announcements);
     sheet.getRange(i + 1, 6).setValue('Archived'); // Col F = status
     return { status: 'success' };
   }
@@ -4599,6 +4807,98 @@ function keepWarm() {
   } catch (e) {
     // Swallow everything — a keepWarm failure should never alert anyone
   }
+}
+
+// ============================================================================
+// CACHE HELPERS — Per-DB keys
+// ArkaClubAppCode.gs
+// ============================================================================
+
+/**
+ * Cache key registry — single source of truth for all cache key names.
+ * Bump the version suffix when the schema for that DB changes.
+ */
+const CACHE_KEYS = {
+  challenges   : 'arka_cache_challenges_v1',
+  enrollments  : 'arka_cache_enrollments_v1',
+  announcements: 'arka_cache_announcements_v1',
+  activityTypes: 'arka_cache_activitytypes_v1',
+  badges       : 'arka_cache_badges_v1',
+  badgeAwards  : 'arka_cache_badgeawards_v1',
+  clublevels   : 'arka_cache_clublevel_v1'
+};
+
+// Max TTL GAS allows — safe because invalidation clears on every write
+const CACHE_TTL = 21600; // 6 hours
+
+
+/**
+ * Reads one DB from cache.
+ * Returns parsed array on hit, null on miss or error.
+ *
+ * @param {string} key - One of the CACHE_KEYS values
+ * @returns {Array|null}
+ */
+function getCachedDb(key) {
+  try {
+    const cached = CacheService.getScriptCache().get(key);
+    if (!cached) return null;
+    console.log('Cache HIT: ' + key);
+    return JSON.parse(cached);
+  } catch(e) {
+    console.warn('Cache read failed for ' + key + ':', e);
+    return null;
+  }
+}
+
+
+/**
+ * Writes one DB array to cache.
+ * Silently skips if payload exceeds 95KB (safe margin under 100KB limit).
+ *
+ * @param {string} key  - One of the CACHE_KEYS values
+ * @param {Array}  data - The array to cache
+ */
+function setCachedDb(key, data) {
+  try {
+    const json = JSON.stringify(data);
+    if (json.length > 95000) {
+      console.warn('Cache SKIP (too large): ' + key +
+        ' (' + Math.round(json.length / 1024) + 'KB)');
+      return;
+    }
+    CacheService.getScriptCache().put(key, json, CACHE_TTL);
+    console.log('Cache SET: ' + key +
+      ' (' + Math.round(json.length / 1024) + 'KB)');
+  } catch(e) {
+    console.warn('Cache write failed for ' + key + ':', e);
+  }
+}
+
+
+/**
+ * Invalidates one specific cache key.
+ * Call from write functions that modify the corresponding DB.
+ *
+ * @param {string} key - One of the CACHE_KEYS values
+ */
+function invalidateCacheKey(key) {
+  try {
+    CacheService.getScriptCache().remove(key);
+    console.log('Cache INVALIDATED: ' + key);
+  } catch(e) {}
+}
+
+
+/**
+ * Invalidates ALL cached DBs — use when doing bulk admin operations
+ * or when unsure which DBs were affected.
+ */
+function invalidateAllCaches() {
+  try {
+    CacheService.getScriptCache().removeAll(Object.values(CACHE_KEYS));
+    console.log('All caches invalidated.');
+  } catch(e) {}
 }
 
 
