@@ -1,0 +1,610 @@
+<!--
+  ============================================================================
+  ArkaHelp.html  —  Arka Club App · Help Center Knowledge Base
+  ============================================================================
+  PURPOSE:
+    Standalone GAS HTML include file for all Help Center content.
+    Injected into ArkaClubApp.html at serve time via:
+      <?!= include('ArkaHelp') ?>
+ 
+  HOW TO ADD / EDIT ARTICLES:
+    1. Find the helpArticlesDB array below.
+    2. Each article is an object with: id, category, title, tags, snippet, content.
+    3. Use the UI Kit components (documented below) inside article `content` strings
+       to embed interactive-looking app elements so readers can follow along.
+ 
+  UI KIT COMPONENTS (use inside article content HTML strings):
+    • <span class="huk-btn huk-btn--green">  ➕ Add Book  </span>   — green primary button
+    • <span class="huk-btn huk-btn--secondary"> ⬅ Back </span>       — grey secondary button
+    • <span class="huk-btn huk-btn--accent">  💾 Save  </span>       — accent/purple button
+    • <span class="huk-chip">  Recently Added  </span>               — sort/genre chip
+    • <span class="huk-chip huk-chip--active">  A – Z  </span>       — active (dark) chip
+    • <span class="huk-tab-icon">📚</span>                           — bottom nav tab icon
+    • <div  class="huk-search-bar">  placeholder text  </div>        — search bar mockup
+    • <div  class="huk-step-box">  Step content  </div>              — numbered step box
+    • <span class="huk-badge huk-badge--reading">  📖 Reading  </span>  — shelf status badge
+    • <span class="huk-badge huk-badge--toread">   📌 To Read  </span>
+    • <span class="huk-badge huk-badge--finished">  🏆 Finished  </span>
+    • <span class="huk-badge huk-badge--dnf">       🛑 DNF       </span>
+ 
+  CATEGORIES AVAILABLE:
+    "Arka" | "Getting Started" | "Challenges" | "Points & Badges"
+ 
+  ============================================================================
+-->
+
+<style>
+  /* ==========================================================================
+     HELP UI KIT — Inline UI component mockups for article walkthroughs.
+     These replicate the visual language of the actual app so readers
+     can recognise what to tap while reading the guide.
+     ========================================================================== */
+ 
+  /* --- Base button mockup -------------------------------------------------- */
+  .huk-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: default;           /* Visual only — not interactive */
+    white-space: nowrap;
+    vertical-align: middle;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+    font-family: inherit;
+  }
+  .huk-btn--green    { background: #2ecc71; color: #fff; }
+  .huk-btn--secondary{ background: #ecf0f1; color: #2c3e50; border: 1px solid #bdc3c7; box-shadow: none; }
+  .huk-btn--accent   { background: #A984BA; color: #fff; }
+  .huk-btn--danger   { background: #e74c3c; color: #fff; }
+ 
+  /* --- Sort / genre chip mockup -------------------------------------------- */
+  .huk-chip {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: #f4f6f7;
+    color: #2c3e50;
+    border: 1px solid #dfe6e9;
+    vertical-align: middle;
+    white-space: nowrap;
+    cursor: default;
+  }
+  .huk-chip--active {
+    background: #2c3e50;
+    color: #fff;
+    border-color: #2c3e50;
+  }
+ 
+  /* --- Bottom-nav tab icon mockup ------------------------------------------ */
+  .huk-tab-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: #f4f6f7;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    border: 1px solid #dfe6e9;
+    vertical-align: middle;
+    cursor: default;
+  }
+ 
+  /* --- Search bar mockup --------------------------------------------------- */
+  .huk-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8f9fa;
+    border: 2px solid #ecf0f1;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 0.85rem;
+    color: #95a5a6;
+    margin: 8px 0;
+    cursor: default;
+  }
+  .huk-search-bar::before {
+    content: "🔍";
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+ 
+  /* --- Shelf status badge mockups ------------------------------------------ */
+  .huk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    vertical-align: middle;
+    cursor: default;
+    white-space: nowrap;
+  }
+  .huk-badge--toread   { background: #eaf2f8; color: #2980b9; }
+  .huk-badge--reading  { background: #fef9e7; color: #d68910; }
+  .huk-badge--finished { background: #eafaf1; color: #1e8449; }
+  .huk-badge--dnf      { background: #fdedec; color: #c0392b; }
+ 
+  /* --- Step-by-step flow box ----------------------------------------------- */
+  .huk-step-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #f8f9fa;
+    border: 1px solid #ecf0f1;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 10px 0;
+    font-size: 0.9rem;
+    color: #34495e;
+  }
+  .huk-step-number {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    background: #2c3e50;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+ 
+  /* --- Inline screen mockup container -------------------------------------- */
+  /* A light card that looks like a phone screen section                       */
+  .huk-screen-mockup {
+    background: #ffffff;
+    border: 1.5px solid #dfe6e9;
+    border-radius: 14px;
+    padding: 16px;
+    margin: 16px 0;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+    font-size: 0.85rem;
+    color: #2c3e50;
+  }
+  .huk-screen-mockup-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #A984BA;
+    margin-bottom: 10px;
+  }
+ 
+  /* --- Tip / info blockquote variants ------------------------------------- */
+  /* Re-used the existing blockquote inline style pattern but as classes      */
+  .huk-tip {
+    border-left: 4px solid #3498db;
+    background: #eaf2f8;
+    padding: 13px 15px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+    color: #2c3e50;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+  .huk-warn {
+    border-left: 4px solid #e74c3c;
+    background: #fdedec;
+    padding: 13px 15px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+    color: #c0392b;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+  .huk-success {
+    border-left: 4px solid #2ecc71;
+    background: #eafaf1;
+    padding: 13px 15px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+    color: #1e8449;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+</style>
+ 
+<script>
+  /**
+   * helpArticlesDB
+   * --------------
+   * The single source of truth for all Help Center articles.
+   *
+   * Each article object shape:
+   *   id       {string}  — Unique kebab-case ID, used by openHelpArticle()
+   *   category {string}  — Must match a category card: "Arka" | "Getting Started" | "Challenges" | "Points & Badges"
+   *   title    {string}  — Displayed in the article list and article header
+   *   tags     {string}  — Comma-separated keywords for Fuse.js fuzzy search
+   *   snippet  {string}  — One-line preview shown in the results list
+   *   content  {string}  — Full HTML article body. Use HUK components for UI elements.
+   *
+   * EDITING NOTES:
+   *   - Use template literals (backticks) for multi-line content strings.
+   *   - Escape any backtick inside content with a backslash: \`
+   *   - Inline styles are fine for one-offs; prefer HUK classes for repeated patterns.
+   */
+  const helpArticlesDB = [
+ 
+    /* ========================================================================
+       CATEGORY: Arka
+       ======================================================================== */
+    {
+      id: "help-arka-vision",
+      category: "Arka",
+      title: "The Foundation & Vision",
+      tags: "history, goals, started, 2026, roadmap, future, why, mission",
+      snippet: "Learn why Arka Readers Club was founded and where we're headed.",
+      content: `
+        <p>Arka Readers Club was founded to bring readers together. We believe reading is better when shared — the conversations, the discoveries, the occasional arguments about an ending.</p>
+        <h3>Our 2026 Blueprint</h3>
+        <ul>
+          <li>Hit a combined total of <strong>100,000 pages</strong> read across the club.</li>
+          <li>Host <strong>4 real-world meetups</strong>.</li>
+          <li>Complete <strong>12 Read-Alongs</strong>.</li>
+        </ul>
+        <div class="huk-tip">
+          <strong>💡 You're part of this:</strong> Every book you log, every page you record, every review you leave — it all counts toward these shared goals. The Home feed shows club-wide progress in real time.
+        </div>
+      `
+    },
+ 
+    /* ========================================================================
+       CATEGORY: Getting Started
+       ======================================================================== */
+    {
+      id: "help-profile-setup",
+      category: "Getting Started",
+      title: "Setting Up Your Profile",
+      tags: "profile, picture, bio, avatar, goodreads, goal, languages, myinfo, dp, photo, name",
+      snippet: "Add a picture, set a reading goal, and link your Goodreads.",
+      content: `
+        <p>Your profile is your identity in the club. Head to the <strong>My Info</strong> section from the side drawer to set everything up.</p>
+        <h3>What You Can Set</h3>
+        <ul>
+          <li><strong>Display Name</strong> — How the club sees you.</li>
+          <li><strong>Profile Picture</strong> — Upload a photo from your device.</li>
+          <li><strong>Reading Goal</strong> — How many books you want to finish this year.</li>
+          <li><strong>Favourite Genres</strong> — Helps members find their reading twin.</li>
+          <li><strong>Languages</strong> — The languages you read in.</li>
+          <li><strong>Goodreads Profile URL</strong> — Link your existing reading history.</li>
+        </ul>
+        <div class="huk-tip">
+          <strong>💡 Quick Tip:</strong> Don't forget to add your favourite genres and the languages you read in! You can search the Member Directory by genre, so this helps you find a reading buddy who loves the same stuff you do.
+        </div>
+        <h3>Finding Your Goodreads URL</h3>
+        <p>Open the Goodreads app → Settings → Profile → Profile URL. It should look like <code>https://www.goodreads.com/[username]</code></p>
+      `
+    },
+ 
+    /* ===================================================================
+       ARTICLE: Finding & Adding Books  (REFINED v2)
+       =================================================================== */
+    {
+      id: "help-adding-books",
+      category: "Getting Started",
+      title: "Finding & Adding Books 📚",
+      tags: "search, add book, library, cover, genres, filters, new, isbn, sort, discover, duplicate",
+      snippet: "How to search the Arka library, use sort & filters, and contribute new books.",
+      content: `
+ 
+        <!-- ── INTRO ─────────────────────────────────────────────────────── -->
+        <p>
+          The Arka Library is built by all of us — every member can add books and keep
+          the catalogue growing. Here's how to find what you're looking for and how to
+          add something that's missing.
+        </p>
+ 
+        <!-- ── VIDEO ─────────────────────────────────────────────────────── -->
+        <div class="help-video-portrait">
+          <iframe
+            src="https://www.youtube.com/embed/de-AUaOHyTM"
+            title="Adding a book to Arka"
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+ 
+        <!-- ── SECTION 1: NAVIGATING THE LIBRARY ─────────────────────────── -->
+        <h3>1. Opening the Library</h3>
+        <p>
+          Tap the <span class="huk-tab-icon">📚</span> <strong>Library</strong> tab in
+          the bottom navigation bar. The Library opens on the
+          <strong>Discover</strong> tab by default.
+        </p>
+ 
+        <div class="huk-screen-mockup">
+          <div class="huk-screen-mockup-label">Library — Discover Tab</div>
+          <div style="display:flex; gap:8px; overflow-x:auto; margin-bottom:12px;">
+            <span class="huk-chip huk-chip--active">Discover</span>
+            <span class="huk-chip">All Books</span>
+            <span class="huk-chip">My Shelf</span>
+          </div>
+          <div style="font-size:0.8rem; color:#7f8c8d;">
+            Genre chips · New Arrivals carousel · Arka Reading · Hidden Gems
+          </div>
+        </div>
+ 
+        <p>Switch to <strong>All Books</strong> when you want to search or browse the full catalogue.</p>
+ 
+        <!-- ── SECTION 2: SEARCHING & FILTERING ─────────────────────────── -->
+        <h3>2. Searching & Filtering</h3>
+        <p>On the <strong>All Books</strong> tab you'll find a search bar and sort chips.</p>
+ 
+        <div class="huk-screen-mockup">
+          <div class="huk-screen-mockup-label">All Books Tab</div>
+ 
+          <!-- Sort chips row -->
+          <div style="display:flex; gap:8px; overflow-x:auto; margin-bottom:10px; flex-wrap:nowrap;">
+            <span class="huk-chip huk-chip--active">Recently Added</span>
+            <span class="huk-chip">A – Z</span>
+            <span class="huk-chip">Top Rated</span>
+            <span class="huk-chip">Most Read</span>
+          </div>
+ 
+          <!-- Search bar -->
+          <div class="huk-search-bar">Search title, author, or genre…</div>
+        </div>
+ 
+        <p>The <strong>sort chips</strong> let you instantly re-order the entire catalogue:</p>
+        <ul>
+          <li><span class="huk-chip">Recently Added</span> — newest arrivals first (default view).</li>
+          <li><span class="huk-chip">A – Z</span> — alphabetical by title.</li>
+          <li><span class="huk-chip">Top Rated</span> — books with the highest average member rating.</li>
+          <li><span class="huk-chip">Most Read</span> — books the most members have on their shelf.</li>
+        </ul>
+ 
+        <p>
+          The <strong>search bar</strong> filters by title, author, <em>and</em> genre at the same time.
+          Typing <em>"fantasy"</em> will surface every fantasy book in the library.
+        </p>
+ 
+        <div class="huk-tip">
+          <strong>💡 Genre shortcut:</strong> On the Discover tab, tap any genre chip (e.g.
+          <span class="huk-chip" style="font-size:0.72rem; padding:3px 10px;">Fantasy</span>) to jump
+          straight to All Books pre-filtered by that genre.
+        </div>
+ 
+        <!-- ── SECTION 3: THE GOLDEN RULE ────────────────────────────────── -->
+        <h3>3. The Golden Rule: Search Before You Add 🔍</h3>
+        <p>
+          Before adding a book, always search for it first. This keeps the library clean
+          and avoids duplicates. Tap the
+          <span class="huk-btn huk-btn--green">＋ Add Book</span>
+          button at the top of the Library — you'll land on a <strong>Search First</strong>
+          screen automatically.
+        </p>
+ 
+        <div class="huk-screen-mockup">
+          <div class="huk-screen-mockup-label">Add Book — Step 1: Search First</div>
+          <p style="font-size:0.8rem; color:#7f8c8d; margin:0 0 8px;">
+            We want to avoid duplicates! Search for the book below.
+          </p>
+          <div class="huk-search-bar">Type a book title…</div>
+          <div style="margin-top:10px; padding:10px; border:1px solid #ecf0f1; border-radius:8px; font-size:0.8rem; color:#7f8c8d; text-align:center;">
+            No results yet — start typing to check.
+          </div>
+          <div style="margin-top:10px; text-align:center;">
+            <span class="huk-btn huk-btn--green" style="font-size:0.78rem;">＋ It's not here — Add New Book</span>
+          </div>
+        </div>
+ 
+        <p>
+          If the book <strong>appears in the results</strong>, tap <strong>View</strong> to open it
+          and shelve it from there — no need to add it again.
+        </p>
+        <p>
+          If the search shows <strong>no match</strong>, the
+          <span class="huk-btn huk-btn--green" style="font-size:0.78rem;">＋ It's not here — Add New Book</span>
+          button will appear. Tap it to proceed to the form.
+        </p>
+ 
+        <!-- ── SECTION 4: FILLING THE FORM ───────────────────────────────── -->
+        <h3>4. Filling In the Book Details</h3>
+        <p>The add-book form has two sections: <strong>Required</strong> and <strong>Details (optional)</strong>.</p>
+ 
+        <div class="huk-screen-mockup">
+          <div class="huk-screen-mockup-label">Add Book — Step 2: The Form (Required fields)</div>
+          <div style="font-size:0.78rem; color:#7f8c8d; margin-bottom:6px;">Title *</div>
+          <div style="background:#f8f9fa; border:1px solid #ecf0f1; border-radius:8px; padding:8px 12px; font-size:0.82rem; color:#2c3e50; margin-bottom:8px;">The Midnight Library</div>
+          <div style="font-size:0.78rem; color:#7f8c8d; margin-bottom:6px;">Author *</div>
+          <div style="background:#f8f9fa; border:1px solid #ecf0f1; border-radius:8px; padding:8px 12px; font-size:0.82rem; color:#2c3e50; margin-bottom:8px;">Matt Haig</div>
+          <div style="font-size:0.78rem; color:#7f8c8d; margin-bottom:6px;">Genre * <span style="font-size:0.7rem; color:#A984BA;">(type and press Enter or comma)</span></div>
+          <div style="background:#f8f9fa; border:1px solid #ecf0f1; border-radius:8px; padding:8px 12px; font-size:0.82rem; margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap;">
+            <span style="background:#eaf2f8; color:#2980b9; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:600;">Fiction ✕</span>
+            <span style="background:#eaf2f8; color:#2980b9; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:600;">Fantasy ✕</span>
+          </div>
+          <div style="font-size:0.78rem; color:#7f8c8d; margin-bottom:6px;">Pages *</div>
+          <div style="background:#f8f9fa; border:1px solid #ecf0f1; border-radius:8px; padding:8px 12px; font-size:0.82rem; color:#2c3e50;">288</div>
+        </div>
+ 
+        <ul>
+          <li><strong>Title, Author, Pages</strong> — plain text fields, required.</li>
+          <li>
+            <strong>Genre</strong> — type a genre and press <kbd>Enter</kbd> or a comma to add it as a tag.
+            You can add multiple genres. Use sources like
+            <a href="https://www.goodreads.com" target="_blank" rel="noopener">Goodreads</a>,
+            <a href="https://openlibrary.org" target="_blank" rel="noopener">Open Library</a>, or
+            Google Books for accurate genre data.
+          </li>
+        </ul>
+ 
+        <!-- ── SECTION 5: ISBN AUTOFILL ──────────────────────────────────── -->
+        <h3>5. The ISBN Shortcut ✨</h3>
+        <p>
+          Don't want to type everything manually? Use the <strong>ISBN-13 Search</strong>
+          inside the optional Details section. Enter the 13-digit ISBN from the book's
+          back cover or from any bookstore listing, then tap
+          <span class="huk-btn huk-btn--secondary" style="font-size:0.78rem;">Search</span>.
+        </p>
+ 
+        <div class="huk-screen-mockup">
+          <div class="huk-screen-mockup-label">Details Section — ISBN Auto-fill</div>
+          <div style="font-size:0.78rem; color:#7f8c8d; margin-bottom:6px;">ISBN-13 <span style="color:#bdc3c7; font-size:0.7rem;">optional</span></div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <div style="flex:1; background:#f8f9fa; border:1px solid #ecf0f1; border-radius:8px; padding:8px 12px; font-size:0.82rem; color:#2c3e50;">9780525559474</div>
+            <span class="huk-btn huk-btn--secondary" style="font-size:0.78rem;">Search</span>
+          </div>
+          <div style="margin-top:8px; font-size:0.78rem; color:#27ae60;">✓ Found! Review and confirm the details below.</div>
+        </div>
+ 
+        <p>
+          On a successful lookup, the app fills in the <strong>title, author, page count,
+          published year, blurb, genres, and cover image</strong> automatically from
+          Open Library. You can still edit anything and upload your own cover.
+        </p>
+ 
+        <div class="huk-tip">
+          <strong>💡 Where to find the ISBN:</strong> It's the barcode number on the back of
+          any physical book, or listed on any bookstore or Goodreads page.
+          Always use the <strong>13-digit</strong> version (starts with 978 or 979).
+        </div>
+ 
+        <!-- ── SECTION 6: COVER IMAGE ─────────────────────────────────────── -->
+        <h3>6. Adding a Cover Image</h3>
+        <p>
+          If the ISBN lookup found a cover, it will pre-load in the preview. You can
+          always <strong>upload your own</strong> by tapping
+          <span class="huk-btn huk-btn--secondary" style="font-size:0.78rem;">Choose image from device</span>.
+          The app automatically resizes it to the correct proportions (~240×360 px) before saving.
+        </p>
+ 
+        <div class="huk-tip">
+          <strong>No cover?</strong> That's fine — if a book has no cover image, Arka generates
+          a colour-coded auto-cover tile using the book title so it always looks good in the library grid.
+        </div>
+ 
+        <!-- ── SECTION 7: SUBMITTING ─────────────────────────────────────── -->
+        <h3>7. Submitting the Book</h3>
+        <p>
+          Once everything looks good, tap
+          <span class="huk-btn huk-btn--green">🚀 Add to Library</span>.
+          The app will check for exact duplicates one final time before saving.
+          If the book is added successfully, you'll see a confirmation and the library
+          will refresh with your new addition at the top.
+        </p>
+ 
+        <div class="huk-success">
+          <strong>🎉 Points awarded!</strong> Adding a new book to the Arka Library earns
+          you Club Points. Keep an eye on your Activity Feed for the confirmation.
+        </div>
+ 
+        <!-- ── SECTION 8: EDITING BOOK INFO ─────────────────────────────── -->
+        <h3>8. Keeping Book Data Clean ✏️</h3>
+        <p>
+          Spotted a typo, wrong page count, or missing genre? Open the book's detail view
+          and tap the <strong>Edit Book Info</strong> option (three-dot menu or the edit button,
+          depending on your screen). Any member can correct book metadata — it's a shared library
+          and we all keep it tidy.
+        </p>
+ 
+        <div class="huk-warn">
+          <strong>🧹 Data quality matters:</strong> Use accurate sources (Goodreads, Open Library,
+          Google Books) for page counts, genres, and published years. Wrong metadata affects
+          club statistics like Total Pages Read.
+        </div>
+      `
+    }, // end help-adding-books
+ 
+    /* ========================================================================
+       ARTICLE: Shelving 101
+       ======================================================================== */
+    {
+      id: "help-shelving-books",
+      category: "Getting Started",
+      title: "Shelving 101: Adding a book to your shelf",
+      tags: "shelf, status, to read, reading, finished, dnf, progress, update, pages, log",
+      snippet: "Add books to your personal shelf and track your reading progress.",
+      content: `
+        <p>Once you have found a book in the library, it's time to claim it! Here is how to build your personal shelf and keep everyone updated on your reading journey.</p>
+        <div class="help-video-portrait">
+          <iframe
+            src="https://www.youtube.com/embed/nE_k6zGPC84"
+            title="Shelving a book"
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+        <h3>1. Adding a Book to Your Shelf</h3>
+        <p>When you click a book from the <strong>All Books</strong> tab or anywhere else and open the book details, you will see Add to Shelf button. Give that a tap.</p>
+        <div class="huk-tip">
+          <strong>Note:</strong> If the book is already in your shelf, the button text can read differently.
+        </div>
+        <h3>2. The Four Shelves</h3>
+        <p>When you want to shelve a book, you have to choose among the following statuses:</p>
+        <ul>
+          <li><span class="huk-badge huk-badge--toread">📌 To Read</span> — Your wishlist or TBR pile. Books you want to tackle next or some lucky day! 🤫</li>
+          <li><span class="huk-badge huk-badge--reading">📖 Reading</span> — A book you are currently reading.</li>
+          <li><span class="huk-badge huk-badge--finished">🏆 Finished</span> — You finished this book. Time to rate and review it!</li>
+          <li><span class="huk-badge huk-badge--dnf">🛑 DNF</span> — Did Not Finish. You decided to park it for now. No judgment!</li>
+        </ul>
+        <h3>3. Logging Pages</h3>
+        <p>When your status is <span class="huk-badge huk-badge--reading">📖 Reading</span> or <span class="huk-badge huk-badge--finished">🏆 Finished</span>, you can log the number of pages you have read. This feeds the club's shared page count on the Home feed.</p>
+      `
+    },
+ 
+    /* ========================================================================
+       CATEGORY: Challenges
+       ======================================================================== */
+    {
+      id: "help-challenges-overview",
+      category: "Challenges",
+      title: "What Are Challenges?",
+      tags: "challenge, quest, task, complete, join, weekly, monthly",
+      snippet: "Challenges are themed reading quests that earn you bonus Club Points.",
+      content: `
+        <p>Challenges are themed reading quests set by the Arka team. They run for a fixed period and reward you with bonus Club Points for completing specific reading goals.</p>
+        <h3>How to Join</h3>
+        <p>Open the <strong>Challenges</strong> tab from the bottom navigation bar. Tap any active challenge to see its rules and tap <strong>Join Challenge</strong>.</p>
+        <h3>How to Complete</h3>
+        <p>Each challenge has specific completion criteria — these are listed clearly on the challenge detail screen. Most challenges track your shelf activity automatically, so just keep logging your reading.</p>
+        <div class="huk-tip">
+          <strong>💡 Tip:</strong> Check the Challenges tab regularly — new challenges appear throughout the year and some are time-limited.
+        </div>
+      `
+    },
+ 
+    /* ========================================================================
+       CATEGORY: Points & Badges
+       ======================================================================== */
+    {
+      id: "help-points-overview",
+      category: "Points & Badges",
+      title: "Club Points & Levels Explained",
+      tags: "points, CP, levels, badges, rank, leaderboard, earn, page turner, bookworm",
+      snippet: "How Club Points are earned, how levels work, and what the badges mean.",
+      content: `
+        <p>Club Points (CP) are Arka's way of recognising your contribution to the club. You earn them by reading, reviewing, adding books, joining challenges, and more.</p>
+        <h3>How You Earn Points</h3>
+        <ul>
+          <li>📖 Logging pages read</li>
+          <li>🏆 Finishing a book</li>
+          <li>⭐ Leaving a rating or review</li>
+          <li>📚 Adding a new book to the library</li>
+          <li>🎯 Completing a challenge</li>
+          <li>💬 Submitting feedback</li>
+        </ul>
+        <h3>Levels</h3>
+        <p>Your level is calculated from your total CP. Levels are cumulative — you never lose progress. Once you pass the threshold for the next level, you advance automatically.</p>
+        <div class="huk-tip">
+          <strong>Example:</strong> If you have 250 points you are at Page Turner II, and you need to reach 417 to advance to Page Turner III. The moment you exceed it, you automatically advance to the next level.
+        </div>
+      `
+    }
+ 
+  ]; // end helpArticlesDB
+</script>
