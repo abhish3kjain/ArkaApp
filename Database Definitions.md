@@ -209,4 +209,106 @@ ARKA_ACTTYP_CHALLENGE_FINISH	0	Finished a Challenge	Fires when a member's enroll
 ARKA_ACTTYP_CHALLENGE_WIN	0	Won a Challenge	Fires when a member's enrollment status transitions to Winner. Points are set per-challenge via ChallengeDB.winPoints and injected at log time — the multiplier of 0 here is intentional.	16-Mar-2026	<EnrollmentID> | Points: <winPoints>
 ARKA_ACTTYP_CHALLENGE_DROP	0	Dropped a Challenge	Fires when a member withdraws from an active challenge enrollment. No points awarded or deducted. Preserved for audit and admin reporting on challenge drop rates.	18-Mar-2026	<EnrollmentID><delta> books synced to profile
 SYS_ACTTYP_PAGEREAD	System: Page Read	A mechanism to add pages and award points directly (e.g. for data imports or corrections). CPAwarded is set directly in the log — the ActivityClubPoints multiplier is 0 because points are not calculated here.	07-Mar-2026	0	Reason: <reason text> | Points Awarded: <pts>
-<img width="1373" height="3217" alt="image" src="https://github.com/user-attachments/assets/d82bb53e-6a9a-4e00-a736-a4eff752b868" />
+
+Club Points Levels:
+Level	TotalClubPoints	LevelName
+1	111	Page Turner I
+2	248	Page Turner II
+3	417	Page Turner III
+4	624	Page Turner IV
+5	875	Page Turner V
+6	1176	Page Turner VI
+7	1533	Page Turner VII
+8	1952	Page Turner VIII
+9	2439	Page Turner IX
+10	3000	Page Turner X
+11	3641	Bookworm I
+12	4368	Bookworm II
+13	5187	Bookworm III
+14	6104	Bookworm IV
+15	7125	Bookworm V
+16	8256	Bookworm VI
+17	9503	Bookworm VII
+18	10872	Bookworm VIII
+19	12369	Bookworm IX
+20	14000	Bookworm X
+21	15771	Scholar I
+22	17688	Scholar II
+23	19757	Scholar III
+24	21984	Scholar IV
+25	24375	Scholar V
+26	26936	Scholar VI
+27	29673	Scholar VII
+28	32592	Scholar VIII
+29	35699	Scholar IX
+30	39000	Scholar X
+31	42501	Bibliophile I
+32	46208	Bibliophile II
+33	50127	Bibliophile III
+34	54264	Bibliophile IV
+35	58625	Bibliophile V
+36	63216	Bibliophile VI
+37	68043	Bibliophile VII
+38	73112	Bibliophile VIII
+39	78429	Bibliophile IX
+40	84000	Bibliophile X
+41	89831	Scribe I
+42	95928	Scribe II
+43	102297	Scribe III
+44	108944	Scribe IV
+45	115875	Scribe V
+46	123096	Scribe VI
+47	130613	Scribe VII
+48	138432	Scribe VIII
+49	146559	Scribe IX
+50	155000	Scribe X
+51	163761	Sage I
+52	172848	Sage II
+53	182267	Sage III
+54	192024	Sage IV
+55	202125	Sage V
+56	212576	Sage VI
+57	223383	Sage VII
+58	234552	Sage VIII
+59	246089	Sage IX
+60	258000	Sage X
+61	270291	Luminary I
+62	282968	Luminary II
+63	296037	Luminary III
+64	309504	Luminary IV
+65	323375	Luminary V
+66	337656	Luminary VI
+67	352353	Luminary VII
+68	367472	Luminary VIII
+69	383019	Luminary IX
+70	399000	Luminary X
+71	415421	Maven I
+72	432288	Maven II
+73	449607	Maven III
+74	467384	Maven IV
+75	485625	Maven V
+76	504336	Maven VI
+77	523523	Maven VII
+78	543192	Maven VIII
+79	563349	Maven IX
+80	584000	Maven X
+81	605151	Virtuoso I
+82	626808	Virtuoso II
+83	648977	Virtuoso III
+84	671664	Virtuoso IV
+85	694875	Virtuoso V
+86	718616	Virtuoso VI
+87	742893	Virtuoso VII
+88	767712	Virtuoso VIII
+89	793079	Virtuoso IX
+90	819000	Virtuoso X
+91	845481	Oracle I
+92	872528	Oracle II
+93	900147	Oracle III
+94	928344	Oracle IV
+95	957125	Oracle V
+96	986496	Oracle VI
+97	1016463	Oracle VII
+98	1047032	Oracle VIII
+99	1078209	Oracle IX
+100	1110000	Oracle X
