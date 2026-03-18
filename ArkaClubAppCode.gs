@@ -118,7 +118,7 @@
  * @property {string} completedOn          - dd-MM-yyyy HH:mm:ss Z or blank   (Col I)
  */
 
-const APP_VERSION = "v43";  
+const APP_VERSION = "v44";  
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -4771,20 +4771,18 @@ function confirmEventAttendance(data) {
       const wasAlreadyConfirmed = rsvpRows[i][5].toString() === 'Yes';
 
       // Guard: only log if this is a genuinely new confirmation — not a re-confirm
+      //Host is only awarded hosting points and not attending points.
       if (!wasAlreadyConfirmed) {
-        // Award CP based on event type — meetings require scheduled commitment and deserve more
-        const ATTENDANCE_CP_BY_TYPE = {
-          'Meeting-Virtual' : 15,
-          'Meeting-F2F'     : 20,
-          'BookBuddyRead'   : 10,
-          'Social'          : 8,
-          'Other'           : 5
-        };
-        const directCp = ATTENDANCE_CP_BY_TYPE[found.event.eventType] || 5;
+        const isHost   = found.event.hostMemberId === attendeeMemberId;
+        const cpByType = isHost
+          ? { 'Meeting-Virtual':600, 'Meeting-F2F':800, 'BookBuddyRead':100, 'Social':100, 'Other':50 }
+          : { 'Meeting-Virtual':300, 'Meeting-F2F':500, 'BookBuddyRead':50, 'Social':50,  'Other':10 };
+        const actType  = isHost ? 'ARKA_ACTTYP_EVENTHOSTED' : 'ARKA_ACTTYP_EVENTATTENDED';
+        const directCp = cpByType[found.event.eventType] || 5;
 
         try {
           logActivityBatch(attendeeMemberId, [{
-            typeId   : 'ARKA_ACTTYP_EVENTATTENDED',
+            typeId   : actType,
             val      : 1,
             desc     : data.eventId,
             directCp : directCp
@@ -4792,7 +4790,6 @@ function confirmEventAttendance(data) {
         } catch(e) {}
       }
     }
- 
     return { status: 'success' };
   }
  
