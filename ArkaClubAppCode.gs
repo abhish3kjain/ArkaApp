@@ -118,7 +118,7 @@
  * @property {string} completedOn          - dd-MM-yyyy HH:mm:ss Z or blank   (Col I)
  */
 
-const APP_VERSION = "v42";  
+const APP_VERSION = "v43";  
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -2448,7 +2448,7 @@ function fetchActiveAnnouncements(ss) {
       status         : data[i][5].toString(),
       createdBy      : data[i][6].toString(),
       createdOn      : createdOnStr,
-      targetMemberId : data[i][8] ? data[i][8].toString() : ''
+      targetMemberIds : data[i][8] ? data[i][8].toString() : ''
     });
   }
  
@@ -4004,8 +4004,9 @@ function saveAnnouncement(data) {
       if (rows[i][0].toString() !== data.announcementId.toString()) continue;
  
       // Update editable columns B–E; preserve createdBy (G) and createdOn (H)
-      invalidateCacheKey(CACHE_KEYS.announcements);     //Delete Cache
-      sheet.getRange(i + 1, 2, 1, 4).setValues([[title, body, isPinned, expiryDate]]);
+      invalidateCacheKey(CACHE_KEYS.announcements);
+      sheet.getRange(i + 1, 4).setValue(false);    // Col D = isPinned — force unpin
+      sheet.getRange(i + 1, 6).setValue('Archived'); // Col F = status
  
       return {
         status: 'success',
@@ -4015,9 +4016,10 @@ function saveAnnouncement(data) {
           body,
           isPinned,
           expiryDate,
-          status    : rows[i][5].toString(),
-          createdBy : rows[i][6].toString(),
-          createdOn : rows[i][7].toString()
+          status         : rows[i][5].toString(),
+          createdBy      : rows[i][6].toString(),
+          createdOn      : rows[i][7].toString(),
+          targetMemberIds : rows[i][8] ? rows[i][8].toString() : ''
         }
       };
     }
@@ -4044,7 +4046,7 @@ function saveAnnouncement(data) {
     'Active',        // Col F — status
     currentMemberId, // Col G — createdBy
     timestamp,        // Col H — createdOn
-    data.targetMemberId || ''     //Col I - targetMember ID where this notice will display, blank - club wide
+    data.targetMemberIds || ''    // Col I — blank = club-wide, comma-separated IDs = targeted
   ]);
 
   if (!data.targetMemberId) {
@@ -4062,7 +4064,7 @@ function saveAnnouncement(data) {
       status    : 'Active',
       createdBy : currentMemberId,
       createdOn : timestamp,
-      targetMemberId: data.targetMemberId || ''
+      targetMemberIds: data.targetMemberIds || ''
     }
   };
 }
@@ -4090,7 +4092,12 @@ function archiveAnnouncement(announcementId) {
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0].toString() !== announcementId.toString()) continue;
+    const todayStr = Utilities.formatDate(
+      new Date(), Session.getScriptTimeZone(), 'dd-MMM-yyyy'
+    );
     invalidateCacheKey(CACHE_KEYS.announcements);
+    sheet.getRange(i + 1, 4).setValue(false);      // Col D = isPinned — force unpin
+    sheet.getRange(i + 1, 5).setValue(todayStr);   // Col E = expiryDate — expire today
     sheet.getRange(i + 1, 6).setValue('Archived'); // Col F = status
     return { status: 'success' };
   }
@@ -4704,7 +4711,7 @@ function saveEventRSVP(data) {
         body           : 'You\'ve been added to "' + eventTitle + '". Open Events & Announcements to RSVP.',
         isPinned       : false,
         expiryDate     : '',
-        targetMemberId : data.memberId   // Personal — only this member sees it
+        targetMemberIds : data.memberId  // Single member — still valid as comma-separated with one entry
       });
  
       if (annResult.status === 'success') createdAnnouncement = annResult.announcement;
@@ -4760,9 +4767,30 @@ function confirmEventAttendance(data) {
     ]]);
 
     if (data.attendanceConfirmed === 'Yes') {
-      // Log against the participant's memberId (not the confirming admin's)
-      const attendeeMemberId = rsvpRows[i][2].toString();
-      try { logActivity(attendeeMemberId, 'ARKA_ACTTYP_EVENTATTENDED', 1, data.eventId); } catch(e) {}
+      const attendeeMemberId    = rsvpRows[i][2].toString();
+      const wasAlreadyConfirmed = rsvpRows[i][5].toString() === 'Yes';
+
+      // Guard: only log if this is a genuinely new confirmation — not a re-confirm
+      if (!wasAlreadyConfirmed) {
+        // Award CP based on event type — meetings require scheduled commitment and deserve more
+        const ATTENDANCE_CP_BY_TYPE = {
+          'Meeting-Virtual' : 15,
+          'Meeting-F2F'     : 20,
+          'BookBuddyRead'   : 10,
+          'Social'          : 8,
+          'Other'           : 5
+        };
+        const directCp = ATTENDANCE_CP_BY_TYPE[found.event.eventType] || 5;
+
+        try {
+          logActivityBatch(attendeeMemberId, [{
+            typeId   : 'ARKA_ACTTYP_EVENTATTENDED',
+            val      : 1,
+            desc     : data.eventId,
+            directCp : directCp
+          }], 1, '', {});
+        } catch(e) {}
+      }
     }
  
     return { status: 'success' };
@@ -4816,13 +4844,20 @@ function uploadEventAsset(data) {
   const rawBase64 = data.fileBase64.includes(',') ? data.fileBase64.split(',')[1] : data.fileBase64;
   const mimeType  = data.mimeType || 'application/octet-stream';
  
-  // Prefix filename with eventId so assets are easy to find in Drive
-  const safeFileName = data.eventId + '_' + data.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  // Build filename from display title — strip special chars, replace spaces with underscores.
+  // Append a short timestamp suffix to guarantee no two uploads ever collide in Drive,
+  // even if the admin uploads two assets with the same title for the same event.
+  const rawTitle      = (data.assetTitle || data.fileName || 'asset').trim();
+  const safeTitle     = rawTitle
+    .replace(/[^a-zA-Z0-9 _-]/g, '')   // strip special chars, keep spaces/hyphens/underscores
+    .replace(/\s+/g, '_')               // spaces → underscores
+    .replace(/_+/g, '_')                // collapse multiple underscores
+    .substring(0, 60);                  // cap length so Drive path stays readable
+  const uniqueSuffix  = new Date().getTime().toString().slice(-6); // last 6 digits of epoch ms
+  const fileExtension = data.fileName.includes('.') ? '.' + data.fileName.split('.').pop() : '';
+  const safeFileName  = data.eventId + '_' + safeTitle + '_' + uniqueSuffix + fileExtension;
   const blob          = Utilities.newBlob(Utilities.base64Decode(rawBase64), mimeType, safeFileName);
   const uploadedFile  = folder.createFile(blob);
- 
-  // Make the file accessible to anyone with the link
-  uploadedFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
  
   // Drive viewer URL — opens in new window without downloading
   const driveLink = 'https://drive.google.com/file/d/' + uploadedFile.getId() + '/view';
@@ -4891,9 +4926,25 @@ function removeEventAsset(data) {
  
   const filtered          = assets.filter(function(a) { return a.assetId !== data.assetId; });
   const updatedAssetsJson = JSON.stringify(filtered);
- 
+
+  // ── Delete the Drive file ─────────────────────────────────────────────────
+  // Extract the file ID from the stored Drive viewer URL:
+  // format is https://drive.google.com/file/d/FILE_ID/view
+  if (data.driveLink) {
+    try {
+      const fileIdMatch = data.driveLink.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileIdMatch && fileIdMatch[1]) {
+        DriveApp.getFileById(fileIdMatch[1]).setTrashed(true);
+      }
+    } catch (driveErr) {
+      // Log but don't block — the JSON record is removed regardless.
+      // This handles cases where the file was already manually deleted from Drive.
+      console.warn('Could not delete Drive file (may already be gone):', driveErr);
+    }
+  }
+
   eventSheet.getRange(found.rowIndex, 11).setValue(updatedAssetsJson);
- 
+
   return { status: 'success', updatedAssetsJson };
 }
 
