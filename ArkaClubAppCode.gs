@@ -118,7 +118,7 @@
  * @property {string} completedOn          - dd-MM-yyyy HH:mm:ss Z or blank   (Col I)
  */
 
-const APP_VERSION = "v41";  
+const APP_VERSION = "v42";  
 const SPREADSHEET_ID = '1qXsAAO_9aIEJuTTQ1ziX9s5plvm6WHaVI_zaKcSXF-4';
 const MEMBERS_SHEET = "MemberDB";
 const LIBRARY_SHEET = "ArkaLibraryDB";
@@ -840,9 +840,16 @@ function updateMemberShelf(shelfData) {
       }
       
       const previousPagesRead = Number(shelfDataRange[existingRowIndex - 1][9]) || 0;
-      const pagesGained = finalPagesRead - previousPagesRead;
-      if (pagesGained > 0 && finalStatus !== "Finished") {
-        newActivitiesQueue.push({ typeId: "ARKA_ACTTYP_SHELFUPDATE", val: 1, desc: `${shelfRecordId}, Previous Pages: ${previousPagesRead}, Current: ${finalPagesRead}` });
+      const pagesGained       = finalPagesRead - previousPagesRead;
+
+      // val = pagesGained so cpAwarded = pagesGained × pointsPerPage multiplier.
+      // Consistent with logReadingProgress which also uses actual delta as val.
+      if (pagesGained > 0 && finalStatus === 'Reading' && finalStatus === previousStatus) {
+        newActivitiesQueue.push({
+          typeId: 'ARKA_ACTTYP_PAGEREAD',
+          val:    pagesGained,
+          desc:   `+${pagesGained} pages added to ${shelfRecordId}`
+        });
       }
 
       if (Number(shelfData.rating) > 0 && Number(shelfData.rating) !== previousRating) {
@@ -924,6 +931,145 @@ function updateMemberShelf(shelfData) {
     lock.releaseLock();
   }
 }
+
+/**
+ * Logs a reading progress update for a book currently on the 'Reading' shelf.
+ *
+ * What this function does:
+ *   1. Validates the request — shelf record must exist, belong to the requesting
+ *      member, and have status 'Reading'. Rejects silently incorrect calls.
+ *   2. Updates pagesRead (Col J), dateUpdated (Col H), and lastModifiedOn (Col K)
+ *      on the existing shelf row. Status, rating, review, and dateAdded are
+ *      never touched — this is a progress-only write.
+ *   3. Logs one ARKA_ACTTYP_PAGEREAD activity with the agreed description format:
+ *        "+N pages added to ARKA_SHELF_X | User Note: text"
+ *        The "| User Note: ..." segment is omitted when the user left it blank.
+ *
+ * This function intentionally does NOT call syncCountChallengeProgress.
+ * Page-count challenge sync is handled by the PageLogDB pipeline, not by
+ * shelf progress updates which are page-position markers, not reading logs.
+ *
+ * @param {Object} progressData
+ * @param {string} progressData.memberId            - ARKA_MEMBER_X of the requesting user.
+ * @param {string} progressData.bookId              - ARKA_BOOK_X being updated.
+ * @param {string} progressData.shelfId             - Exact shelf record ID (ARKA_SHELF_X).
+ * @param {number} progressData.newPagesRead        - New absolute page position.
+ * @param {string} progressData.activityDescription - Pre-formatted activity description from frontend.
+ * @param {Object} progressData.activityPointsMap   - Client-side points map for multiplier lookup.
+ * @returns {Object} Success response with newActivity, or error response.
+ */
+function logReadingProgress(progressData) {
+  const currentMemberId = progressData.memberId;
+
+  if (!currentMemberId) {
+    return { status: 'error', message: 'User not found.' };
+  }
+
+  // ── Lock: prevents concurrent writes from overlapping on the same shelf row ──
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    return { status: 'error', message: 'System is currently busy. Please try again.' };
+  }
+
+  try {
+    const ss         = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const shelfSheet = ss.getSheetByName(SHELF_SHEET);
+
+    const shelfData  = shelfSheet.getDataRange().getValues();
+    const now        = new Date();
+    const dateUpdatedFormatted  = Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd-MMM-yyyy');
+    const lastModifiedFormatted = Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm:ss Z');
+
+    // ── Find the exact shelf row ─────────────────────────────────────────────
+    let targetRowIndex = -1; // 1-based sheet row
+
+    for (let i = 1; i < shelfData.length; i++) {
+      if (shelfData[i][0] === progressData.shelfId) {
+        targetRowIndex = i + 1; // Convert 0-based array index to 1-based sheet row
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      return { status: 'error', message: 'Shelf record not found.' };
+    }
+
+    const shelfRow = shelfData[targetRowIndex - 1]; // Back to 0-based for reading
+
+    // ── Ownership check — member can only update their own shelf row ─────────
+    if (shelfRow[1] !== currentMemberId) {
+      return { status: 'error', message: 'Permission denied.' };
+    }
+
+    // ── Status guard — progress logging only valid for active Reading records ─
+    // This prevents stale frontend state from writing to a record that was
+    // already moved to Finished or DNF in another session.
+    if (shelfRow[3] !== 'Reading') {
+      return {
+        status: 'error',
+        message: 'This book is no longer on your Reading shelf. Please refresh.'
+      };
+    }
+
+    const newPagesRead = Number(progressData.newPagesRead) || 0;
+
+    // ── Write 1: dateUpdated (Col H = column 8) ──────────────────────────────
+    shelfSheet.getRange(targetRowIndex, 8).setValue(dateUpdatedFormatted);
+
+    // ── Write 2: pagesRead + lastModifiedOn (Col J–K = columns 10–11) ────────
+    shelfSheet.getRange(targetRowIndex, 10, 1, 2).setValues([[
+      newPagesRead,
+      lastModifiedFormatted
+    ]]);
+
+    // pageDelta is the number of pages actually read in this session.
+    // Used as val so cpAwarded = pageDelta × pointsPerPage (the ActivityTypeDB multiplier).
+    // If the user entered a lower number than before (correction), delta is 0 — no points
+    // awarded for corrections, but the position update is still saved.
+    const previousPagesRead = Number(shelfRow[9]) || 0;
+    const pageDelta         = Math.max(0, newPagesRead - previousPagesRead);
+
+    const loggedActivities = logActivityBatch(
+      currentMemberId,
+      [{
+        typeId: 'ARKA_ACTTYP_PAGEREAD',
+        val:    pageDelta,
+        desc:   progressData.activityDescription
+      }],
+      1,
+      '',
+      progressData.activityPointsMap || {}
+    );
+
+    // Build a complete activity object matching the shape renderHomeFeed expects.
+    // logActivityBatch only returns {activityID, activityTypeID, activityCPAwarded} —
+    // the missing fields (activityDesc, activityDate, activityMemberID) would crash
+    // the feed renderer if the partial object were pushed to globalActivityLogDB.
+    const loggedActivity = loggedActivities.length > 0 ? loggedActivities[0] : null;
+    const newActivity = loggedActivity ? {
+      activityID:        loggedActivity.activityID,
+      activityTypeID:    loggedActivity.activityTypeID,
+      activityCPAwarded: loggedActivity.activityCPAwarded,
+      activityDate:      lastModifiedFormatted,
+      activityMemberID:  currentMemberId,
+      activityDesc:      progressData.activityDescription,
+      activitySource:    'ArkaClubApp ' + APP_VERSION
+    } : null;
+
+    return {
+      status:           'success',
+      updatedPagesRead: newPagesRead,
+      newActivity:      newActivity
+    };
+
+  } catch (error) {
+    console.error('logReadingProgress error:', error);
+    return { status: 'error', message: 'An error occurred. Please try again.' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 
 /**
  * Updates an existing book record in the Arka Library.
