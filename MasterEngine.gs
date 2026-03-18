@@ -316,6 +316,7 @@ function syncAllMemberStats() {
   }
 
   try {
+    repairMemberIDs();
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     
     // 1. LOAD ALL DATA INTO MEMORY
@@ -339,11 +340,12 @@ function syncAllMemberStats() {
     }
 
     // Build multiplier map from ActivityTypeDB for Rule 5
-    const actTypeData     = ss.getSheetByName("ActivityTypeDB").getDataRange().getValues();
-    const multiplierMap   = {};
+    // ActivityClubPoints is now Col B (index 1), moved from Col E (index 4)
+    const actTypeData   = ss.getSheetByName('ActivityTypeDB').getDataRange().getValues();
+    const multiplierMap = {};
     for (let i = 1; i < actTypeData.length; i++) {
       if (actTypeData[i][0]) {
-        multiplierMap[actTypeData[i][0]] = Number(actTypeData[i][4]) || 0;
+        multiplierMap[actTypeData[i][0]] = Number(actTypeData[i][1]) || 0; // Col B
       }
     }
 
