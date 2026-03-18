@@ -1174,6 +1174,104 @@
       /* ====================================================================
         ANNOUNCEMENT FORM — Bottom sheet (admin create / edit)
         ==================================================================== */
+      /* Member picker — pill tags + search input */
+      .ann-member-picker {
+        border: 1px solid #ecf0f1;
+        border-radius: 8px;
+        padding: 6px 8px;
+        background: #f8f9fa;
+        min-height: 42px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+        cursor: text;
+        transition: border-color 0.2s;
+      }
+      .ann-member-picker:focus-within {
+        border-color: #A984BA;
+        background: #fff;
+      }
+      .ann-member-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #EEEDFE;
+        color: #534AB7;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 12px;
+        white-space: nowrap;
+      }
+      .ann-member-pill-remove {
+        cursor: pointer;
+        font-size: 0.85rem;
+        color: #534AB7;
+        opacity: 0.6;
+        line-height: 1;
+        background: none;
+        border: none;
+        padding: 0;
+        width: auto;
+        display: inline;
+      }
+      .ann-member-pill-remove:hover { opacity: 1; }
+      .ann-member-search {
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 0.88rem;
+        color: #2c3e50;
+        min-width: 120px;
+        flex: 1;
+        padding: 2px 4px;
+        font-family: inherit;
+      }
+      .ann-member-dropdown {
+        position: absolute;
+        background: white;
+        border: 1px solid #ecf0f1;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        max-height: 160px;
+        overflow-y: auto;
+        z-index: 2000;
+        min-width: 200px;
+        display: none;
+      }
+      .ann-member-dropdown.open { display: block; }
+      .ann-member-option {
+        padding: 9px 12px;
+        font-size: 0.88rem;
+        color: #2c3e50;
+        cursor: pointer;
+        border-bottom: 1px solid #f4f4f4;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .ann-member-option:last-child { border-bottom: none; }
+      .ann-member-option:hover { background: #f8f9fa; }
+      .ann-member-option.already-added { opacity: 0.4; pointer-events: none; }
+      .ann-scope-toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0 6px;
+        border-top: 1px solid #f4f4f4;
+        margin-top: 12px;
+      }
+      .ann-scope-label {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+      .ann-scope-sub {
+        font-size: 0.75rem;
+        color: #7f8c8d;
+        margin-top: 1px;
+      }
       #annFormDrawer label {
         display: block;
         font-size: 0.8rem;
@@ -3395,10 +3493,33 @@
           <!-- Form fields -->
           <label for="annFormTitleInput">Title *</label>
           <input type="text" id="annFormTitleInput" placeholder="Short, clear headline…" maxlength="120">
-      
+
           <label for="annFormBodyInput">Body *</label>
           <textarea id="annFormBodyInput" rows="4" placeholder="Full announcement text…"></textarea>
-      
+
+          <!-- Audience scope toggle -->
+          <div class="ann-scope-toggle-row">
+            <div>
+              <div class="ann-scope-label">👥 Audience</div>
+              <div class="ann-scope-sub" id="annScopeSub">Visible to all club members</div>
+            </div>
+            <div id="annScopeToggle" class="toggle-pill" onclick="toggleAnnScope()"></div>
+          </div>
+
+          <!-- Member picker — shown only when scope toggle is ON (specific members) -->
+          <div id="annMemberPickerSection" style="display:none; margin-top:10px; position:relative;">
+            <label style="margin-top:0;">Select Members</label>
+            <div class="ann-member-picker" onclick="document.getElementById('annMemberSearchInput').focus()">
+              <div id="annMemberPills" style="display:contents;"></div>
+              <input type="text" id="annMemberSearchInput" class="ann-member-search"
+                     placeholder="Search member…"
+                     oninput="filterAnnMemberDropdown()"
+                     onfocus="openAnnMemberDropdown()"
+                     onblur="closeAnnMemberDropdownDelayed()">
+            </div>
+            <div id="annMemberDropdown" class="ann-member-dropdown"></div>
+          </div>
+
           <label for="annFormExpiryInput">Expiry date <span style="font-weight:400; text-transform:none;">(optional — leave blank to never expire)</span></label>
           <input type="date" id="annFormExpiryInput">
       
@@ -3687,6 +3808,8 @@
       let myYearlyChartInstance = null;         //Only for Me Tab of the user
       let myCumulativeChartInstance = null;     //Only for Me Tab of the user
       let likedBookPostsThisSession = new Set();
+      /** Member IDs currently selected in the announcement form picker. */
+      let annFormSelectedMemberIds = [];
 
       // --- O(1) LOOKUP MAPS (populated after Big Gulp loads) ---
       // These replace all the expensive .find() calls inside render loops
@@ -8123,6 +8246,11 @@
             if (type === "ARKA_ACTTYP_PROFILENEW" || type === "ARKA_ACTTYP_PROFILEUPDATE") {
                 groupKey = `${rawMemberId}_PROFILE_${dateKey}`;
             }
+            // Attendance: group by event + day (not member) so all confirmations
+            // for the same event collapse into one shared card
+            if (type === 'ARKA_ACTTYP_EVENTATTENDED') {
+                groupKey = 'EVT_ATTENDED_' + log.activityDesc + '_' + dateKey;
+            }
             
             // Every PAGEREAD gets its own feed bubble — never merged with status-change
             // activities (e.g. BOOKREADING) that share the same member/book/day groupKey.
@@ -8174,6 +8302,13 @@
             if (type === "ARKA_ACTTYP_BOOKREVIEW" && shelfRecord) bucket.latestReview = shelfRecord.review;
             if (type === "ARKA_ACTTYP_PAGEREAD") bucket.externalDesc = log.activityDesc;
             if (type === "ARKA_ACTTYP_MEMBERLEVELUP") bucket.levelUpDesc = log.activityDesc;
+            if (type === 'ARKA_ACTTYP_EVENTATTENDED') {
+                if (!bucket.attendedMembers)   bucket.attendedMembers   = [];
+                if (!bucket.attendanceEventId) bucket.attendanceEventId = log.activityDesc;
+                // Avoid duplicate members if admin re-confirms the same person
+                const alreadyAdded = bucket.attendedMembers.some(function(m) { return m.id === memberObj.id; });
+                if (!alreadyAdded) bucket.attendedMembers.push(memberObj);
+            }
             if (type === "ARKA_ACTTYP_MILESTONE_PAGES" || type === "ARKA_ACTTYP_MILESTONE_BOOKS") {
                 bucket.externalDesc = log.activityDesc.toString(); // This "takes" the number from the DB
             }
@@ -8281,6 +8416,27 @@
                 actionHtml = `levelled up! 🏆✨`;
             } else if (acts.includes("ARKA_ACTTYP_FEEDBACK")) {
                 actionHtml = `shared some feedback to help improve the app! 💡🙏`;
+            } else if (acts.includes('ARKA_ACTTYP_EVENTATTENDED')) {
+                const attendedEvt  = (typeof eventsMap !== 'undefined') ? eventsMap.get(item.attendanceEventId) : null;
+                const evtTitle     = attendedEvt ? attendedEvt.title : 'an event';
+                const members      = item.attendedMembers || [item.member];
+                const memberText   = members.length === 1
+                    ? escapeHtml(members[0].displayName) + ' attended'
+                    : members.length + ' members attended';
+                actionHtml = memberText + ' <b>' + escapeHtml(evtTitle) + '</b> 🎉';
+
+                // Overlapping avatar row — up to 6 shown, overflow count appended
+                const avatarRow = members.slice(0, 6).map(function(m) {
+                    const init = (m.displayName || '?').charAt(0).toUpperCase();
+                    if (m.imageURL) {
+                        return '<img src="' + m.imageURL + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid white;margin-right:-6px;" onerror="this.style.display=\'none\'">';
+                    }
+                    return '<div style="width:26px;height:26px;border-radius:50%;background:#A984BA;color:white;font-size:10px;font-weight:bold;display:inline-flex;align-items:center;justify-content:center;border:2px solid white;margin-right:-6px;">' + init + '</div>';
+                }).join('');
+                const overflow = members.length > 6
+                    ? '<span style="font-size:0.78rem;color:#7f8c8d;margin-left:14px;">+' + (members.length - 6) + ' more</span>'
+                    : '';
+                supplementalHtml += '<div style="display:flex;align-items:center;margin-top:8px;padding-left:4px;">' + avatarRow + overflow + '</div>';
             } else if (acts.includes("ARKA_ACTTYP_EVENTCREATED")) {
                 const evt = eventsMap.get(item.eventId);
                 const evtTitle = evt ? evt.title : 'a new event';
@@ -11898,14 +12054,18 @@
           // Already dismissed this session (non-pinned only — pinned cannot be dismissed)
           if (!ann.isPinned && dismissedAnnouncementIdsThisSession.has(ann.announcementId)) return false;
     
-          // Expired non-pinned notices are hidden automatically
-          if (!ann.isPinned && ann.expiryDate) {
+          // Expired notices are hidden — expiry applies to pinned AND non-pinned
+          // (only dismissal is blocked for pinned notices, not expiry)
+          if (ann.expiryDate) {
             const expiry = parseGoogleDate(ann.expiryDate);
             if (!isNaN(expiry) && expiry < today) return false;
           }
 
-          // Personal notices — only show to the target member
-          if (ann.targetMemberId && ann.targetMemberId !== currentUser) return false;
+          // targetMemberIds can be blank (club-wide) or comma-separated member IDs
+          if (ann.targetMemberIds) {
+            const targets = ann.targetMemberIds.split(',').map(function(s) { return s.trim(); });
+            if (!targets.includes(currentUser)) return false;
+          }
     
           return true;
         });
@@ -11990,7 +12150,9 @@
         // Filter: club-wide notices (no target) OR notices personally addressed to this user.
         // Admins do NOT see personal notices meant for other members — those are private.
         const filtered = globalAnnouncementsDB.filter(function(ann) {
-          return !ann.targetMemberId || ann.targetMemberId === currentUser;
+          if (!ann.targetMemberIds) return true; // club-wide — everyone sees it
+          const targets = ann.targetMemberIds.split(',').map(function(s) { return s.trim(); });
+          return targets.includes(currentUser);
         });
 
         if (filtered.length === 0) {
@@ -12003,9 +12165,15 @@
           return;
         }
     
-        // Pinned first, then newest first
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Pinned first, then active before expired, then newest first within each group
         const sorted = filtered.slice().sort(function(a, b) {
           if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+          const aExpired = a.expiryDate && parseGoogleDate(a.expiryDate) < today;
+          const bExpired = b.expiryDate && parseGoogleDate(b.expiryDate) < today;
+          if (aExpired !== bExpired) return aExpired ? 1 : -1;
           return parseGoogleDate(b.createdOn) - parseGoogleDate(a.createdOn);
         });
     
@@ -12015,16 +12183,27 @@
           const creator    = membersMap.get(ann.createdBy);
           const creatorName = creator ? creator.displayName : ann.createdBy;
           const dateStr    = ann.createdOn ? getSmartTimeAgo(parseGoogleDate(ann.createdOn)) : '';
+          const isExpired   = ann.expiryDate && parseGoogleDate(ann.expiryDate) < today;
           const pinnedClass = ann.isPinned ? ' ann-card--pinned' : '';
+          const expiredStyle = isExpired ? 'opacity:0.45; filter:grayscale(60%);' : '';
+          const expiredBadge = isExpired
+            ? '<span style="font-size:0.65rem;background:#ecf0f1;color:#7f8c8d;padding:1px 6px;border-radius:6px;margin-left:4px;">Expired</span>'
+            : '';
           const pinBadge    = ann.isPinned ? '<span class="ann-pin-badge">📌 Pinned</span>' : '';
-          const expiryNote  = ann.expiryDate ? ` · Expires ${ann.expiryDate}` : '';
-          const personalLabel = (ann.targetMemberId)
-            ? `<span style="font-size:0.65rem; background:#E6F1FB; color:#185FA5; padding:1px 5px; border-radius:6px; margin-left:4px;">Personal</span>`
+          const expiryNote  = ann.expiryDate
+            ? (isExpired ? ` · Expired ${ann.expiryDate}` : ` · Expires ${ann.expiryDate}`)
+            : '';
+          const targetCount   = ann.targetMemberIds
+            ? ann.targetMemberIds.split(',').filter(Boolean).length
+            : 0;
+          const personalLabel = targetCount > 0
+            ? '<span style="font-size:0.65rem; background:#E6F1FB; color:#185FA5; padding:1px 5px; border-radius:6px; margin-left:4px;">'
+              + (targetCount === 1 ? 'Personal' : targetCount + ' members') + '</span>'
             : '';
     
           // Admin controls
           let adminStrip = '';
-          if (isAdmin && !ann.targetMemberId) {
+          if (isAdmin && !ann.targetMemberIds) {
             const pinLabel   = ann.isPinned ? 'Unpin' : '📌 Pin';
             const pinAction  = ann.isPinned ? 'false' : 'true';
             adminStrip = `
@@ -12039,11 +12218,10 @@
           }
     
           html += `
-            <div class="ann-card${pinnedClass}" id="noticeCard_${ann.announcementId}">
+            <div class="ann-card${pinnedClass}" id="noticeCard_${ann.announcementId}" style="${expiredStyle}">
               <div class="ann-card-meta">
-                <span class="ann-type-label">Announcement</span>
-                ${personalLabel}
-                ${pinBadge}
+                <span class="ann-type-label">${personalLabel} Announcement</span>
+                ${pinBadge}${expiredBadge}
               </div>
               <div class="ann-card-title">${escapeHtml(ann.title)}</div>
               <div class="ann-card-body">${escapeHtml(ann.body)}</div>
@@ -12059,54 +12237,61 @@
       // ── Admin: Create / Edit Form ──────────────────────────────────────────────
     
       /**
-       * Opens the announcement bottom sheet in create or edit mode.
-       * Create mode: announcementId = null → blank form, title = "New Announcement"
-       * Edit mode:   announcementId = ARKA_ANN_X → pre-fills all fields
-       *
+       * Opens the announcement create/edit bottom sheet.
+       * Handles scope toggle (club-wide vs specific members) and member picker.
        * @param {string|null} announcementId - null for create, ARKA_ANN_X for edit
        */
       function openAnnouncementFormSheet(announcementId) {
         currentEditingAnnouncementId = announcementId || null;
-    
-        const titleEl   = document.getElementById('annFormTitle');
+        annFormSelectedMemberIds     = [];
+
+        const titleEl    = document.getElementById('annFormTitle');
         const inputTitle = document.getElementById('annFormTitleInput');
         const inputBody  = document.getElementById('annFormBodyInput');
         const inputExpiry = document.getElementById('annFormExpiryInput');
         const pinToggle  = document.getElementById('annFormPinToggle');
         const saveBtn    = document.getElementById('annFormSaveBtn');
-    
+
         if (announcementId) {
-          // Edit mode — pre-fill fields from globalAnnouncementsDB
           const ann = globalAnnouncementsDB.find(function(a) { return a.announcementId === announcementId; });
           if (!ann) { showToast('Announcement not found.'); return; }
-    
-          if (titleEl)   titleEl.textContent    = 'Edit Announcement';
+
+          if (titleEl)    titleEl.textContent   = 'Edit Announcement';
           if (inputTitle) inputTitle.value      = ann.title;
           if (inputBody)  inputBody.value       = ann.body;
-          if (inputExpiry) {
-            // Convert dd-MMM-yyyy → yyyy-MM-dd for the date input
-            inputExpiry.value = convertToInputDateFormat(ann.expiryDate);
-          }
+          if (inputExpiry) inputExpiry.value    = convertToInputDateFormat(ann.expiryDate);
           if (pinToggle)  pinToggle.classList.toggle('on', ann.isPinned);
+
+          // Restore selected members from stored comma-separated string
+          if (ann.targetMemberIds && ann.targetMemberIds.trim()) {
+            annFormSelectedMemberIds = ann.targetMemberIds.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+          }
         } else {
-          // Create mode — blank form
           if (titleEl)    titleEl.textContent   = 'New Announcement';
-          if (inputTitle)  inputTitle.value     = '';
-          if (inputBody)   inputBody.value      = '';
+          if (inputTitle) inputTitle.value      = '';
+          if (inputBody)  inputBody.value       = '';
           if (inputExpiry) inputExpiry.value    = '';
-          if (pinToggle)   pinToggle.classList.remove('on');
+          if (pinToggle)  pinToggle.classList.remove('on');
         }
-    
-        if (saveBtn) {
-          saveBtn.disabled  = false;
-          saveBtn.innerText = 'Save Announcement';
-        }
-    
-        // Open the sheet
+
+        // Render scope toggle + member picker based on selected members
+        const hasTargets     = annFormSelectedMemberIds.length > 0;
+        const scopeToggle    = document.getElementById('annScopeToggle');
+        const pickerSection  = document.getElementById('annMemberPickerSection');
+        const pinSection     = document.getElementById('annFormPinSection');
+        const scopeSub       = document.getElementById('annScopeSub');
+
+        if (scopeToggle)   scopeToggle.classList.toggle('on', hasTargets);
+        if (pickerSection) pickerSection.style.display  = hasTargets ? 'block' : 'none';
+        if (pinSection)    pinSection.style.display     = hasTargets ? 'none'  : 'block';
+        if (scopeSub)      scopeSub.textContent         = hasTargets ? 'Visible to selected members only' : 'Visible to all club members';
+
+        renderAnnMemberPills();
+
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerText = 'Save Announcement'; }
+
         document.getElementById('annFormModal').style.display = 'flex';
-        setTimeout(function() {
-          document.getElementById('annFormDrawer').classList.add('open');
-        }, 10);
+        setTimeout(function() { document.getElementById('annFormDrawer').classList.add('open'); }, 10);
       }
     
       /**
@@ -12130,6 +12315,140 @@
         const toggle = document.getElementById('annFormPinToggle');
         if (toggle) toggle.classList.toggle('on');
       }
+
+      /**
+       * Toggles the announcement audience between club-wide and specific members.
+       * Shows/hides the member picker and pin toggle accordingly.
+       * Pinning is only available for club-wide notices — a personal message being
+       * pinned to the top of someone's feed is handled by the personal banner logic.
+       */
+      function toggleAnnScope() {
+        const scopeToggle   = document.getElementById('annScopeToggle');
+        const pickerSection = document.getElementById('annMemberPickerSection');
+        const pinSection    = document.getElementById('annFormPinSection');
+        const scopeSub      = document.getElementById('annScopeSub');
+
+        const isNowSpecific = !scopeToggle.classList.contains('on');
+        scopeToggle.classList.toggle('on', isNowSpecific);
+
+        if (pickerSection) pickerSection.style.display  = isNowSpecific ? 'block' : 'none';
+        if (pinSection)    pinSection.style.display     = isNowSpecific ? 'none'  : 'block';
+        if (scopeSub)      scopeSub.textContent         = isNowSpecific
+          ? 'Visible to selected members only'
+          : 'Visible to all club members';
+
+        // Clear selected members when switching back to club-wide
+        if (!isNowSpecific) {
+          annFormSelectedMemberIds = [];
+          renderAnnMemberPills();
+        } else {
+          // Focus the search input when opening
+          setTimeout(function() {
+            const inp = document.getElementById('annMemberSearchInput');
+            if (inp) inp.focus();
+          }, 50);
+        }
+      }
+
+      /**
+       * Renders the pill tags for currently selected members inside the picker.
+       */
+      function renderAnnMemberPills() {
+        const pillsContainer = document.getElementById('annMemberPills');
+        const searchInput    = document.getElementById('annMemberSearchInput');
+        if (!pillsContainer) return;
+
+        const pillsHtml = annFormSelectedMemberIds.map(function(memberId) {
+          const member      = membersMap.get(memberId);
+          const displayName = member ? member.displayName : memberId;
+          return '<span class="ann-member-pill">'
+            + escapeHtml(displayName)
+            + '<button class="ann-member-pill-remove" onclick="removeAnnMemberPill(\'' + memberId + '\')" type="button">✕</button>'
+            + '</span>';
+        }).join('');
+
+        pillsContainer.innerHTML = pillsHtml;
+
+        // Update placeholder visibility
+        if (searchInput) {
+          searchInput.placeholder = annFormSelectedMemberIds.length > 0 ? 'Add more…' : 'Search member…';
+        }
+      }
+
+      /**
+       * Removes a member pill from the selected list and re-renders.
+       * @param {string} memberId - ARKA_MEMBER_X to remove
+       */
+      function removeAnnMemberPill(memberId) {
+        annFormSelectedMemberIds = annFormSelectedMemberIds.filter(function(id) { return id !== memberId; });
+        renderAnnMemberPills();
+      }
+
+      /**
+       * Filters the member dropdown based on the search input value.
+       * Excludes already-selected members and the current admin.
+       */
+      function filterAnnMemberDropdown() {
+        const query    = (document.getElementById('annMemberSearchInput').value || '').toLowerCase().trim();
+        const dropdown = document.getElementById('annMemberDropdown');
+        if (!dropdown) return;
+
+        const selectedSet = new Set(annFormSelectedMemberIds);
+
+        const matches = globalMembersDB.filter(function(m) {
+          if (selectedSet.has(m.id)) return false;          // already added
+          if (!query) return true;                           // show all when no query
+          return m.displayName.toLowerCase().includes(query)
+            || (m.fullName || '').toLowerCase().includes(query);
+        }).slice(0, 8); // cap at 8 results for readability
+
+        if (matches.length === 0) {
+          dropdown.innerHTML = '<div class="ann-member-option" style="color:#7f8c8d;pointer-events:none;">No members found</div>';
+        } else {
+          dropdown.innerHTML = matches.map(function(m) {
+            const initial  = (m.displayName || '?').charAt(0).toUpperCase();
+            const avatarHtml = m.imageURL
+              ? '<img src="' + m.imageURL + '" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display=\'none\'">'
+              : '<div style="width:22px;height:22px;border-radius:50%;background:#A984BA;color:white;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + initial + '</div>';
+            return '<div class="ann-member-option" onclick="selectAnnMember(\'' + m.id + '\')">'
+              + avatarHtml
+              + '<span>' + escapeHtml(m.displayName) + '</span>'
+              + '</div>';
+          }).join('');
+        }
+
+        dropdown.classList.add('open');
+      }
+
+      /** Opens the dropdown and shows all available members. */
+      function openAnnMemberDropdown() {
+        document.getElementById('annMemberSearchInput').value = '';
+        filterAnnMemberDropdown();
+      }
+
+      /** Closes the dropdown after a short delay (allows click on option to register first). */
+      function closeAnnMemberDropdownDelayed() {
+        setTimeout(function() {
+          const dropdown = document.getElementById('annMemberDropdown');
+          if (dropdown) dropdown.classList.remove('open');
+        }, 180);
+      }
+
+      /**
+       * Adds a member to the selected list and re-renders the pills.
+       * @param {string} memberId - ARKA_MEMBER_X selected from dropdown
+       */
+      function selectAnnMember(memberId) {
+        if (!annFormSelectedMemberIds.includes(memberId)) {
+          annFormSelectedMemberIds.push(memberId);
+        }
+        renderAnnMemberPills();
+        // Clear search and close dropdown
+        const inp = document.getElementById('annMemberSearchInput');
+        if (inp) inp.value = '';
+        const dropdown = document.getElementById('annMemberDropdown');
+        if (dropdown) dropdown.classList.remove('open');
+      }
     
       /**
        * Reads the form, validates, then calls saveAnnouncement() on the backend.
@@ -12152,12 +12471,25 @@
         btn.disabled  = true;
         btn.innerText = 'Saving…';
     
+        // Build targetMemberIds — comma-separated if specific members selected, blank if club-wide
+        const isSpecificScope   = document.getElementById('annScopeToggle').classList.contains('on');
+        const targetMemberIds   = isSpecificScope && annFormSelectedMemberIds.length > 0
+          ? annFormSelectedMemberIds.join(',')
+          : '';
+
+        // Validate: if specific scope selected but no members chosen, block submission
+        if (isSpecificScope && !targetMemberIds) {
+          showToast('Please select at least one member, or switch to club-wide.');
+          return;
+        }
+
         const payload = {
           announcementId : currentEditingAnnouncementId || null,
           title          : rawTitle,
           body           : rawBody,
           isPinned       : isPinned,
-          expiryDate     : expiryForStorage
+          expiryDate     : expiryForStorage,
+          targetMemberIds: targetMemberIds
         };
     
         google.script.run
@@ -12246,6 +12578,13 @@
           .withSuccessHandler(function(res) {
             if (res.status === 'error') { showToast('Error: ' + res.message); return; }
     
+            // Unpin locally before removing — ensures any concurrent render
+            // shows the dismiss button rather than a stuck pinned card
+            const archivedAnn = globalAnnouncementsDB.find(function(a) {
+              return a.announcementId === announcementId;
+            });
+            if (archivedAnn) archivedAnn.isPinned = false;
+
             // Remove from local array
             globalAnnouncementsDB = globalAnnouncementsDB.filter(function(a) {
               return a.announcementId !== announcementId;
@@ -12361,6 +12700,7 @@
             globalEventsDB     = res.eventsDB  || [];
             globalEventRSVPsDB = res.rsvpsDB   || [];
             isEventsDataLoaded = true;
+            eventsMap = new Map(globalEventsDB.map(function(e) { return [e.eventId, e]; }));
             // Rebuild the O(1) lookup map with fresh data
             eventsMap = new Map(globalEventsDB.map(function(e) { return [e.eventId, e]; }));
     
@@ -13089,30 +13429,73 @@
       }
     
       /**
-       * Reads the selected file, encodes it to base64, and stores it in hidden fields.
-       * Identical pattern to the profile pic and badge image handlers.
+       * Reads the selected asset file and stores it in hidden form fields.
+       * Images are compressed via canvas (max 1920px, JPEG 82%) before encoding
+       * to stay under GAS's parameter size limit. Non-image files are passed
+       * through as-is with an 8MB guard.
        *
        * @param {Event} event - File input change event
        */
       function handleEvtAssetFileSelection(event) {
         const file = event.target.files[0];
         if (!file) return;
-    
-        document.getElementById('evtAssetFileLabel').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
-        document.getElementById('evtAssetFileName').value  = file.name;
+
+        document.getElementById('evtAssetFileName').value = file.name;
         document.getElementById('evtAssetMimeType').value  = file.type;
-    
-        // Auto-fill title from filename if empty
+
+        // Auto-fill title from filename if the field is empty
         const titleInput = document.getElementById('evtAssetTitleInput');
         if (!titleInput.value.trim()) {
-          titleInput.value = file.name.replace(/\.[^.]+$/, ''); // Strip extension
+          titleInput.value = file.name.replace(/\.[^.]+$/, '');
         }
-    
+
+        // Reject files over 8MB before even trying — saves the user from a silent failure
+        const MAX_SIZE_MB = 8;
+        if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+          showToast('File too large (' + (file.size / 1024 / 1024).toFixed(1) + 'MB). Max ' + MAX_SIZE_MB + 'MB.');
+          event.target.value = '';
+          document.getElementById('evtAssetFileLabel').textContent = 'No file chosen';
+          return;
+        }
+
         const reader = new FileReader();
-        reader.onload = function(e) {
-          document.getElementById('evtAssetFileBase64').value = e.target.result;
-        };
-        reader.readAsDataURL(file);
+
+        if (file.type.startsWith('image/')) {
+          // Images: resize and compress via canvas to cap the payload size sent to GAS
+          reader.onload = function(e) {
+            const img  = new Image();
+            img.onload = function() {
+              const MAX_DIM = 1920; // Cap longest edge — sufficient for any display purpose
+              let w = img.width, h = img.height;
+              if (w > MAX_DIM || h > MAX_DIM) {
+                const scale = Math.min(MAX_DIM / w, MAX_DIM / h);
+                w = Math.round(w * scale);
+                h = Math.round(h * scale);
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width  = w;
+              canvas.height = h;
+              canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+              const compressed = canvas.toDataURL('image/jpeg', 0.82);
+
+              document.getElementById('evtAssetFileBase64').value = compressed;
+              document.getElementById('evtAssetMimeType').value   = 'image/jpeg';
+              document.getElementById('evtAssetFileLabel').textContent =
+                file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB → compressed)';
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+
+        } else {
+          // Non-image files (PDFs, PPT etc.) — pass through as-is
+          reader.onload = function(e) {
+            document.getElementById('evtAssetFileBase64').value = e.target.result;
+            document.getElementById('evtAssetFileLabel').textContent =
+              file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+          };
+          reader.readAsDataURL(file);
+        }
       }
     
       function submitAssetUpload() {
@@ -13157,8 +13540,8 @@
         const asset     = assets.find(function(a) { return a.assetId === assetId; });
         const assetName = asset ? asset.title : assetId;
     
-        if (!confirm('Remove "' + assetName + '"?\nThe Drive file is preserved — only the link is removed.')) return;
-    
+        if (!confirm('Remove "' + assetName + '"?\nThe Drive file will be sent to trash.')) return;
+        const driveLink = asset ? asset.driveLink : '';
         google.script.run
           .withSuccessHandler(function(res) {
             if (res.status === 'error') { showToast('Error: ' + res.message); return; }
@@ -13167,7 +13550,7 @@
             if (evt && currentViewedEventId === eventId) renderEventDetail(evt);
           })
           .withFailureHandler(function() { showToast('Remove failed. Try again.'); })
-          .removeEventAsset({ eventId, assetId });
+          .removeEventAsset({ eventId, assetId, driveLink });
       }
 
       // ==========================================================================
@@ -13317,7 +13700,10 @@
         // Filter challenges by tab
         let challenges = globalChallengesDB.filter(function(c) {
           if (tab === 'all')      return c.status === 'Active';
-          if (tab === 'mine')     return myEnrollmentsMap.has(c.challengeId) && c.status === 'Active';
+          if (tab === 'mine') {
+            const enr = myEnrollmentsMap.get(c.challengeId);
+            return enr && enr.enrollmentStatus !== 'Dropped' && c.status === 'Active';
+          }
           if (tab === 'upcoming') return c.status === 'Upcoming';
           if (tab === 'archived') return c.status === 'Archived' || c.status === 'Completed';
           return false;
@@ -13351,7 +13737,9 @@
         let html = '';
         challenges.forEach(function(c) {
           const enrolledCount = enrolledCountMap[c.challengeId] || 0;
-          const isEnrolled    = myEnrollmentsMap.has(c.challengeId);
+          const myEnrollment       = myEnrollmentsMap.get(c.challengeId);
+          const isEnrolled         = !!myEnrollment;
+          const isActivelyEnrolled = !!(myEnrollment && myEnrollment.enrollmentStatus !== 'Dropped');
           const pinnedClass   = c.isPinned ? ' chal-card-pinned' : '';
           const pinBadge      = c.isPinned ? '<span style="font-size:0.7rem;color:#A984BA;margin-right:6px;">📌</span>' : '';
     
@@ -13362,8 +13750,8 @@
     
           // Enrolled badge for member (shows their enrolment status)
           let enrollBadge = '';
-          if (isEnrolled) {
-            const myEnr = myEnrollmentsMap.get(c.challengeId);
+          if (isActivelyEnrolled) {
+            const myEnr = myEnrollment;
             const statusColours = {
               Active   : 'background:#EAF3DE;color:#27500A;',
               Winner   : 'background:#FAEEDA;color:#633806;',
@@ -13400,9 +13788,9 @@
               </div>
 
               <div style="display:flex; justify-content:flex-end; margin-top:10px;">
-                ${isEnrolled && myEnrollmentsMap.get(c.challengeId).enrollmentStatus === 'Active'
+                ${isActivelyEnrolled && myEnrollment.enrollmentStatus === 'Active'
                   ? '<button class="chal-drop-btn" onclick="openDropChallengeConfirm(\'' + c.challengeId + '\', \'' + escapeHtml(c.title) + '\')">Drop</button>'
-                  : (!isEnrolled ? '<button class="chal-enrol-btn" onclick="openChalEnrolSheet(\'' + c.challengeId + '\')">Enrol →</button>' : '')
+                  : (!isActivelyEnrolled ? '<button class="chal-enrol-btn" onclick="openChalEnrolSheet(\'' + c.challengeId + '\')">Enrol →</button>' : '')
                 }
               </div>
 
