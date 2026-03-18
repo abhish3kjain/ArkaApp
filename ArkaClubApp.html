@@ -112,9 +112,78 @@
         box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         animation: popIn 0.2s ease-out forwards;
       }
+      /* ── Shelf modal: scrollable tall content ────────────────────────────────────
+      * Overrides the generic modal centering for shelfModal only.
+      * - Anchors the modal near the top so it doesn't fight the viewport height
+      * - Caps height at 88vh and makes the content area scroll internally
+      * - -webkit-overflow-scrolling: touch ensures momentum scroll on iOS
+      * All other modals (infoModal, feedbackModal, etc.) are unaffected.
+      * ─────────────────────────────────────────────────────────────────────────── */
+      #shelfModal {
+        align-items: flex-start;
+        padding-top: 4vh;
+        padding-bottom: 4vh;
+        box-sizing: border-box;
+      }
+      #shelfModal .modal-content {
+        max-height: 88vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch; /* smooth momentum scroll on iOS */
+      }
       @keyframes popIn {
         from { transform: scale(0.95); opacity: 0; }
         to { transform: scale(1); opacity: 1; }
+      }
+
+      /* ── Shelf Status Tile Grid ─────────────────────────────────────────────────
+      * Replaces the plain <select> for reading status in shelfModal.
+      * Active tile is highlighted with the app's accent purple.
+      * Disabled state (edit mode) dims all tiles and blocks interaction.
+      * ─────────────────────────────────────────────────────────────────────────── */
+      .shelf-status-tile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 10px 6px;
+        border: 1.5px solid #e0d5ea;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        font-family: inherit;
+        transition: border-color 0.15s, background 0.15s;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .shelf-status-tile:hover {
+        border-color: #A984BA;
+        background: #faf5fc;
+      }
+      .shelf-status-tile.active {
+        border-color: #A984BA;
+        background: #f5eefa;
+        border-width: 2px;
+      }
+      .shelf-tile-icon {
+        font-size: 1.25rem;
+        line-height: 1;
+      }
+      .shelf-tile-label {
+        font-size: 0.72rem;
+        color: #7f8c8d;
+        font-weight: 500;
+        text-align: center;
+        line-height: 1.2;
+      }
+      .shelf-status-tile.active .shelf-tile-label {
+        color: #7a5b9e;
+      }
+      /* Locks tiles visually in edit mode — pointer events removed, tiles dimmed */
+      #shelfStatusTileGrid.tiles-locked .shelf-status-tile {
+        pointer-events: none;
+        opacity: 0.5;
+        cursor: not-allowed;
       }
 
       /* --- Members Directory Cards --- */
@@ -2287,59 +2356,121 @@
       </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+     SHELF MODAL
+     Handles: first-time add, status progression (To Read → Reading → Finished),
+     historical edit (Edit Read), and re-reads (Read Again).
+     The hidden #shelfStatus input is written by tile clicks and read by all JS.
+     ═══════════════════════════════════════════════════════════════════════════ -->
     <div id="shelfModal" class="modal-overlay">
       <div class="modal-content">
-        <h3 style="margin-top: 0; color: #2c3e50; line-height: 1.2; font-size: 1.2rem;" id="shelfBookTitle">Book Title</h3>
-        
-        <input type="hidden" id="shelfBookId">
-        <input type="hidden" id="shelfEditMode" value="false"> 
-        <input type="hidden" id="shelfRecordId" value="">
 
-        <div id="shelfStatusContainer">
-          <label class="form-label" style="text-align: left;">Reading Status</label>
-          <select id="shelfStatus" onchange="handleShelfStatusChange()" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit;">
-            <option value="To Read">📌 To Read</option>
-            <option value="Reading">📖 Reading</option>
-            <option value="Finished">🏆 Finished</option>
-            <option value="Did Not Finish">🛑 Did Not Finish</option>
-          </select>
+        <!-- Hidden control fields -->
+        <input type="hidden" id="shelfBookId">
+        <input type="hidden" id="shelfEditMode" value="false">
+        <input type="hidden" id="shelfRecordId" value="">
+        <!-- Hidden status value — written by selectShelfStatusTile(), read by all existing JS -->
+        <input type="hidden" id="shelfStatus" value="To Read">
+
+        <!-- ── Book header: cover thumbnail + title/author/meta ──────────────── -->
+        <div id="shelfModalBookHeader"
+            style="display: flex; align-items: center; gap: 12px;
+                    margin-bottom: 16px; padding-bottom: 14px;
+                    border-bottom: 1px solid #ecf0f1;">
+          <div id="shelfModalCoverContainer" style="flex-shrink: 0;"></div>
+          <div style="flex: 1; min-width: 0;">
+            <div id="shelfBookTitle"
+                style="font-size: 0.95rem; font-weight: 600; color: #2c3e50;
+                        line-height: 1.3; margin-bottom: 3px;
+                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+            <div id="shelfModalBookAuthor"
+                style="font-size: 0.82rem; color: #7f8c8d; margin-bottom: 3px;
+                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+            <div id="shelfModalBookMeta"
+                style="font-size: 0.75rem; color: #95a5a6;"></div>
+          </div>
         </div>
 
+        <!-- ── Status tile picker (2 × 2 grid) ──────────────────────────────── -->
+        <div id="shelfStatusContainer">
+          <label class="form-label" style="text-align: left; margin-bottom: 8px; display: block;">
+            Reading Status
+          </label>
+          <div id="shelfStatusTileGrid"
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+            <button type="button" class="shelf-status-tile" data-status="To Read"
+                    onclick="selectShelfStatusTile('To Read')">
+              <span class="shelf-tile-icon">📌</span>
+              <span class="shelf-tile-label">To Read</span>
+            </button>
+            <button type="button" class="shelf-status-tile" data-status="Reading"
+                    onclick="selectShelfStatusTile('Reading')">
+              <span class="shelf-tile-icon">📖</span>
+              <span class="shelf-tile-label">Reading</span>
+            </button>
+            <button type="button" class="shelf-status-tile" data-status="Finished"
+                    onclick="selectShelfStatusTile('Finished')">
+              <span class="shelf-tile-icon">🏆</span>
+              <span class="shelf-tile-label">Finished</span>
+            </button>
+            <button type="button" class="shelf-status-tile" data-status="Did Not Finish"
+                    onclick="selectShelfStatusTile('Did Not Finish')">
+              <span class="shelf-tile-icon">🛑</span>
+              <span class="shelf-tile-label">Did Not Finish</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Date finished (Finished status only) ──────────────────────────── -->
         <div id="shelfDateContainer" style="display: none;">
           <label class="form-label" style="text-align: left;">Date Finished</label>
           <input type="date" id="shelfDateFinished" style="margin-bottom: 15px;">
         </div>
 
+        <!-- ── Pages read (Reading / Finished / DNF only) ────────────────────── -->
         <div id="shelfPagesContainer" style="margin-bottom: 15px;">
           <label class="form-label" style="text-align: left;">Pages Read</label>
-          
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="number" id="shelfPagesRead" style="width: 80px;" min="0" class="form-control">
+            <input type="number" id="shelfPagesRead"
+                  style="width: 80px;" min="0" class="form-control">
             <span id="shelfTotalPagesDisplay" style="color: #666;">/ 0 pages</span>
+          </div>
+          <!-- Deviation warning — shown by JS when entered pages look implausible -->
+          <div id="shelfPagesWarning"
+              style="display: none; margin-top: 6px; font-size: 0.78rem;
+                      color: #e67e22; line-height: 1.4;">
+            ⚠️ That's well above the listed page count. Different edition?
           </div>
         </div>
 
+        <!-- ── Star rating (Finished only — intentionally excluded for DNF) ──── -->
         <div id="shelfRatingContainer">
-            <label class="form-label" style="text-align: left;">Your Rating</label>
-            <select id="shelfRating" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit;">
-              <option value="0">Unrated</option>
-              <option value="1">⭐ 1 Star</option>
-              <option value="2">⭐⭐ 2 Stars</option>
-              <option value="3">⭐⭐⭐ 3 Stars</option>
-              <option value="4">⭐⭐⭐⭐ 4 Stars</option>
-              <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
-            </select>
+          <label class="form-label" style="text-align: left;">Your Rating</label>
+          <select id="shelfRating"
+                  style="width: 100%; padding: 10px; margin-bottom: 15px;
+                        border: 1px solid #ccc; border-radius: 4px; font-family: inherit;">
+            <option value="0">Unrated</option>
+            <option value="1">⭐ 1 Star</option>
+            <option value="2">⭐⭐ 2 Stars</option>
+            <option value="3">⭐⭐⭐ 3 Stars</option>
+            <option value="4">⭐⭐⭐⭐ 4 Stars</option>
+            <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
+          </select>
         </div>
 
+        <!-- ── Review / thoughts (Reading / Finished / DNF only) ─────────────── -->
         <div id="shelfReviewContainer">
-          <label class="form-label" style="text-align: left;">Thoughts/Review</label>
+          <label class="form-label" style="text-align: left;">Thoughts / Review</label>
           <textarea id="shelfReview" rows="2" placeholder="What did you think?"></textarea>
         </div>
-        
+
+        <!-- ── Action buttons ────────────────────────────────────────────────── -->
         <div style="display: flex; gap: 10px; margin-top: 15px;">
-          <button onclick="submitShelfUpdate()" id="saveShelfBtn" style="background-color: #A984BA;">Update Shelf</button>
+          <button onclick="submitShelfUpdate()" id="saveShelfBtn"
+                  style="background-color: #A984BA;">Add to Shelf</button>
           <button onclick="closeModal('shelfModal')" class="btn-secondary">Cancel</button>
         </div>
+
       </div>
     </div>
 
@@ -6604,218 +6735,374 @@
       }
 
       /**
-       * STATUS HANDLER v4
-       * Now safely handles missing or zero page counts from the database!
+       * STATUS HANDLER v5
+       * Responds to shelf status changes by showing/hiding form fields.
+       * Reads status from the hidden #shelfStatus input (written by selectShelfStatusTile).
+       *
+       * Rules enforced here:
+       *  - "To Read"       → no pages, no rating, no review, no date
+       *  - "Reading"       → pages + review only
+       *  - "Finished"      → pages + date + rating + review
+       *  - "Did Not Finish"→ pages + review only; rating is ALWAYS hidden and zeroed
+       *
+       * Also handles the inline pages deviation warning.
        */
       function handleShelfStatusChange() {
         const status = document.getElementById('shelfStatus').value;
-        
-        // Containers & Inputs
-        const dateContainer = document.getElementById('shelfDateContainer');
+
+        // Form section containers
+        const dateContainer   = document.getElementById('shelfDateContainer');
         const ratingContainer = document.getElementById('shelfRatingContainer');
         const reviewContainer = document.getElementById('shelfReviewContainer');
-        const pagesContainer = document.getElementById('shelfPagesContainer');
-        const reviewTextArea = document.getElementById('shelfReview');
-        const pagesInput = document.getElementById('shelfPagesRead');
-        const ratingInput = document.getElementById('shelfRating');
-        const totalPagesDisplay = document.getElementById('shelfTotalPagesDisplay');
-        
-        // SAFELY GET TOTAL PAGES FROM DB
+        const pagesContainer  = document.getElementById('shelfPagesContainer');
+        const pagesWarning    = document.getElementById('shelfPagesWarning');
+
+        // Individual inputs
+        const reviewTextArea  = document.getElementById('shelfReview');
+        const pagesInput      = document.getElementById('shelfPagesRead');
+        const ratingInput     = document.getElementById('shelfRating');
+        const totalPagesLabel = document.getElementById('shelfTotalPagesDisplay');
+
+        // Safely resolve total pages from the local book DB
         const targetBookId = document.getElementById('shelfBookId').value;
-        const book = booksMap.get(targetBookId);
-        const totalPages = book ? (Number(book.pages) || 0) : 0;
-        
+        const book         = booksMap.get(targetBookId);
+        const totalPages   = book ? (Number(book.pages) || 0) : 0;
         const hasValidPages = totalPages > 0;
 
-        // Update the display text next to the input box
+        // Update the "/ N pages" label beside the input
         if (hasValidPages) {
-            totalPagesDisplay.innerText = `/ ${totalPages} pages`;
-            totalPagesDisplay.style.display = 'inline'; // Show it
+          totalPagesLabel.innerText = `/ ${totalPages} pages`;
+          totalPagesLabel.style.display = 'inline';
         } else {
-            totalPagesDisplay.style.display = 'none'; // Hide it entirely if we don't know!
+          totalPagesLabel.style.display = 'none';
         }
 
-        // 2. Handle Visibilities
-        dateContainer.style.display = (status === 'Finished') ? 'block' : 'none';
-        reviewContainer.style.display = (status === 'To Read') ? 'none' : 'block';
-        pagesContainer.style.display = (status === 'To Read') ? 'none' : 'block';
+        // Always hide the warning on status change; it re-evaluates on input
+        if (pagesWarning) pagesWarning.style.display = 'none';
 
-        // 3. Handle Logic & Data Wiping
-        if (status === 'Finished') {
-            ratingContainer.style.display = 'block';
-            reviewTextArea.placeholder = "Drop your final thoughts and review here...";
-            
-            // ONLY auto-fill if we actually have a valid total page count to give them
-            if (hasValidPages && (!pagesInput.value || parseInt(pagesInput.value) < totalPages)) {
-                pagesInput.value = totalPages; 
-            }
-            
-        } else if (status === 'Did Not Finish' || status === 'Reading') {
-            ratingContainer.style.display = 'none';
-            ratingInput.value = "0";
-            
-            reviewTextArea.placeholder = status === 'Did Not Finish' 
-                ? "No judgment! Why are you parking this book?" 
-                : "Any hot takes or thoughts so far?";
-                
+        // ── Show / hide sections by status ──────────────────────────────────────
+        const isToRead  = status === 'To Read';
+        const isDNF     = status === 'Did Not Finish';
+        const isReading = status === 'Reading';
+        const isFinished = status === 'Finished';
+
+        dateContainer.style.display   = isFinished ? 'block' : 'none';
+        pagesContainer.style.display  = isToRead   ? 'none'  : 'block';
+        reviewContainer.style.display = isToRead   ? 'none'  : 'block';
+
+        // Rating: Finished only. DNF intentionally excluded — rating is unfair
+        // when a book wasn't completed.
+        const showRating = isFinished;
+        ratingContainer.style.display = showRating ? 'block' : 'none';
+        if (!showRating) {
+          ratingInput.value = '0'; // Always zero out when hidden
+        }
+
+        // ── Per-status logic & placeholder copy ─────────────────────────────────
+        if (isFinished) {
+          reviewTextArea.placeholder = 'Drop your final thoughts and review here...';
+          // Auto-fill pages only if we know the total and the field looks empty/under
+          if (hasValidPages && (!pagesInput.value || parseInt(pagesInput.value) < totalPages)) {
+            pagesInput.value = totalPages;
+          }
+
+        } else if (isDNF) {
+          reviewTextArea.placeholder = "No judgment! Why are you parking this book?";
+
+        } else if (isReading) {
+          reviewTextArea.placeholder = 'Any hot takes or thoughts so far?';
+
         } else {
-            // 'To Read' state
-            ratingContainer.style.display = 'none';
-            ratingInput.value = "0"; 
-            pagesInput.value = "";   
+          // To Read — wipe transient fields
+          pagesInput.value  = '';
+          ratingInput.value = '0';
         }
       }
 
       /**
-       * Upgraded Shelf Modal Opener
-       * @param {string} bookId 
-       * @param {string} isEditMode - 'true' if we are fixing a past record
-       * @param {string} specificShelfId - The exact DB row ID to edit (if applicable)
+       * Activates a shelf status tile, syncs the hidden #shelfStatus input,
+       * and triggers form field visibility via handleShelfStatusChange().
+       *
+       * This is the single source of truth for status changes in the shelf modal.
+       * All other code continues to read document.getElementById('shelfStatus').value
+       * exactly as before — the hidden input keeps backward compatibility.
+       *
+       * @param {string} selectedStatus - One of: 'To Read' | 'Reading' | 'Finished' | 'Did Not Finish'
        */
-      function openShelfModal(bookId, isEditMode = 'false', specificShelfId = '') {
-        const book = booksMap.get(bookId);
-        if(!book) return;
+      function selectShelfStatusTile(selectedStatus) {
+        // 1. Write value to hidden input so all downstream JS reads it correctly
+        document.getElementById('shelfStatus').value = selectedStatus;
 
-        document.getElementById('shelfModal').style.display = 'flex';
-        document.getElementById('shelfBookTitle').innerText = book.title;
-        document.getElementById('shelfBookId').value = bookId;
-        document.getElementById('shelfEditMode').value = isEditMode;
-        document.getElementById('shelfRecordId').value = specificShelfId;
+        // 2. Update tile visual state — only the clicked tile gets the active class
+        document.querySelectorAll('.shelf-status-tile').forEach(function(tile) {
+          tile.classList.toggle('active', tile.dataset.status === selectedStatus);
+        });
 
-        // Reset defaults
-        let prefillStatus = "To Read";
-        let prefillPages = "";
-        let prefillRating = "0";
-        let prefillReview = "";
-        
-        // Grab local time safely to avoid UTC timezone shifts late at night
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        let prefillDate = `${yyyy}-${mm}-${dd}`;
-
-        // If EDITING an existing record
-        if (isEditMode === 'true' && specificShelfId) {
-          const record = shelvesMap.get(specificShelfId);
-          if (record) {
-            prefillStatus = record.status;
-            prefillPages = record.pagesRead;
-            prefillRating = record.rating;
-            prefillReview = record.review;
-            // Convert dd-MMM-yyyy back to YYYY-MM-DD for the HTML5 date picker
-            if (record.dateFinished && record.dateFinished !== "null") {
-              const d = parseGoogleDate(record.dateFinished);
-              // Extract local date values to prevent timezone shifting
-              const yyyy = d.getFullYear();
-              const mm = String(d.getMonth() + 1).padStart(2, '0');
-              const dd = String(d.getDate()).padStart(2, '0');
-              prefillDate = `${yyyy}-${mm}-${dd}`;
-            }
-          }
-          document.getElementById('shelfStatus').disabled = true; // Lock status in edit mode
-          document.getElementById('saveShelfBtn').innerText = "Save Changes";
-        } else {
-          // STANDARD MODE: Check for latest progress
-          const latest = globalShelvesDB.filter(s => s.bookId === bookId && s.memberId === currentUser).pop();
-          if (latest && (latest.status === 'Reading' || latest.status === 'To Read')) {
-             prefillStatus = latest.status;
-             prefillPages = latest.pagesRead;
-          }
-          document.getElementById('shelfStatus').disabled = false;
-          document.getElementById('saveShelfBtn').innerText = "Update Shelf";
-        }
-
-        document.getElementById('shelfStatus').value = prefillStatus;
-        document.getElementById('shelfPagesRead').value = prefillPages;
-        document.getElementById('shelfRating').value = prefillRating;
-        document.getElementById('shelfReview').value = prefillReview;
-        document.getElementById('shelfDateFinished').value = prefillDate;
-
-        // Run the smart toggle function so the form adapts instantly upon opening
+        // 3. Re-run field visibility/logic handler
         handleShelfStatusChange();
       }
 
+      /**
+       * Collects shelf form data and submits to the backend via updateMemberShelf().
+       * 
+       * Pre-submit validation:
+       *  - Warns (but does not block) if pages entered exceed 2× the book's listed
+       *    page count. This accommodates different editions while catching obvious typos.
+       *  - DNF rating is forcefully zeroed here as a final safety net, in addition
+       *    to the UI already hiding the rating field for DNF.
+       */
       function submitShelfUpdate() {
-        const btn = document.getElementById('saveShelfBtn');
-        btn.innerText = "Updating...";
-        btn.disabled = true;
+        const btn          = document.getElementById('saveShelfBtn');
+        const defaultLabel = btn.dataset.defaultLabel || 'Add to Shelf';
+        const isEditMode   = document.getElementById('shelfEditMode').value;
+        const recordId     = document.getElementById('shelfRecordId').value;
 
-        // Clean Fix: Look up the book directly from the local DB to get total pages
+        // Resolve book and total pages from local DB
         const targetBookId = document.getElementById('shelfBookId').value;
-        const book = booksMap.get(targetBookId);
-        const totalPages = book ? (Number(book.pages) || 0) : 0;
+        const book         = booksMap.get(targetBookId);
+        const totalPages   = book ? (Number(book.pages) || 0) : 0;
 
-        const isEditMode = document.getElementById('shelfEditMode').value;
-        const recordId = document.getElementById('shelfRecordId').value;
+        const selectedStatus = document.getElementById('shelfStatus').value;
+        const enteredPages   = Number(document.getElementById('shelfPagesRead').value) || 0;
+
+        // ── Pages deviation check ────────────────────────────────────────────────
+        // Warn if entered pages are more than 2× the book's listed count.
+        // User can still proceed — they may be on a different edition.
+        const PAGE_DEVIATION_MULTIPLIER = 2.0;
+        if (totalPages > 0 && enteredPages > totalPages * PAGE_DEVIATION_MULTIPLIER) {
+          const pagesWarning = document.getElementById('shelfPagesWarning');
+          if (pagesWarning) pagesWarning.style.display = 'block';
+          const confirmed = confirm(
+            `You entered ${enteredPages} pages, but this book is listed as ${totalPages} pages.\n\n` +
+            `That's more than double — are you using a different edition?\n\n` +
+            `Tap OK to save anyway, or Cancel to correct it.`
+          );
+          if (!confirmed) return; // Abort — let the user fix the value
+        }
+
+        // ── Safety net: DNF must never carry a rating ────────────────────────────
+        // The UI already hides the rating field for DNF, but we enforce it here
+        // in case of any edge-case path that bypasses the UI handler.
+        const rawRating = selectedStatus === 'Did Not Finish'
+          ? 0
+          : Number(document.getElementById('shelfRating').value) || 0;
+
+        // Lock the button to prevent double-submits
+        btn.innerText = 'Updating...';
+        btn.disabled  = true;
 
         const shelfData = {
-          memberId: currentUser,         
-          totalBookPages: totalPages,    
-          bookId: targetBookId,
-          status: document.getElementById('shelfStatus').value,
-          pagesRead: document.getElementById('shelfPagesRead').value,
-          rating: document.getElementById('shelfRating').value,
-          review: document.getElementById('shelfReview').value.trim(),
-          isEditMode: isEditMode,
-          editRecordId: recordId,
-          manualDateFinished: document.getElementById('shelfDateFinished').value, // YYYY-MM-DD from the picker
-          activityPointsMap: globalActivityPointsMap
+          memberId:           currentUser,
+          totalBookPages:     totalPages,
+          bookId:             targetBookId,
+          status:             selectedStatus,
+          pagesRead:          enteredPages,
+          rating:             rawRating,
+          review:             document.getElementById('shelfReview').value.trim(),
+          isEditMode:         isEditMode,
+          editRecordId:       recordId,
+          manualDateFinished: document.getElementById('shelfDateFinished').value, // YYYY-MM-DD
+          activityPointsMap:  globalActivityPointsMap
         };
 
-        google.script.run.withSuccessHandler(function(res) {
-          btn.innerText = isEditMode === 'true' ? "Save Changes" : "Update Shelf";
-          btn.disabled = false;
-          
-          if (res.status === "error") {
-            alert(res.message);
-          } else {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            // Restore button to its pre-submit label
+            btn.innerText = isEditMode === 'true' ? 'Save Changes' : defaultLabel;
+            btn.disabled  = false;
+
+            if (res.status === 'error') {
+              alert(res.message);
+              return;
+            }
+
             closeModal('shelfModal');
             showToast(res.message);
 
-            // Update local state instantly
+            // ── Optimistic local state update ──────────────────────────────────
             if (res.updatedShelf) {
-              const existingIdx = globalShelvesDB.findIndex(s => s.shelfId === res.updatedShelf.shelfId);
+              const existingIdx = globalShelvesDB.findIndex(
+                function(s) { return s.shelfId === res.updatedShelf.shelfId; }
+              );
               if (existingIdx > -1) {
-                globalShelvesDB[existingIdx] = res.updatedShelf; 
+                globalShelvesDB[existingIdx] = res.updatedShelf;
               } else {
-                globalShelvesDB.push(res.updatedShelf); 
+                globalShelvesDB.push(res.updatedShelf);
               }
             }
 
-            // Keep the book index in sync with the shelf change
+            // Keep the shelf index in sync for the updated book
             const updatedBookId = res.updatedShelf.bookId;
             myShelfIndexByBook.set(
               updatedBookId,
-              globalShelvesDB.filter(s => s.memberId === currentUser && s.bookId === updatedBookId)
+              globalShelvesDB.filter(function(s) {
+                return s.memberId === currentUser && s.bookId === updatedBookId;
+              })
             );
 
             if (res.newActivities && res.newActivities.length > 0) {
-              res.newActivities.forEach(act => globalActivityLogDB.push(act));
+              res.newActivities.forEach(function(act) { globalActivityLogDB.push(act); });
             }
-            
-            // Re-render ALL visible views so buttons and data update instantly
-            if (document.getElementById('bookDetailView').style.display === "block" && currentViewedBook && currentViewedBook.id === shelfData.bookId) {
-              // Pass the exact shelfId back in so the Edit button stays locked on the right record
-              openBookDetailView(shelfData.bookId, lastViewBeforeDetails, res.updatedShelf.shelfId); 
+
+            // ── Re-render all visible surfaces that might reflect this change ──
+            if (document.getElementById('bookDetailView').style.display === 'block' &&
+                currentViewedBook && currentViewedBook.id === shelfData.bookId) {
+              openBookDetailView(shelfData.bookId, lastViewBeforeDetails, res.updatedShelf.shelfId);
             }
-            if (document.getElementById('meView').style.display === "block") {
+            if (document.getElementById('meView').style.display === 'block') {
               renderUserShelves(currentUser, 'meDashboardContainer');
               renderHomeFeed(currentUser, 'meActivityFeed');
             }
-            if (document.getElementById('fullShelfView').style.display === "block") {
-               const activeStatus = document.getElementById('fullShelfTitle').innerText.replace("My ", "").replace("Member's ", "");
-               let mappedStatus = activeStatus.includes("Finished") ? "Finished" : activeStatus.includes("Reading") ? "Reading" : activeStatus;
-               openFullShelf(currentUser, mappedStatus);
+            if (document.getElementById('fullShelfView').style.display === 'block') {
+              const activeStatus = document.getElementById('fullShelfTitle').innerText
+                .replace('My ', '').replace("Member's ", '');
+              const mappedStatus = activeStatus.includes('Finished') ? 'Finished'
+                : activeStatus.includes('Reading') ? 'Reading'
+                : activeStatus;
+              openFullShelf(currentUser, mappedStatus);
             }
-            if (document.getElementById('libraryView').style.display === "block") {
-               renderLibrary(globalBooksDB); // Refreshes the grid buttons!
+            if (document.getElementById('libraryView').style.display === 'block') {
+              renderLibrary(globalBooksDB);
             }
-            if (document.getElementById('homeView').style.display === "block") {
-               renderHomeFeed(); // Refreshes embedded tile buttons!
+            if (document.getElementById('homeView').style.display === 'block') {
+              renderHomeFeed();
+            }
+          })
+          .withFailureHandler(function(err) {
+            btn.innerText = isEditMode === 'true' ? 'Save Changes' : defaultLabel;
+            btn.disabled  = false;
+            alert('Something went wrong. Please try again.');
+            console.error('submitShelfUpdate failure:', err);
+          })
+          .updateMemberShelf(shelfData);
+      }
+
+      /**
+       * Opens the shelf modal for a given book.
+       * Handles three distinct call contexts:
+       *   1. Standard add/update  — isEditMode='false', no specificShelfId
+       *   2. Historical edit       — isEditMode='true',  specificShelfId = exact row ID
+       *   3. Read Again            — isEditMode='false', no specificShelfId, post-finished book
+       *
+       * @param {string} bookId          - The book's ID from globalBooksDB.
+       * @param {string} isEditMode      - 'true' if editing a past record, else 'false'.
+       * @param {string} specificShelfId - Exact DB row ID to edit (only in edit mode).
+       */
+      function openShelfModal(bookId, isEditMode = 'false', specificShelfId = '') {
+        const book = booksMap.get(bookId);
+        if (!book) return;
+
+        // Show the modal
+        document.getElementById('shelfModal').style.display = 'flex';
+
+        // ── Populate hidden control fields ──────────────────────────────────────
+        document.getElementById('shelfBookId').value    = bookId;
+        document.getElementById('shelfEditMode').value  = isEditMode;
+        document.getElementById('shelfRecordId').value  = specificShelfId;
+
+        // ── Render book header: cover thumbnail + title/author/meta ─────────────
+        const coverContainer = document.getElementById('shelfModalCoverContainer');
+        const coverColor     = getBookColor(book.title);
+        const safeTitle      = escapeHtml(book.title);
+
+        if (book.coverImageURL) {
+          coverContainer.innerHTML =
+            `<img src="${book.coverImageURL}"
+                  style="width:52px;height:78px;object-fit:cover;border-radius:4px;
+                        box-shadow:2px 2px 6px rgba(0,0,0,0.12);"
+                  onerror="this.style.display='none';
+                          this.nextElementSibling.style.display='flex';">
+            <div style="display:none;width:52px;height:78px;border-radius:4px;
+                        background:${coverColor};align-items:center;justify-content:center;">
+              <span style="color:#fff;font-size:1.1rem;font-weight:700;">
+                ${safeTitle.charAt(0)}
+              </span>
+            </div>`;
+        } else {
+          coverContainer.innerHTML =
+            `<div style="width:52px;height:78px;border-radius:4px;background:${coverColor};
+                        display:flex;align-items:center;justify-content:center;">
+              <span style="color:#fff;font-size:1.1rem;font-weight:700;">
+                ${safeTitle.charAt(0)}
+              </span>
+            </div>`;
+        }
+
+        document.getElementById('shelfBookTitle').innerText       = book.title;
+        document.getElementById('shelfModalBookAuthor').innerText = `by ${book.author}`;
+        document.getElementById('shelfModalBookMeta').innerText   =
+          [book.pages ? `${book.pages} pages` : null, book.genre]
+            .filter(Boolean).join(' · ');
+
+        // ── Determine prefill values ─────────────────────────────────────────────
+        let prefillStatus = 'To Read';
+        let prefillPages  = '';
+        let prefillRating = '0';
+        let prefillReview = '';
+
+        // Grab local date safely to avoid UTC timezone shifts late at night
+        const today     = new Date();
+        const yyyy      = today.getFullYear();
+        const mm        = String(today.getMonth() + 1).padStart(2, '0');
+        const dd        = String(today.getDate()).padStart(2, '0');
+        let prefillDate = `${yyyy}-${mm}-${dd}`;
+
+        const tileGrid  = document.getElementById('shelfStatusTileGrid');
+        const saveBtn   = document.getElementById('saveShelfBtn');
+
+        if (isEditMode === 'true' && specificShelfId) {
+          // ── EDIT MODE: prefill from the exact historical record ────────────────
+          const record = shelvesMap.get(specificShelfId);
+          if (record) {
+            prefillStatus = record.status;
+            prefillPages  = record.pagesRead;
+            prefillRating = record.rating;
+            prefillReview = record.review;
+            if (record.dateFinished && record.dateFinished !== 'null') {
+              const d    = parseGoogleDate(record.dateFinished);
+              const ey   = d.getFullYear();
+              const em   = String(d.getMonth() + 1).padStart(2, '0');
+              const ed   = String(d.getDate()).padStart(2, '0');
+              prefillDate = `${ey}-${em}-${ed}`;
             }
           }
-        }).updateMemberShelf(shelfData);
+          // Lock tiles in edit mode — status of a past read should not be changed here
+          tileGrid.classList.add('tiles-locked');
+          saveBtn.innerText           = 'Save Changes';
+          saveBtn.dataset.defaultLabel = 'Save Changes';
+
+        } else {
+          // ── STANDARD MODE: prefill from latest active record if one exists ─────
+          const latestRecord = globalShelvesDB
+            .filter(function(s) { return s.bookId === bookId && s.memberId === currentUser; })
+            .pop();
+
+          const hasActiveRecord = latestRecord &&
+            (latestRecord.status === 'Reading' || latestRecord.status === 'To Read');
+
+          if (hasActiveRecord) {
+            prefillStatus = latestRecord.status;
+            prefillPages  = latestRecord.pagesRead;
+          }
+
+          // Unlock tiles for standard mode
+          tileGrid.classList.remove('tiles-locked');
+
+          // Button label: "Update Shelf" when progressing an existing record,
+          // "Add to Shelf" when this is a brand-new shelving action.
+          const btnLabel               = hasActiveRecord ? 'Update Shelf' : 'Add to Shelf';
+          saveBtn.innerText            = btnLabel;
+          saveBtn.dataset.defaultLabel = btnLabel;
+        }
+
+        // ── Apply prefill values ─────────────────────────────────────────────────
+        document.getElementById('shelfPagesRead').value    = prefillPages;
+        document.getElementById('shelfRating').value       = prefillRating;
+        document.getElementById('shelfReview').value       = prefillReview;
+        document.getElementById('shelfDateFinished').value = prefillDate;
+
+        // Activate the correct status tile and trigger field visibility
+        selectShelfStatusTile(prefillStatus);
       }
 
       // Fun little helper to give un-covered books a nice color based on their title letters
