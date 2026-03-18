@@ -3267,6 +3267,110 @@
           <input type="hidden" id="bingoCellActiveCellId">
         </div>
       </div>
+      
+      <!-- ═══════════════════════════════════════════════════════════════════════════
+          PROGRESS LOG BOTTOM SHEET
+          Lightweight progress-only update. Does NOT change shelf status.
+          Entry points: Reading card floating button (Me tab) + Book Detail view.
+          Backend: logReadingProgress() in GS — wired next session.
+          ═══════════════════════════════════════════════════════════════════════════ -->
+      <div id="progressLogModal" class="drawer-overlay" onclick="closeProgressLogSheet()">
+        <div class="bottom-drawer" id="progressLogDrawer"
+            style="max-height: 75vh; overflow-y: auto;"
+            onclick="event.stopPropagation()">
+
+          <!-- Drag handle -->
+          <div style="width:36px;height:4px;background:#ecf0f1;border-radius:2px;margin:0 auto 14px;"></div>
+
+          <!-- Header row -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="margin:0;color:#2c3e50;font-size:1.05rem;">Log reading progress</h3>
+            <i class="fa-solid fa-xmark" onclick="closeProgressLogSheet()"
+              style="font-size:1.3rem;color:#7f8c8d;cursor:pointer;padding:4px;flex-shrink:0;"></i>
+          </div>
+
+          <!-- Hidden control fields -->
+          <input type="hidden" id="progressLogBookId">
+          <input type="hidden" id="progressLogShelfId">
+          <input type="hidden" id="progressLogPreviousPages">
+          <input type="hidden" id="progressLogTotalPages">
+
+          <!-- ── Book row: tinted surface, same layout as Me tab reading card ── -->
+          <!-- The single progress bar lives here and updates live as user types  -->
+          <div id="progressLogBookRow"
+              style="display:flex;align-items:center;gap:10px;
+                      padding:12px;background:#faf5fc;border-radius:10px;
+                      margin-bottom:16px;">
+            <!-- Cover injected by openProgressLogSheet() -->
+            <div id="progressLogCover" style="flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+              <div id="progressLogBookTitle"
+                  style="font-size:0.88rem;font-weight:600;color:#2c3e50;
+                          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+              <div id="progressLogBookAuthor"
+                  style="font-size:0.75rem;color:#7f8c8d;margin:2px 0 7px;"></div>
+              <!-- Single live progress bar — updated by updateProgressLogPreview() -->
+              <div style="height:6px;background:#ecf0f1;border-radius:4px;overflow:hidden;margin-bottom:4px;">
+                <div id="progressLogBarFill"
+                    style="height:100%;background:#A984BA;border-radius:4px;
+                            width:0%;transition:width 0.2s;"></div>
+              </div>
+              <!-- Single summary line: pages · % · delta -->
+              <div id="progressLogSummaryLine"
+                  style="font-size:0.72rem;color:#8e44ad;font-weight:500;min-height:14px;"></div>
+            </div>
+          </div>
+
+          <!-- ── Page input ── -->
+          <label style="font-size:0.82rem;color:#7f8c8d;display:block;margin-bottom:8px;">
+            I'm now on page
+          </label>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <input type="number" id="progressLogPageInput"
+                  min="1" style="width:80px;margin:0;"
+                  oninput="updateProgressLogPreview()"
+                  placeholder="0">
+            <span id="progressLogTotalPagesLabel"
+                  style="font-size:0.85rem;color:#7f8c8d;"></span>
+          </div>
+
+          <!-- Deviation warning -->
+          <div id="progressLogWarning"
+              style="display:none;font-size:0.78rem;color:#e67e22;
+                      margin-bottom:10px;line-height:1.4;">
+            ⚠️ That's above the listed page count. Different edition?
+          </div>
+
+          <!-- ── Optional feed note ── -->
+          <label style="font-size:0.82rem;color:#7f8c8d;display:block;margin-top:10px;margin-bottom:6px;">
+            Add a note for the feed
+            <span style="font-weight:normal;font-size:0.78rem;">(optional)</span>
+          </label>
+          <textarea id="progressLogNote" rows="2"
+                    placeholder="Share a thought with the group..."
+                    style="margin-bottom:14px;"></textarea>
+
+          <!-- ── Action buttons ── -->
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button id="progressLogSaveBtn" onclick="submitProgressLog()"
+                    style="flex:1;background-color:#A984BA;">Save progress</button>
+            <button onclick="closeProgressLogSheet()"
+                    class="btn-secondary"
+                    style="flex:0 0 auto;width:auto;padding:12px 18px;">Cancel</button>
+          </div>
+
+          <!-- ── Finish nudge — always visible ── -->
+          <div onclick="progressLogHandleFinish()"
+              style="background:#eaf3de;border-radius:8px;padding:10px 14px;
+                      display:flex;justify-content:space-between;align-items:center;
+                      cursor:pointer;">
+            <span style="font-size:0.82rem;color:#27ae60;">Nearly done? Mark as finished</span>
+            <span style="font-size:0.82rem;font-weight:700;color:#27ae60;">Finish →</span>
+          </div>
+
+        </div>
+      </div>
+
 
 
       <!-- Admin FAB — fixed position, shown only when admin is on Notices tab ──── -->
@@ -6978,6 +7082,293 @@
       }
 
       /**
+       * Builds a reusable progress bar HTML string showing pages read vs total.
+       * Used by both the static current-state display and the live preview bar.
+       *
+       * @param {number} pagesRead  - Pages read so far.
+       * @param {number} totalPages - Total pages in the book (0 = unknown).
+       * @param {string} fillColor  - CSS colour for the filled portion.
+       * @returns {string} HTML string ready to inject as innerHTML.
+       */
+      function buildProgressBarHtml(pagesRead, totalPages, fillColor) {
+        if (totalPages <= 0) {
+          return `<div style="font-size:0.78rem;color:#8e44ad;font-weight:bold;">
+                    ${pagesRead} pages read
+                  </div>`;
+        }
+        const pct = Math.min(100, Math.max(0, Math.round((pagesRead / totalPages) * 100)));
+        return `
+          <div style="height:6px;background:#ecf0f1;border-radius:4px;overflow:hidden;margin-bottom:4px;">
+            <div style="height:100%;background:${fillColor};border-radius:4px;width:${pct}%;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#7f8c8d;">
+            <span>${pagesRead} pages</span><span>${pct}%</span><span>${totalPages} pages</span>
+          </div>`;
+      }
+
+      /**
+       * Opens the progress log bottom sheet for a currently-reading book.
+       * Populates the tinted book row (cover, title, author, live bar) and
+       * resets all inputs. Only callable for books on the current user's Reading shelf.
+       *
+       * @param {string} bookId  - The book's ID from globalBooksDB.
+       * @param {string} shelfId - The exact shelf record ID being updated.
+       */
+      function openProgressLogSheet(bookId, shelfId) {
+        const book  = booksMap.get(bookId);
+        const shelf = shelvesMap.get(shelfId);
+        if (!book || !shelf) return;
+
+        const totalPages    = Number(book.pages)      || 0;
+        const previousPages = Number(shelf.pagesRead) || 0;
+
+        // ── Populate hidden control fields ──────────────────────────────────────
+        document.getElementById('progressLogBookId').value        = bookId;
+        document.getElementById('progressLogShelfId').value       = shelfId;
+        document.getElementById('progressLogPreviousPages').value = previousPages;
+        document.getElementById('progressLogTotalPages').value    = totalPages;
+
+        // ── "of N pages" label beside the input ─────────────────────────────────
+        const totalPagesLabel = document.getElementById('progressLogTotalPagesLabel');
+        totalPagesLabel.innerText = totalPages > 0 ? `of ${totalPages} pages` : '';
+
+        // ── Cover ────────────────────────────────────────────────────────────────
+        const coverContainer = document.getElementById('progressLogCover');
+        const coverColor     = getBookColor(book.title);
+        const safeInitial    = escapeHtml(book.title.charAt(0));
+
+        if (book.coverImageURL) {
+          coverContainer.innerHTML =
+            `<img src="${book.coverImageURL}"
+                  style="width:38px;height:56px;object-fit:cover;border-radius:3px;"
+                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <div style="display:none;width:38px;height:56px;border-radius:3px;
+                        background:${coverColor};align-items:center;justify-content:center;">
+              <span style="color:#fff;font-size:0.9rem;font-weight:700;">${safeInitial}</span>
+            </div>`;
+        } else {
+          coverContainer.innerHTML =
+            `<div style="width:38px;height:56px;border-radius:3px;background:${coverColor};
+                        display:flex;align-items:center;justify-content:center;">
+              <span style="color:#fff;font-size:0.9rem;font-weight:700;">${safeInitial}</span>
+            </div>`;
+        }
+
+        // ── Title / author ───────────────────────────────────────────────────────
+        document.getElementById('progressLogBookTitle').innerText  = book.title;
+        document.getElementById('progressLogBookAuthor').innerText = `by ${book.author}`;
+
+        // ── Reset inputs ─────────────────────────────────────────────────────────
+        document.getElementById('progressLogPageInput').value       = previousPages > 0 ? previousPages : '';
+        document.getElementById('progressLogNote').value            = '';
+        document.getElementById('progressLogWarning').style.display = 'none';
+
+        const saveBtn     = document.getElementById('progressLogSaveBtn');
+        saveBtn.innerText = 'Save progress';
+        saveBtn.disabled  = false;
+
+        // Initialise the bar to the currently-saved state
+        updateProgressLogPreview();
+
+        // ── Slide up ─────────────────────────────────────────────────────────────
+        document.getElementById('progressLogModal').style.display = 'block';
+        setTimeout(function() {
+          document.getElementById('progressLogDrawer').classList.add('open');
+        }, 10);
+      }
+
+      /**
+       * Closes the progress log bottom sheet with the standard slide-down animation.
+       */
+      function closeProgressLogSheet() {
+        const drawer = document.getElementById('progressLogDrawer');
+        if (drawer) drawer.classList.remove('open');
+        setTimeout(function() {
+          const modal = document.getElementById('progressLogModal');
+          if (modal) modal.style.display = 'none';
+        }, 300);
+      }
+
+      /**
+       * Updates the live progress bar, summary line, and deviation warning
+       * as the user types a new page number.
+       *
+       * Summary line format: "156 / 208 pages · 75% · +33 today"
+       * Delta shown in green for positive, amber for negative (correction).
+       * If total pages unknown, falls back to "156 pages · +33 today".
+       *
+       * PAGE_DEVIATION_MULTIPLIER: warn when entry > 2× the listed page count.
+       */
+      function updateProgressLogPreview() {
+        const PAGE_DEVIATION_MULTIPLIER = 2.0;
+
+        const enteredPages  = Number(document.getElementById('progressLogPageInput').value)        || 0;
+        const previousPages = Number(document.getElementById('progressLogPreviousPages').value)    || 0;
+        const totalPages    = Number(document.getElementById('progressLogTotalPages').value)        || 0;
+
+        const barFill     = document.getElementById('progressLogBarFill');
+        const summaryLine = document.getElementById('progressLogSummaryLine');
+        const warning     = document.getElementById('progressLogWarning');
+
+        // ── Live bar ─────────────────────────────────────────────────────────────
+        if (barFill) {
+          const pct = totalPages > 0
+            ? Math.min(100, Math.max(0, Math.round((enteredPages / totalPages) * 100)))
+            : 0;
+          barFill.style.width = pct + '%';
+        }
+
+        // ── Summary line ─────────────────────────────────────────────────────────
+        if (summaryLine) {
+          const delta     = enteredPages - previousPages;
+          const deltaStr  = delta > 0  ? `+${delta}`    : String(delta);
+          const deltaColor = delta >= 0 ? '#27ae60'      : '#e67e22';
+          const deltaHtml = (delta !== 0)
+            ? ` · <span style="color:${deltaColor};">${deltaStr} today</span>`
+            : '';
+
+          if (totalPages > 0 && enteredPages > 0) {
+            const pct = Math.min(100, Math.max(0, Math.round((enteredPages / totalPages) * 100)));
+            summaryLine.innerHTML =
+              `${enteredPages} / ${totalPages} pages · ${pct}%${deltaHtml}`;
+          } else if (enteredPages > 0) {
+            summaryLine.innerHTML = `${enteredPages} pages${deltaHtml}`;
+          } else {
+            summaryLine.innerHTML = '';
+          }
+        }
+
+        // ── Deviation warning ────────────────────────────────────────────────────
+        if (warning) {
+          warning.style.display =
+            (totalPages > 0 && enteredPages > totalPages * PAGE_DEVIATION_MULTIPLIER)
+              ? 'block' : 'none';
+        }
+      }
+
+      /**
+       * Handles the "Finish →" tap on the progress log finish nudge.
+       * Closes the progress sheet and opens the shelf modal pre-set to Finished.
+       * A small delay lets the sheet animate closed before the modal appears.
+       */
+      function progressLogHandleFinish() {
+        const bookId = document.getElementById('progressLogBookId').value;
+        closeProgressLogSheet();
+        setTimeout(function() {
+          openShelfModal(bookId, 'false');
+          // Give the modal a render cycle before switching the tile
+          setTimeout(function() { selectShelfStatusTile('Finished'); }, 50);
+        }, 320);
+      }
+
+      /**
+       * Collects progress log inputs and submits to the backend via logReadingProgress().
+       *
+       * What this does:
+       *   - Updates pagesRead on the existing shelf row (no status change, no new row)
+       *   - Logs one ARKA_ACTTYP_PAGEREAD activity
+       *
+       * Activity description format (agreed):
+       *   "+N pages added to SHELF_ID | User Note: text"
+       *   If no note, the "| User Note:" part is omitted entirely.
+       *
+       * NOTE: The GS backend function logReadingProgress() is implemented next session.
+       *       All frontend wiring (success handler, local state update, re-renders) is
+       *       complete here so next session only requires the GS function.
+       */
+      function submitProgressLog() {
+        const saveBtn       = document.getElementById('progressLogSaveBtn');
+        const bookId        = document.getElementById('progressLogBookId').value;
+        const shelfId       = document.getElementById('progressLogShelfId').value;
+        const enteredPages  = Number(document.getElementById('progressLogPageInput').value)     || 0;
+        const previousPages = Number(document.getElementById('progressLogPreviousPages').value) || 0;
+        const totalPages    = Number(document.getElementById('progressLogTotalPages').value)    || 0;
+        const noteText      = document.getElementById('progressLogNote').value.trim();
+
+        // Basic validation
+        if (enteredPages <= 0) {
+          alert('Please enter the page you are currently on.');
+          return;
+        }
+
+        // Deviation confirm — does not block, user may be on a different edition
+        const PAGE_DEVIATION_MULTIPLIER = 2.0;
+        if (totalPages > 0 && enteredPages > totalPages * PAGE_DEVIATION_MULTIPLIER) {
+          const confirmed = confirm(
+            `You entered ${enteredPages} pages, but this book is listed as ${totalPages} pages.\n\n` +
+            `That's more than double — different edition? Tap OK to save anyway.`
+          );
+          if (!confirmed) return;
+        }
+
+        // Build activity description
+        const delta              = enteredPages - previousPages;
+        const deltaText          = delta >= 0 ? `+${delta}` : String(delta);
+        const activityDescParts  = [`${deltaText} pages added to ${shelfId}`];
+        if (noteText) activityDescParts.push(`User Note: ${noteText}`);
+        const activityDescription = activityDescParts.join(' | ');
+
+        saveBtn.innerText = 'Saving...';
+        saveBtn.disabled  = true;
+
+        const progressData = {
+          memberId:            currentUser,
+          bookId:              bookId,
+          shelfId:             shelfId,
+          newPagesRead:        enteredPages,
+          activityDescription: activityDescription,
+          activityPointsMap:   globalActivityPointsMap
+        };
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            saveBtn.innerText = 'Save progress';
+            saveBtn.disabled  = false;
+
+            if (res.status === 'error') {
+              alert(res.message);
+              return;
+            }
+
+            closeProgressLogSheet();
+            showToast('Progress logged! 📖');
+
+            // ── Optimistic local state update ──────────────────────────────────
+            // Patch pagesRead directly so re-renders show the updated bar immediately
+            const shelfIdx = globalShelvesDB.findIndex(function(s) { return s.shelfId === shelfId; });
+            if (shelfIdx > -1) {
+              globalShelvesDB[shelfIdx].pagesRead = enteredPages;
+              shelvesMap.set(shelfId, globalShelvesDB[shelfIdx]); // Keep Map in sync
+            }
+
+            if (res.newActivity) {
+              globalActivityLogDB.push(res.newActivity);
+            }
+
+            // ── Re-render all surfaces that could reflect this change ──────────
+            if (document.getElementById('meView').style.display === 'block') {
+              renderUserShelves(currentUser, 'meDashboardContainer');
+              renderHomeFeed(currentUser, 'meActivityFeed');
+            }
+            if (document.getElementById('bookDetailView').style.display === 'block' &&
+                currentViewedBook && currentViewedBook.id === bookId) {
+              openBookDetailView(bookId, lastViewBeforeDetails, shelfId);
+            }
+            if (document.getElementById('homeView').style.display === 'block') {
+              renderHomeFeed();
+            }
+          })
+          .withFailureHandler(function(err) {
+            saveBtn.innerText = 'Save progress';
+            saveBtn.disabled  = false;
+            alert('Something went wrong. Please try again.');
+            console.error('submitProgressLog failure:', err);
+          })
+          .logReadingProgress(progressData);
+      }
+
+
+      /**
        * Opens the shelf modal for a given book.
        * Handles three distinct call contexts:
        *   1. Standard add/update  — isEditMode='false', no specificShelfId
@@ -7237,10 +7628,31 @@
           `;
         } else {
           // STANDARD PATH
+          // If the current user is actively reading this book, surface Log Progress
+          // as the primary CTA. Update Shelf stays available for status changes.
           const btnState = getShelfButtonState(book.id);
-          shelfBtnContainer.innerHTML = `
-            <button class="btn-accent" onclick="openShelfModal('${book.id}', 'false')">${btnState.text}</button>
-          `;
+          const latestUserShelf = (myShelfIndexByBook.get(book.id) || []).slice(-1)[0];
+          const isCurrentlyReadingByMe = latestUserShelf && latestUserShelf.status === 'Reading';
+
+          if (isCurrentlyReadingByMe) {
+            shelfBtnContainer.innerHTML = `
+              <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
+                <button class="btn-accent"
+                        onclick="openProgressLogSheet('${book.id}','${latestUserShelf.shelfId}')">
+                  📖 Log progress
+                </button>
+                <button class="btn-outline"
+                        onclick="openShelfModal('${book.id}','false')">
+                  ✏️ Update shelf
+                </button>
+              </div>
+            `;
+          } else {
+            shelfBtnContainer.innerHTML = `
+              <button class="btn-accent"
+                      onclick="openShelfModal('${book.id}', 'false')">${btnState.text}</button>
+            `;
+          }
         }
         
         // 3. UNIVERSAL "Edit Book Info" (Shows everywhere, unconditionally)
@@ -7681,7 +8093,15 @@
                 shelfRecord = shelvesMap.get(log.activityDesc);
                 bookId = shelfRecord ? shelfRecord.bookId : "";
             } else if (type === "ARKA_ACTTYP_BOOKADDED" || type === "ARKA_ACTTYP_BOOKUPDATE") {
-                bookId = log.activityDesc; //Assuming description only has Book ID --> in future it can change.
+                bookId = log.activityDesc;
+            } else if (type === "ARKA_ACTTYP_PAGEREAD") {
+                // Description format: "+N pages added to ARKA_SHELF_X | User Note: ..."
+                // External app logs (10PagesADay) have no ARKA_SHELF_ token — bookId stays "".
+                const shelfIdMatch = (log.activityDesc || '').match(/ARKA_SHELF_\d+/);
+                if (shelfIdMatch) {
+                    shelfRecord = shelvesMap.get(shelfIdMatch[0]);
+                    bookId = shelfRecord ? shelfRecord.bookId : '';
+                }
             }
 
             // Skip if the book was deleted from the library (Ghost Book)
@@ -7704,9 +8124,13 @@
                 groupKey = `${rawMemberId}_PROFILE_${dateKey}`;
             }
             
-            // For Page Read external logs (10PagesaDay), keep them separate if needed, or group by day.
-            if (type === "ARKA_ACTTYP_PAGEREAD" && isExternalUser) {
-                 groupKey = `${rawMemberId}_EXTPAGE_${log.activityID}`; // Force individual bubble
+            // Every PAGEREAD gets its own feed bubble — never merged with status-change
+            // activities (e.g. BOOKREADING) that share the same member/book/day groupKey.
+            // External logs use activityID to keep each session separate.
+            // Internal logs (Arka app) use activityID for the same reason — a member can
+            // log progress multiple times in one day and each should surface individually.
+            if (type === "ARKA_ACTTYP_PAGEREAD") {
+                groupKey = `${rawMemberId}_PAGEREAD_${log.activityID}`;
             }
 
             const eventTypes = ["ARKA_ACTTYP_EVENTCREATED", "ARKA_ACTTYP_EVENTRSVP", "ARKA_ACTTYP_EVENTATTENDED"];
@@ -7715,7 +8139,7 @@
                 // Resolve to eventId for groupKey so multiple RSVP changes to the same
                 // event on the same day collapse into one feed bubble.
                 let evtIdForKey = log.activityDesc;
-                if (type === 'ARKA_ACTTYP_EVENTRSVP' && log.activityDesc.startsWith('ARKA_RSVP_')) {
+                if (type === 'ARKA_ACTTYP_EVENTRSVP' && log.activityDesc && log.activityDesc.startsWith('ARKA_RSVP_')) {
                     const rsvpForKey = globalEventRSVPsDB.find(function(r) {
                         return r.rsvpId === log.activityDesc;
                     });
@@ -7824,7 +8248,29 @@
             } else if (acts.includes("ARKA_ACTTYP_BOOKSHELVED")) {
                 actionHtml = `added this to their shelf.`;
             } else if (acts.includes("ARKA_ACTTYP_PAGEREAD")) {
-                actionHtml = item.externalDesc ? `${item.externalDesc} 📖` : `logged some reading progress. 📖`;
+                // Parse the structured description produced by both entry points:
+                //   Arka app:    "+33 pages added to ARKA_SHELF_X | User Note: ..."
+                //   External:   "102 pages added to 22-03-2026"
+                const rawDesc   = item.externalDesc || '';
+                const deltaMatch = rawDesc.match(/^[+]?(\d+)\s*pages/i);
+                const pageCount  = deltaMatch ? deltaMatch[1] : null;
+                const noteMatch  = rawDesc.match(/\|\s*User Note:\s*(.+)$/i);
+                const noteText   = noteMatch ? noteMatch[1].trim() : '';
+
+                actionHtml = pageCount
+                    ? `read ${pageCount} pages. 📖`
+                    : `logged some reading progress. 📖`;
+
+                // Append the optional user note as a styled italic line.
+                // It sits between the action text and the embedded book tile,
+                // matching the pattern used by rating/review supplemental content.
+                if (noteText) {
+                    supplementalHtml += `
+                        <div style="font-style:italic; color:#555; margin:6px 0 2px;
+                                    font-size:0.88rem; line-height:1.4;">
+                            "${escapeHtml(noteText)}"
+                        </div>`;
+                } 
             } else if (acts.includes("ARKA_ACTTYP_BOOKREVIEW") || acts.includes("ARKA_ACTTYP_BOOKRATING")) {
                 actionHtml = `updated their thoughts on this book. ✍️`;
             } else if (acts.includes("ARKA_ACTTYP_PROFILENEW")) {
@@ -9566,6 +10012,21 @@
               cardStyle += "background: #ffffff; border: 1px dashed #bdc3c7;";
             }
 
+            // Progress log floating button — only on the current user's own Reading cards.
+            // Uses fa-bars-progress icon in purple to clearly distinguish it from the
+            // green add-to-shelf button used elsewhere in the library grid.
+            const progressLogBtn = (status === 'Reading' && targetUserId === currentUser)
+              ? `<button
+                  onclick="event.stopPropagation();openProgressLogSheet('${book.id}','${shelfRecord.shelfId}')"
+                  title="Log reading progress"
+                  style="position:absolute;right:0;bottom:0;width:32px;height:32px;
+                          padding:0;display:flex;align-items:center;justify-content:center;
+                          border-radius:8px 0 8px 0;font-size:0.85rem;z-index:10;
+                          border:none;background:#7a5b9e;color:#fff;">
+                  <i class="fa-solid fa-bars-progress"></i>
+                </button>`
+              : '';
+
             // Assemble the final card
             html += `
               <div style="${cardStyle}" onclick="openBookDetailView('${book.id}', '${routeFrom}', '${shelfRecord.shelfId}')" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
@@ -9574,6 +10035,7 @@
                 ${extraVisuals}
                 <div title="${book.title}" style="font-weight: bold; font-size: 0.85rem; color: #2c3e50; line-height: 1.2; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-align: center; width: 100%;">${book.title}</div>
                 <div style="font-size: 0.7rem; color: #7f8c8d; line-height: 1.1; margin-top: 4px; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">by ${book.author}</div>
+                ${progressLogBtn}
               </div>
             `;
           });
@@ -9816,6 +10278,10 @@
         // Level 1: Are any popups open? Close them first.
         if (document.getElementById('helpArticleModal').style.display === 'block') {
           closeHelpArticle();
+          return;
+        }
+        if (document.getElementById('progressLogModal').style.display === 'block') {
+          closeProgressLogSheet();
           return;
         }
         if (document.getElementById('shelfModal').style.display === 'flex') {
