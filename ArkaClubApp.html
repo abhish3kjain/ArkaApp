@@ -1039,6 +1039,31 @@
         border: 0;
       }
 
+      /*
+      * Help category grid — override any existing .help-grid rule.
+      * Equal 3-column layout. min-width:0 on cards prevents text overflow
+      * from squeezing the third column.
+      */
+      #helpCategoryGrid.help-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      #helpCategoryGrid .help-category-card {
+        min-width: 0;          /* critical: allows flex/grid children to shrink */
+        box-sizing: border-box;
+        word-break: break-word;
+        text-align: center;
+      }
+      #helpCategoryGrid .help-category-title {
+        word-break: break-word;
+        hyphens: auto;
+        font-size: clamp(0.65rem, 2vw, 0.8rem); /* scales down on narrow screens */
+        line-height: 1.2;
+      }
+
       /* Clean Tables for Points/Badges */
       .help-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.9rem; }
       .help-table th, .help-table td { border: 1px solid #ecf0f1; padding: 10px; text-align: left; }
@@ -1966,22 +1991,52 @@
           </div>
 
           <div id="helpCategoryGrid" class="help-grid">
+          
             <div class="help-category-card" onclick="openHelpCategory('Arka')">
               <i class="fa-solid fa-mountain-sun help-category-icon" style="color: #e67e22;"></i>
               <div class="help-category-title">Arka Story</div>
             </div>
+          
             <div class="help-category-card" onclick="openHelpCategory('Getting Started')">
               <i class="fa-solid fa-rocket help-category-icon" style="color: #3498db;"></i>
               <div class="help-category-title">Getting Started</div>
             </div>
+          
+            <div class="help-category-card" onclick="openHelpCategory('Library')">
+              <i class="fa-solid fa-book-open help-category-icon" style="color: #27ae60;"></i>
+              <div class="help-category-title">Library</div>
+            </div>
+          
+            <div class="help-category-card" onclick="openHelpCategory('My Dashboard')">
+              <i class="fa-solid fa-chart-line help-category-icon" style="color: #16a085;"></i>
+              <div class="help-category-title">My Dashboard</div>
+            </div>
+          
             <div class="help-category-card" onclick="openHelpCategory('Challenges')">
               <i class="fa-solid fa-dice help-category-icon" style="color: #9b59b6;"></i>
               <div class="help-category-title">Challenges</div>
             </div>
+          
+            <div class="help-category-card" onclick="openHelpCategory('Events & Club Life')">
+              <i class="fa-solid fa-calendar-days help-category-icon" style="color: #e74c3c;"></i>
+              <div class="help-category-title">Events &amp; Club Life</div>
+            </div>
+          
             <div class="help-category-card" onclick="openHelpCategory('Points & Badges')">
               <i class="fa-solid fa-star help-category-icon" style="color: #f1c40f;"></i>
-              <div class="help-category-title">Points & Badges</div>
+              <div class="help-category-title">Points &amp; Badges</div>
             </div>
+          
+            <div class="help-category-card" onclick="openHelpCategory('Members')">
+              <i class="fa-solid fa-people-group help-category-icon" style="color: #2980b9;"></i>
+              <div class="help-category-title">Members</div>
+            </div>
+          
+            <div class="help-category-card" onclick="openHelpCategory('Help & FAQs')">
+              <i class="fa-solid fa-circle-question help-category-icon" style="color: #7f8c8d;"></i>
+              <div class="help-category-title">Help &amp; FAQs</div>
+            </div>
+          
           </div>
 
           <div id="helpResultsArea" style="display: none;">
@@ -3776,6 +3831,8 @@
     </div>
 
     <div id="toastMessage" class="toast">Profile successfully updated!</div>
+          
+    <?!= include('ArkaHelp') ?>
 
     <script>
       /**
@@ -3899,382 +3956,7 @@
        * @type {Set<string>}
        */
       const dismissedAnnouncementIdsThisSession = new Set();
-      
-      /* ====================================================================
-         📚 ARKA HELP CENTER & KNOWLEDGE BASE (EDIT ARTICLES HERE)
-         ==================================================================== */
-      const helpArticlesDB = [
-        {
-          id: "help-arka-vision",
-          category: "Arka",
-          title: "The Foundation & Vision",
-          tags: "history, goals, started, 2026, roadmap, future",
-          snippet: "Learn why Arka Readers Club was founded and our goals.",
-          content: `
-            <p>Arka Readers Club was founded to bring readers together. We believe reading is better when shared.</p>
-            <h3>Our 2026 Blueprint</h3>
-            <ul>
-              <li>Hit a combined total of 100,000 pages read.</li>
-              <li>Host 4 real-world meetups.</li>
-              <li>Complete 12 Read-Alongs.</li>
-            </ul>
-          `
-        },
-        {
-          id: "help-profile-setup",
-          category: "Getting Started",
-          title: "Setting Up Your Profile",
-          tags: "profile, picture, bio, avatar, goodreads, goal, languages, myinfo, dp",
-          snippet: "Make your profile your own. Add a picture, set a goal, and link your socials.",
-          content: `
-            <p>Welcome to Arka! Before you start hoarding books on your "To Read" shelf, let's make sure people know who you are.</p>
-            <div class="help-video-portrait">
-              <iframe
-                src="https://www.youtube.com/embed/A4wxhdmYtLM?si=Vmp7rKcZebL1nFD_"
-                title="Profile Setup book"
-                sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; presentation"
-                allowfullscreen>
-              </iframe>
-            </div>
-            <p>Head over the <strong>👤 My Profile</strong> section in <button style="background-color: #ecf0f1; color: #2c3e50; border: 1px solid #bdc3c7; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor: default; display: inline-block; width: auto; vertical-align: middle; pointer-events: none;">
-            <i class="fa-solid fa-bars"></i> </button> More Tab and click on <button style="background-color: #3498db; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor: default; display: inline-block; width: auto; vertical-align: middle; pointer-events: none;">✏️ Edit Profile</button> button in the bottom.</p>
-            <p>After making changes you can click on <button style="background-color: #3498db; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor: default; display: inline-block; width: auto; vertical-align: middle; pointer-events: none;">Save Changes</button> button to update the profile information. You will receive a toast notification - Profile Successfully Updated. You can then see the updated information in the My Profile section.</p>
 
-            
-            <h3>Profile Picture</h3>
-            <p>You can select a profile picture from your phone by clicking Choose File button. Once selected it will be saved as your profile picture once you click on Save Changes button.</p>
-            
-            <h3>Primary Gmail ID</h3>
-            <p>This is the gmail id you have used to register to the app for the first time. This cannot be changed by you through the app. If you want to change this ID, please contact Abhishek Jain in Arka Club.</p>
-
-            <h3>Alternate Gmail ID</h3>
-            <p>In case you have use different ids frequently eg. Work and Personal, you can choose to save alternate gmail id here and app will automatically load your profile if you accessed the app using this ID. However, you have give all the necessary permissions again for this ID - Google Sheets and Google drive edit permissions.</p>
-
-            <h3>Display Name</h3>
-            <p>Display Name is like username. This name will be displayed in everyone's feed for your activities inside the app. It needs to be unique.</p>
-
-            <h3>Full Name</h3>
-            <p>Your full name - if you want to share. </p>
-
-            <h3>Country</h3>
-            <p>You can share the current country you reside in to help club members understand your timezone and respect your time boundaries eg. not messaging you at times when you are sleeping, or scheduling events when it is reasonably convenient for you to join.</p>
-
-            <h3>Short Bio / About Me</h3>
-            <p>This is your space to make others know who you are as a Arka reader. Write as much as you want, as less as you please. It helps others connect to you.</p>
-
-            <h3>Reading Goal</h3>
-            <p>This is a resolution you take as a reader for accomplishing your reading goal in short term : 1 - 2 years.</p>
-
-            <h3>Favorite Genres</h3>
-            <p>You can share your favorite genres separated by commas to let others know what kind of books you like to read.</p>
-
-            <h3>Languages Spoken</h3>
-            <p>You can share the languages you know knwo and your proficiency level. If you do not understand the levels in the dropdown list google CEFR levels. You can add and remove as many languages as you want.</p>
-            <h3>LinkedIn Profile</h3>
-            <p>You can share your linkedin profile for other members to connect to you outside the Arka App. Go to your proile in Linked in and copy the url. It should be in the format of https://www.linkedin.com/[country code]/[username]</p>
-            <h3>Goodreads Profile</h3>
-            <p>You can share your goodreads profile for other members to connect to you outside the Arka App. Go to your proile in Goodreads Web and copy the url in the bottom of About Me page. Or go to Goodreads app > Settings > Settings > Profile > Profile URL.  It should be in the format of https://www.goodreads.com/[username]</p>
-
-            <blockquote style="border-left: 4px solid #3498db; background: #eaf2f8; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0; color: #2c3e50;">
-              <strong>💡 Quick Tip:</strong> Don't forget to add your favorite genres and the languages you read in! You can search the Member Directory by genre, so this helps you find a reading buddy who loves the same stuff you do.
-            </blockquote>
-          `
-        },
-        {
-          id: "help-adding-books",
-          category: "Getting Started",
-          title: "Finding & Adding Books 📚",
-          tags: "search, add book, library, cover, genres, filters, new",
-          snippet: "Learn how to search the Arka library and contribute new books.",
-          content: `
-            <p>Arka library is built by all of us! Adding a book is extremely simple. Click on the 📚 Library Tab in the bottom navigation bar and just tap the green <button style="background-color: #2ecc71; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor: default; display: inline-block; width: auto; vertical-align: middle; pointer-events: none;"><i class="fa-solid fa-plus"></i> Add Book</button> button on the top.</p>
-            <div class="help-video-portrait">
-              <iframe
-                src="https://www.youtube.com/embed/de-AUaOHyTM"
-                title="Adding a book" 
-                sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; presentation" 
-                allowfullscreen>
-              </iframe>
-            </div>
-            <h3>1. The Golden Rule: Search First! 🔍</h3>
-            <p>Before you go wild adding a book, let's make sure someone else hasn't already put it in the library. Search for the book title that you want to add.</p>
-            
-            <h3>2. Adding a Brand New Book ➕</h3>
-            <p>If you searched and your book is nowhere to be found, it's time to add it! Just fill out the title, author, genre and page count. You can use sources like Goodreads, OpenLibrary or Google Books for these metadata.</p>
-
-            <blockquote style="border-left: 4px solid #e74c3c; background: #fdedec; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0; color: #c0392b;">
-              <strong><i class="fa-solid fa-broom"></i> Keep the book metadata clean:</strong> If you find the book data in the library is not up to date, use Edit Book Info option to edit the information.
-            </blockquote>
-          `
-        },
-        {
-          id: "help-shelving-books",
-          category: "Getting Started",
-          title: "Shelving 101: Adding a book to your shelf",
-          tags: "shelf, status, to read, reading, finished, dnf, progress, update",
-          snippet: "Learn how to add books to your personal shelf and track your reading progress.",
-          content: `
-            <p>Once you have found a book in the library, it's time to claim it! Here is how to build your personal shelf and keep everyone updated on your reading journey.</p>
-            <div class="help-video-portrait">
-              <iframe
-                src="https://www.youtube.com/embed/nE_k6zGPC84"
-                title="Shelving a book"
-                sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; presentation"
-                allowfullscreen>
-              </iframe>
-            </div>
-            <h3>1. Adding a Book to Your Shelf</h3>
-            <p>When you click a book from the <strong>All Books</strong> tab or anywhere else and open the book details, you will see Add to Shelf button. Give that a tap.</p>
-            <blockquote style="border-left: 4px solid #3498db; background: #eaf2f8; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0; color: #2c3e50;">
-              <strong>Note:</strong> If the book is already in your shelf, the button text can read differently.
-            </blockquote>
-            <h3>2. The Four Shelves</h3>
-            <p>When you want to shelve a book, you have to choose among the following status. Your book shelves are named after these reading statuses. Here is the breakdown of what they mean for the club:</p>
-            <ul>
-              <li>📌 <strong>To Read:</strong> Your wishlist or "TBR" (To Be Read) pile. Books you want to tackle next or you know - some lucky day! 🤫.</li>
-              <li>📖 <strong>Reading:</strong> If it is a book that you are currently reading.</li>
-              <li>🏆 <strong>Finished:</strong> If you finished reading this book. Time to rate it and review it! Don't forget it!</li>
-              <li>🛑 <strong>DNF (Did Not Finish):</strong> If you decided to skip reading a book mid-way and want to park it for the moment. No judgment!</li>
-            </ul>
-
-            <h3>3. Updating the Shelf</h3>
-            <p style="line-height: 2;"> Apart from the Reading Status, you can enter the pages read (if it is applicable), Your rating and Review.Typically, you would update Pages Read when you are currently reading a book and rate & review them once finished reading them.</p>
-
-            <blockquote style="border-left: 4px solid #f1c40f; background: #fffcf5; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0; color: #34495e;">
-              <strong>💡 Pro Tip:</strong> Moving a book to "Finished" is what earns you that sweet 50-point boost for your Arka Rank! Don't forget to drop a star rating and a quick review when you finish so others know if it's worth picking up.
-            </blockquote>
-          `
-        },
-        {
-          id: "help-what-are-arkapoints",
-          category: "Points & Badges",
-          title: "What are Arka Points ☀️?",
-          tags: "points, score, rank, economy, earn, legendary, level up, xp",
-          snippet: "Discover what Arka Points are.",
-          content: `
-            <p>Think of Arka Points as your reading XP! We introduced points to make tracking your reading journey a bit more fun and rewarding. Every time you hit a milestone or help the club grow, your score goes up.</p>
-            
-            <h3>Climbing the Ranks ↗️</h3>
-            <p>As you rack up Arka Points, your Reader Level will automatically increase. Everyone starts as a <strong>Novice</strong>, but putting in the pages will help you climb the ranks all the way to <strong>Guru</strong>! Your current rank is always proudly displayed on your Profile and Member Card.</p>
-
-            <blockquote style="border-left: 4px solid #f1c40f; padding-left: 15px; background: #fffcf5; margin: 20px 0; padding: 15px; border-radius: 0 8px 8px 0; color: #34495e;">
-              <strong>💡 Pro Tip:</strong> The system is smart! If you accidentally mark a book as finished and then change it back to "Reading," your points will automatically adjust. No need to stress about misclicks.
-            </blockquote>
-          `
-        },
-        {
-          id: "help-how-to-arkapoints",
-          category: "Points & Badges",
-          title: "How to Earn Arka Points ☀️?",
-          tags: "economy, points, score, leaderboard, level, rank",
-          snippet: "A full breakdown of how to earn points and level up.",
-          content: `
-            <p>You earn points automatically just by using the app and logging your reading on the app. Here is the current payout table:</p>
-            <table class="help-table">
-              <thead>
-                <tr>
-                  <th>Action</th>
-                  <th>Points</th>
-                  <th>Frequency</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>Log pages [currently via 10 Pages a Day App]</td><td>+4 ☀️</td><td>Per Page</td></tr>
-                <tr><td>Adding a new book to Arka Library</td><td>+150 ☀️</td><td>Per Book</td></tr>
-                <tr><td>Updating book metadata in Arka Library</td><td>+100 ☀️</td><td>Per Book</td></tr>
-                <tr><td>Finish reading a book</td><td>+300 ☀️</td><td>Per Book</td></tr>
-                <tr><td>Rate a book you read</td><td>+50 ☀️</td><td>Per Finished Book</td></tr>
-                <tr><td>Write a review for a book</td><td>+150 ☀️</td><td>Per Finished Book</td></tr>
-                <tr><td>Add New Book to Library</td><td>+5 ☀️</td><td>Per Book</td></tr>
-                <tr><td>Winning a Yearly Challenge</td><td>+5000 ☀️</td><td>Per Challenge</td></tr>
-                <tr><td>Finishing a Yearly Challenge</td><td>+1500 ☀️</td><td>Per Challenge</td></tr>
-                <tr><td>Participating in a Yearly Challenge</td><td>+300 ☀️</td><td>Per Challenge</td></tr>
-                <tr><td>Attending a Club Meeting</td><td>+300 ☀️</td><td>Per Meeting</td></tr>
-                <tr><td>Hosting a Club Meeting</td><td>+600 ☀️</td><td>Per Meeting</td></tr>
-                <tr><td>Updating Profile Details</td><td>+30 ☀️</td><td>Per Profile Update</td></tr>
-                <tr><td>Reporting Bug or Feature</td><td>+150 ☀️</td><td>Per Report</td></tr>
-              </tbody>
-            </table>
-            <p><em>Note: If you have more suggestions for Arka Points Actions, share your feedback.</em></p>
-          `
-        },
-        {
-          id: "help-reader-levels",
-          category: "Points & Badges",
-          title: "Arka Reader Level Guide",
-          tags: "level, rank, tier, page turner, bookworm, scholar, bibliophile, scribe, sage, luminary, maven, virtuoso, oracle, points, climb, upgrade, progress, how many points",
-          snippet: "Every tier, every level, and exactly how many points you need to reach it.",
-          content: `
-            <p>Your Reader Level is your badge of honour in Arka. As you earn <strong>☀️ Club Points</strong>, you automatically climb through <strong>10 tiers</strong>, each with <strong>10 sub-levels</strong> (I through X) — 100 levels in total.</p>
-        
-            <p>Levels update automatically — no action needed from you. Every time points are added to your profile, the app recalculates your rank and displays it on your profile and member card.</p>
-        
-            <blockquote style="border-left:4px solid #f1c40f; background:#fffcf5; padding:15px; margin:20px 0; border-radius:0 8px 8px 0; color:#34495e;">
-              <strong>💡 How points work:</strong> See the <em>How to Earn Arka Points</em> guide in this same section for the full breakdown of point-earning actions. The quick version: read books, write reviews, add books to the library, give ratings, and participate in club events.
-            </blockquote>
-        
-            <h3>The 10 Tiers at a Glance</h3>
-            <p>Each tier spans 10 sub-levels. The table below shows the <strong>entry point</strong> (minimum ☀️ to enter Tier I) and the <strong>exit point</strong> (☀️ needed to leave Tier X and enter the next tier).</p>
-        
-            <table class="help-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Tier</th>
-                  <th>Sub-levels</th>
-                  <th>Enter at</th>
-                  <th>Clear at</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>1</td><td>📄 Page Turner</td><td>I – X</td><td>1 ☀️</td><td>3,000 ☀️</td></tr>
-                <tr><td>2</td><td>📖 Bookworm</td><td>I – X</td><td>3,001 ☀️</td><td>14,000 ☀️</td></tr>
-                <tr><td>3</td><td>🎓 Scholar</td><td>I – X</td><td>14,001 ☀️</td><td>39,000 ☀️</td></tr>
-                <tr><td>4</td><td>📚 Bibliophile</td><td>I – X</td><td>39,001 ☀️</td><td>84,000 ☀️</td></tr>
-                <tr><td>5</td><td>✍️ Scribe</td><td>I – X</td><td>84,001 ☀️</td><td>155,000 ☀️</td></tr>
-                <tr><td>6</td><td>🌿 Sage</td><td>I – X</td><td>155,001 ☀️</td><td>258,000 ☀️</td></tr>
-                <tr><td>7</td><td>✨ Luminary</td><td>I – X</td><td>258,001 ☀️</td><td>399,000 ☀️</td></tr>
-                <tr><td>8</td><td>🏛️ Maven</td><td>I – X</td><td>399,001 ☀️</td><td>584,000 ☀️</td></tr>
-                <tr><td>9</td><td>🎼 Virtuoso</td><td>I – X</td><td>584,001 ☀️</td><td>819,000 ☀️</td></tr>
-                <tr><td>10</td><td>🔮 Oracle</td><td>I – X</td><td>819,001 ☀️</td><td>1,110,000 ☀️</td></tr>
-              </tbody>
-            </table>
-        
-            <h3>All 100 Levels</h3>
-            <p>Find your current level below and see exactly how many points are needed to reach the next one.</p>
-        
-            <div style="overflow-x:auto;">
-              <table class="help-table" style="font-size:0.82rem;">
-                <thead>
-                  <tr>
-                    <th style="width:44px;">#</th>
-                    <th>Level Name</th>
-                    <th style="text-align:right;">Max ☀️ for this level</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style="background:#fffef0;"><td>1</td><td>Page Turner I</td><td style="text-align:right;">111</td></tr>
-                  <tr><td>2</td><td>Page Turner II</td><td style="text-align:right;">248</td></tr>
-                  <tr style="background:#fffef0;"><td>3</td><td>Page Turner III</td><td style="text-align:right;">417</td></tr>
-                  <tr><td>4</td><td>Page Turner IV</td><td style="text-align:right;">624</td></tr>
-                  <tr style="background:#fffef0;"><td>5</td><td>Page Turner V</td><td style="text-align:right;">875</td></tr>
-                  <tr><td>6</td><td>Page Turner VI</td><td style="text-align:right;">1,176</td></tr>
-                  <tr style="background:#fffef0;"><td>7</td><td>Page Turner VII</td><td style="text-align:right;">1,533</td></tr>
-                  <tr><td>8</td><td>Page Turner VIII</td><td style="text-align:right;">1,952</td></tr>
-                  <tr style="background:#fffef0;"><td>9</td><td>Page Turner IX</td><td style="text-align:right;">2,439</td></tr>
-                  <tr><td><strong>10</strong></td><td><strong>Page Turner X</strong></td><td style="text-align:right;"><strong>3,000</strong></td></tr>
-        
-                  <tr style="background:#f0f9f4;"><td>11</td><td>Bookworm I</td><td style="text-align:right;">3,641</td></tr>
-                  <tr><td>12</td><td>Bookworm II</td><td style="text-align:right;">4,368</td></tr>
-                  <tr style="background:#f0f9f4;"><td>13</td><td>Bookworm III</td><td style="text-align:right;">5,187</td></tr>
-                  <tr><td>14</td><td>Bookworm IV</td><td style="text-align:right;">6,104</td></tr>
-                  <tr style="background:#f0f9f4;"><td>15</td><td>Bookworm V</td><td style="text-align:right;">7,125</td></tr>
-                  <tr><td>16</td><td>Bookworm VI</td><td style="text-align:right;">8,256</td></tr>
-                  <tr style="background:#f0f9f4;"><td>17</td><td>Bookworm VII</td><td style="text-align:right;">9,503</td></tr>
-                  <tr><td>18</td><td>Bookworm VIII</td><td style="text-align:right;">10,872</td></tr>
-                  <tr style="background:#f0f9f4;"><td>19</td><td>Bookworm IX</td><td style="text-align:right;">12,369</td></tr>
-                  <tr><td><strong>20</strong></td><td><strong>Bookworm X</strong></td><td style="text-align:right;"><strong>14,000</strong></td></tr>
-        
-                  <tr style="background:#f0f4ff;"><td>21</td><td>Scholar I</td><td style="text-align:right;">15,771</td></tr>
-                  <tr><td>22</td><td>Scholar II</td><td style="text-align:right;">17,688</td></tr>
-                  <tr style="background:#f0f4ff;"><td>23</td><td>Scholar III</td><td style="text-align:right;">19,757</td></tr>
-                  <tr><td>24</td><td>Scholar IV</td><td style="text-align:right;">21,984</td></tr>
-                  <tr style="background:#f0f4ff;"><td>25</td><td>Scholar V</td><td style="text-align:right;">24,375</td></tr>
-                  <tr><td>26</td><td>Scholar VI</td><td style="text-align:right;">26,936</td></tr>
-                  <tr style="background:#f0f4ff;"><td>27</td><td>Scholar VII</td><td style="text-align:right;">29,673</td></tr>
-                  <tr><td>28</td><td>Scholar VIII</td><td style="text-align:right;">32,592</td></tr>
-                  <tr style="background:#f0f4ff;"><td>29</td><td>Scholar IX</td><td style="text-align:right;">35,699</td></tr>
-                  <tr><td><strong>30</strong></td><td><strong>Scholar X</strong></td><td style="text-align:right;"><strong>39,000</strong></td></tr>
-        
-                  <tr style="background:#fef5e7;"><td>31</td><td>Bibliophile I</td><td style="text-align:right;">42,501</td></tr>
-                  <tr><td>32</td><td>Bibliophile II</td><td style="text-align:right;">46,208</td></tr>
-                  <tr style="background:#fef5e7;"><td>33</td><td>Bibliophile III</td><td style="text-align:right;">50,127</td></tr>
-                  <tr><td>34</td><td>Bibliophile IV</td><td style="text-align:right;">54,264</td></tr>
-                  <tr style="background:#fef5e7;"><td>35</td><td>Bibliophile V</td><td style="text-align:right;">58,625</td></tr>
-                  <tr><td>36</td><td>Bibliophile VI</td><td style="text-align:right;">63,216</td></tr>
-                  <tr style="background:#fef5e7;"><td>37</td><td>Bibliophile VII</td><td style="text-align:right;">68,043</td></tr>
-                  <tr><td>38</td><td>Bibliophile VIII</td><td style="text-align:right;">73,112</td></tr>
-                  <tr style="background:#fef5e7;"><td>39</td><td>Bibliophile IX</td><td style="text-align:right;">78,429</td></tr>
-                  <tr><td><strong>40</strong></td><td><strong>Bibliophile X</strong></td><td style="text-align:right;"><strong>84,000</strong></td></tr>
-        
-                  <tr style="background:#fdf0f8;"><td>41</td><td>Scribe I</td><td style="text-align:right;">89,831</td></tr>
-                  <tr><td>42</td><td>Scribe II</td><td style="text-align:right;">95,928</td></tr>
-                  <tr style="background:#fdf0f8;"><td>43</td><td>Scribe III</td><td style="text-align:right;">102,297</td></tr>
-                  <tr><td>44</td><td>Scribe IV</td><td style="text-align:right;">108,944</td></tr>
-                  <tr style="background:#fdf0f8;"><td>45</td><td>Scribe V</td><td style="text-align:right;">115,875</td></tr>
-                  <tr><td>46</td><td>Scribe VI</td><td style="text-align:right;">123,096</td></tr>
-                  <tr style="background:#fdf0f8;"><td>47</td><td>Scribe VII</td><td style="text-align:right;">130,613</td></tr>
-                  <tr><td>48</td><td>Scribe VIII</td><td style="text-align:right;">138,432</td></tr>
-                  <tr style="background:#fdf0f8;"><td>49</td><td>Scribe IX</td><td style="text-align:right;">146,559</td></tr>
-                  <tr><td><strong>50</strong></td><td><strong>Scribe X</strong></td><td style="text-align:right;"><strong>155,000</strong></td></tr>
-        
-                  <tr style="background:#f0fdf4;"><td>51</td><td>Sage I</td><td style="text-align:right;">163,761</td></tr>
-                  <tr><td>52</td><td>Sage II</td><td style="text-align:right;">172,848</td></tr>
-                  <tr style="background:#f0fdf4;"><td>53</td><td>Sage III</td><td style="text-align:right;">182,267</td></tr>
-                  <tr><td>54</td><td>Sage IV</td><td style="text-align:right;">192,024</td></tr>
-                  <tr style="background:#f0fdf4;"><td>55</td><td>Sage V</td><td style="text-align:right;">202,125</td></tr>
-                  <tr><td>56</td><td>Sage VI</td><td style="text-align:right;">212,576</td></tr>
-                  <tr style="background:#f0fdf4;"><td>57</td><td>Sage VII</td><td style="text-align:right;">223,383</td></tr>
-                  <tr><td>58</td><td>Sage VIII</td><td style="text-align:right;">234,552</td></tr>
-                  <tr style="background:#f0fdf4;"><td>59</td><td>Sage IX</td><td style="text-align:right;">246,089</td></tr>
-                  <tr><td><strong>60</strong></td><td><strong>Sage X</strong></td><td style="text-align:right;"><strong>258,000</strong></td></tr>
-        
-                  <tr style="background:#f5f0ff;"><td>61</td><td>Luminary I</td><td style="text-align:right;">270,291</td></tr>
-                  <tr><td>62</td><td>Luminary II</td><td style="text-align:right;">282,968</td></tr>
-                  <tr style="background:#f5f0ff;"><td>63</td><td>Luminary III</td><td style="text-align:right;">296,037</td></tr>
-                  <tr><td>64</td><td>Luminary IV</td><td style="text-align:right;">309,504</td></tr>
-                  <tr style="background:#f5f0ff;"><td>65</td><td>Luminary V</td><td style="text-align:right;">323,375</td></tr>
-                  <tr><td>66</td><td>Luminary VI</td><td style="text-align:right;">337,656</td></tr>
-                  <tr style="background:#f5f0ff;"><td>67</td><td>Luminary VII</td><td style="text-align:right;">352,353</td></tr>
-                  <tr><td>68</td><td>Luminary VIII</td><td style="text-align:right;">367,472</td></tr>
-                  <tr style="background:#f5f0ff;"><td>69</td><td>Luminary IX</td><td style="text-align:right;">383,019</td></tr>
-                  <tr><td><strong>70</strong></td><td><strong>Luminary X</strong></td><td style="text-align:right;"><strong>399,000</strong></td></tr>
-        
-                  <tr style="background:#fffcf0;"><td>71</td><td>Maven I</td><td style="text-align:right;">415,421</td></tr>
-                  <tr><td>72</td><td>Maven II</td><td style="text-align:right;">432,288</td></tr>
-                  <tr style="background:#fffcf0;"><td>73</td><td>Maven III</td><td style="text-align:right;">449,607</td></tr>
-                  <tr><td>74</td><td>Maven IV</td><td style="text-align:right;">467,384</td></tr>
-                  <tr style="background:#fffcf0;"><td>75</td><td>Maven V</td><td style="text-align:right;">485,625</td></tr>
-                  <tr><td>76</td><td>Maven VI</td><td style="text-align:right;">504,336</td></tr>
-                  <tr style="background:#fffcf0;"><td>77</td><td>Maven VII</td><td style="text-align:right;">523,523</td></tr>
-                  <tr><td>78</td><td>Maven VIII</td><td style="text-align:right;">543,192</td></tr>
-                  <tr style="background:#fffcf0;"><td>79</td><td>Maven IX</td><td style="text-align:right;">563,349</td></tr>
-                  <tr><td><strong>80</strong></td><td><strong>Maven X</strong></td><td style="text-align:right;"><strong>584,000</strong></td></tr>
-        
-                  <tr style="background:#f0f8ff;"><td>81</td><td>Virtuoso I</td><td style="text-align:right;">605,151</td></tr>
-                  <tr><td>82</td><td>Virtuoso II</td><td style="text-align:right;">626,808</td></tr>
-                  <tr style="background:#f0f8ff;"><td>83</td><td>Virtuoso III</td><td style="text-align:right;">648,977</td></tr>
-                  <tr><td>84</td><td>Virtuoso IV</td><td style="text-align:right;">671,664</td></tr>
-                  <tr style="background:#f0f8ff;"><td>85</td><td>Virtuoso V</td><td style="text-align:right;">694,875</td></tr>
-                  <tr><td>86</td><td>Virtuoso VI</td><td style="text-align:right;">718,616</td></tr>
-                  <tr style="background:#f0f8ff;"><td>87</td><td>Virtuoso VII</td><td style="text-align:right;">742,893</td></tr>
-                  <tr><td>88</td><td>Virtuoso VIII</td><td style="text-align:right;">767,712</td></tr>
-                  <tr style="background:#f0f8ff;"><td>89</td><td>Virtuoso IX</td><td style="text-align:right;">793,079</td></tr>
-                  <tr><td><strong>90</strong></td><td><strong>Virtuoso X</strong></td><td style="text-align:right;"><strong>819,000</strong></td></tr>
-        
-                  <tr style="background:#fff0f5;"><td>91</td><td>Oracle I</td><td style="text-align:right;">845,481</td></tr>
-                  <tr><td>92</td><td>Oracle II</td><td style="text-align:right;">872,528</td></tr>
-                  <tr style="background:#fff0f5;"><td>93</td><td>Oracle III</td><td style="text-align:right;">900,147</td></tr>
-                  <tr><td>94</td><td>Oracle IV</td><td style="text-align:right;">928,344</td></tr>
-                  <tr style="background:#fff0f5;"><td>95</td><td>Oracle V</td><td style="text-align:right;">957,125</td></tr>
-                  <tr><td>96</td><td>Oracle VI</td><td style="text-align:right;">986,496</td></tr>
-                  <tr style="background:#fff0f5;"><td>97</td><td>Oracle VII</td><td style="text-align:right;">1,016,463</td></tr>
-                  <tr><td>98</td><td>Oracle VIII</td><td style="text-align:right;">1,047,032</td></tr>
-                  <tr style="background:#fff0f5;"><td>99</td><td>Oracle IX</td><td style="text-align:right;">1,078,209</td></tr>
-                  <tr style="background:#2c3e50;"><td style="color:white;"><strong>100</strong></td><td style="color:#f1c40f;"><strong>Oracle X</strong></td><td style="text-align:right; color:#f1c40f;"><strong>1,110,000</strong></td></tr>
-                </tbody>
-              </table>
-            </div>
-        
-            <blockquote style="border-left:4px solid #A984BA; background:#f9f5fc; padding:15px; margin:20px 0; border-radius:0 8px 8px 0; color:#34495e;">
-              <strong>💡 Reading the table:</strong> The <em>Max ☀️</em> column shows the highest point total that still keeps you at that level. The moment you exceed it, you automatically advance to the next level. So if you have 250 points you are at Page Turner II, and you need to reach 417 to advance to Page Turner III.
-            </blockquote>
-          `
-        }
-      ];
 
       // Initialize Fuse.js for fuzzy text searching
       let helpFuseIndex = null;
