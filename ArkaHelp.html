@@ -2,609 +2,2506 @@
   ============================================================================
   ArkaHelp.html  —  Arka Club App · Help Center Knowledge Base
   ============================================================================
-  PURPOSE:
-    Standalone GAS HTML include file for all Help Center content.
-    Injected into ArkaClubApp.html at serve time via:
-      <?!= include('ArkaHelp') ?>
- 
-  HOW TO ADD / EDIT ARTICLES:
-    1. Find the helpArticlesDB array below.
-    2. Each article is an object with: id, category, title, tags, snippet, content.
-    3. Use the UI Kit components (documented below) inside article `content` strings
-       to embed interactive-looking app elements so readers can follow along.
- 
-  UI KIT COMPONENTS (use inside article content HTML strings):
-    • <span class="huk-btn huk-btn--green">  ➕ Add Book  </span>   — green primary button
-    • <span class="huk-btn huk-btn--secondary"> ⬅ Back </span>       — grey secondary button
-    • <span class="huk-btn huk-btn--accent">  💾 Save  </span>       — accent/purple button
-    • <span class="huk-chip">  Recently Added  </span>               — sort/genre chip
-    • <span class="huk-chip huk-chip--active">  A – Z  </span>       — active (dark) chip
-    • <span class="huk-tab-icon">📚</span>                           — bottom nav tab icon
-    • <div  class="huk-search-bar">  placeholder text  </div>        — search bar mockup
-    • <div  class="huk-step-box">  Step content  </div>              — numbered step box
-    • <span class="huk-badge huk-badge--reading">  📖 Reading  </span>  — shelf status badge
-    • <span class="huk-badge huk-badge--toread">   📌 To Read  </span>
-    • <span class="huk-badge huk-badge--finished">  🏆 Finished  </span>
-    • <span class="huk-badge huk-badge--dnf">       🛑 DNF       </span>
- 
-  CATEGORIES AVAILABLE:
-    "Arka" | "Getting Started" | "Challenges" | "Points & Badges"
- 
+  VERSION:    v2.0 — Full audit rebuild (March 2026)
+  INJECTED:   <?!= include('ArkaHelp') ?> in ArkaClubApp.html
+
+  CATEGORIES (9):
+    "Arka" | "Getting Started" | "Library" | "My Dashboard" |
+    "Challenges" | "Events & Club Life" | "Points & Badges" |
+    "Members" | "Help & FAQs"
+
+  ── UI KIT REFERENCE ──────────────────────────────────────────────────────────
+  All components exactly match the app's real CSS. Use only these — do NOT
+  invent inline styles that don't exist in the actual app.
+
+  BUTTONS  (app uses border-radius:6px for accent/primary, 4px for default):
+    <span class="huk-btn huk-btn--accent">＋ Add to Shelf</span>   purple #A984BA — main CTA
+    <span class="huk-btn huk-btn--primary">Save Changes</span>     dark  #2c3e50
+    <span class="huk-btn huk-btn--blue">Send Feedback</span>       blue  #3498db
+    <span class="huk-btn huk-btn--secondary">Cancel</span>         grey  #ecf0f1
+    <span class="huk-btn huk-btn--outline">✏️ Edit</span>         outlined dark border
+
+  CHIPS:
+    <span class="huk-chip">Recently Added</span>
+    <span class="huk-chip huk-chip--active">A – Z</span>
+
+  NAV TAB ICON:
+    <span class="huk-tab-icon">📚</span>
+
+  SEARCH BAR:
+    <div class="huk-search-bar">Search title, author…</div>
+
+  SHELF STATUS TILE GRID (2×2 — the actual shelf picker UI):
+    <div class="huk-shelf-grid">
+      <div class="huk-shelf-tile">📌<span>To Read</span></div>
+      <div class="huk-shelf-tile huk-shelf-tile--active">📖<span>Reading</span></div>
+      <div class="huk-shelf-tile">🏆<span>Finished</span></div>
+      <div class="huk-shelf-tile">🛑<span>Did Not Finish</span></div>
+    </div>
+
+  STATUS BADGES (inline text references only, not the tile picker):
+    <span class="huk-badge huk-badge--toread">📌 To Read</span>
+    <span class="huk-badge huk-badge--reading">📖 Reading</span>
+    <span class="huk-badge huk-badge--finished">🏆 Finished</span>
+    <span class="huk-badge huk-badge--dnf">🛑 DNF</span>
+
+  STEP BOX:
+    <div class="huk-step-box"><div class="huk-step-number">1</div><div>…</div></div>
+
+  SCREEN MOCKUP:
+    <div class="huk-screen-mockup">
+      <div class="huk-screen-mockup-label">Screen Name</div>…
+    </div>
+
+  INPUT FIELD MOCKUP:
+    <div class="huk-input-mockup">placeholder text</div>
+
+  PAGES FIELD MOCKUP:
+    <div class="huk-pages-field"><div class="huk-pages-input">147</div>/ 312 pages</div>
+
+  RATING SELECT MOCKUP:
+    <div class="huk-select-mockup">⭐⭐⭐⭐ 4 Stars ▾</div>
+
+  CALLOUTS:
+    <div class="huk-tip">💡 …</div>
+    <div class="huk-warn">⚠️ …</div>
+    <div class="huk-success">✅ …</div>
+
+  ADMIN:
+    <div class="huk-admin-banner">🔐 Admin Only feature.</div>
+    <span class="huk-admin-tag">🔐 Admin Only</span>
+
+  CP PILL:
+    <span class="huk-cp-pill">+300 ☀️</span>
+
+  RELATED ARTICLES FOOTER (put at end of every article):
+    <div class="huk-related">
+      <div class="huk-related-title">Related Articles</div>
+      <div class="huk-related-link" onclick="openHelpArticle('help-id')">Article Title</div>
+    </div>
+
+  ── ADDING NEW ARTICLES ───────────────────────────────────────────────────────
+    1. Copy any existing article object.
+    2. Give a unique kebab-case id.
+    3. Set category to one of the 9 above.
+    4. Add comma-separated search tags.
+    5. Always end content with a huk-related footer.
+    6. Run the syntax check: paste JS block into browser console and confirm no errors.
+
+  ── MAINTENANCE NOTES ─────────────────────────────────────────────────────────
+    - Update "Last reviewed" date below whenever any CP value is changed.
+    - The level table comes directly from ClubPointLevelDB — update if levels change.
+    - CP values come from ActivityTypeDB — verify against the sheet before editing.
+
+  Last reviewed: March 2026 | App version: v44
   ============================================================================
 -->
 
 <style>
   /* ==========================================================================
-     HELP UI KIT — Inline UI component mockups for article walkthroughs.
-     These replicate the visual language of the actual app so readers
-     can recognise what to tap while reading the guide.
+     HELP UI KIT v2.0
+     All values derived from the actual ArkaClubApp.html CSS.
+     These are visual-only mockups — cursor:default on all interactive-looking
+     elements so users don't try to click them.
      ========================================================================== */
- 
-  /* --- Base button mockup -------------------------------------------------- */
+
+  /* ── Admin ─────────────────────────────────────────────────────────────── */
+  .huk-admin-banner {
+    display: flex; align-items: center; gap: 8px;
+    background: #fef3e2; border: 1.5px solid #f59f00; border-radius: 10px;
+    padding: 10px 14px; font-size: 0.85rem; font-weight: 600;
+    color: #854f0b; margin-bottom: 18px;
+  }
+  .huk-admin-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: #fef3e2; border: 1px solid #f59f00; border-radius: 6px;
+    padding: 2px 8px; font-size: 0.72rem; font-weight: 700;
+    color: #854f0b; vertical-align: middle; white-space: nowrap;
+  }
+
+  /* ── Buttons — border-radius and colors match actual app exactly ────────── */
   .huk-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    line-height: 1;
-    cursor: default;           /* Visual only — not interactive */
-    white-space: nowrap;
-    vertical-align: middle;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 8px 16px; font-size: 0.88rem; font-weight: bold;
+    line-height: 1; cursor: default; white-space: nowrap;
+    vertical-align: middle; font-family: inherit; border: none;
+  }
+  /* Main CTA — btn-accent in app: #A984BA, radius 6px */
+  .huk-btn--accent    { background: #A984BA; color: #fff; border-radius: 6px; }
+  /* Dark primary — btn-primary in app: #2c3e50, radius 6px */
+  .huk-btn--primary   { background: #2c3e50; color: #fff; border-radius: 6px; }
+  /* Blue — default <button> in app: #3498db, radius 4px */
+  .huk-btn--blue      { background: #3498db; color: #fff; border-radius: 4px; }
+  /* Secondary — btn-secondary in app: #ecf0f1, radius 4px */
+  .huk-btn--secondary { background: #ecf0f1; color: #2c3e50; border-radius: 4px;
+                        border: 1px solid #bdc3c7; }
+  /* Outline — btn-outline in app: transparent with #2c3e50 border, radius 6px */
+  .huk-btn--outline   { background: transparent; color: #2c3e50; border-radius: 6px;
+                        border: 2px solid #2c3e50; }
+
+  /* ── Sort / genre chips ─────────────────────────────────────────────────── */
+  .huk-chip {
+    display: inline-block; padding: 5px 14px; border-radius: 20px;
+    font-size: 0.78rem; font-weight: 600; background: #f4f6f7;
+    color: #2c3e50; border: 1px solid #dfe6e9; vertical-align: middle;
+    white-space: nowrap; cursor: default;
+  }
+  .huk-chip--active { background: #2c3e50; color: #fff; border-color: #2c3e50; }
+
+  /* ── Bottom-nav tab icon ────────────────────────────────────────────────── */
+  .huk-tab-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; background: #f4f6f7;
+    border-radius: 10px; font-size: 1.1rem; border: 1px solid #dfe6e9;
+    vertical-align: middle; cursor: default;
+  }
+  .huk-tab-icon--active {
+    color: #3498db; /* nav active color in app */
+    border-color: #3498db; background: #eaf4fb;
+  }
+
+  /* ── Search bar ─────────────────────────────────────────────────────────── */
+  .huk-search-bar {
+    display: flex; align-items: center; gap: 8px;
+    background: white; border: 1px solid #ccc; border-radius: 4px;
+    padding: 10px 12px; font-size: 0.9rem; color: #95a5a6; margin: 8px 0;
+    cursor: default; font-family: inherit;
+  }
+  .huk-search-bar::before { content: "🔍"; font-size: 0.85rem; flex-shrink: 0; }
+
+  /* ── Shelf status TILE GRID (the real 2×2 picker from the app) ─────────── */
+  .huk-shelf-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin: 12px 0;
+  }
+  .huk-shelf-tile {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 5px; padding: 10px 6px;
+    border: 1.5px solid #e0d5ea; border-radius: 10px;
+    background: #fff; cursor: default; text-align: center;
     font-family: inherit;
   }
-  .huk-btn--green    { background: #2ecc71; color: #fff; }
-  .huk-btn--secondary{ background: #ecf0f1; color: #2c3e50; border: 1px solid #bdc3c7; box-shadow: none; }
-  .huk-btn--accent   { background: #A984BA; color: #fff; }
-  .huk-btn--danger   { background: #e74c3c; color: #fff; }
- 
-  /* --- Sort / genre chip mockup -------------------------------------------- */
-  .huk-chip {
-    display: inline-block;
-    padding: 5px 14px;
-    border-radius: 20px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    background: #f4f6f7;
-    color: #2c3e50;
-    border: 1px solid #dfe6e9;
-    vertical-align: middle;
-    white-space: nowrap;
-    cursor: default;
+  .huk-shelf-tile span { font-size: 0.72rem; color: #7f8c8d; font-weight: 500; line-height: 1.2; }
+  .huk-shelf-tile--active {
+    border-color: #A984BA; background: #f5eefa; border-width: 2px;
   }
-  .huk-chip--active {
-    background: #2c3e50;
-    color: #fff;
-    border-color: #2c3e50;
-  }
- 
-  /* --- Bottom-nav tab icon mockup ------------------------------------------ */
-  .huk-tab-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    background: #f4f6f7;
-    border-radius: 10px;
-    font-size: 1.1rem;
-    border: 1px solid #dfe6e9;
-    vertical-align: middle;
-    cursor: default;
-  }
- 
-  /* --- Search bar mockup --------------------------------------------------- */
-  .huk-search-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #f8f9fa;
-    border: 2px solid #ecf0f1;
-    border-radius: 10px;
-    padding: 9px 14px;
-    font-size: 0.85rem;
-    color: #95a5a6;
-    margin: 8px 0;
-    cursor: default;
-  }
-  .huk-search-bar::before {
-    content: "🔍";
-    font-size: 0.85rem;
-    flex-shrink: 0;
-  }
- 
-  /* --- Shelf status badge mockups ------------------------------------------ */
+  .huk-shelf-tile--active span { color: #7a5b9e; }
+  .huk-shelf-tile-icon { font-size: 1.25rem; line-height: 1; }
+
+  /* ── Inline status badges (text references, not the tile picker) ────────── */
   .huk-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    vertical-align: middle;
-    cursor: default;
-    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;
+    font-weight: 600; vertical-align: middle; cursor: default; white-space: nowrap;
   }
   .huk-badge--toread   { background: #eaf2f8; color: #2980b9; }
   .huk-badge--reading  { background: #fef9e7; color: #d68910; }
   .huk-badge--finished { background: #eafaf1; color: #1e8449; }
   .huk-badge--dnf      { background: #fdedec; color: #c0392b; }
- 
-  /* --- Step-by-step flow box ----------------------------------------------- */
+
+  /* ── Input field mockup ─────────────────────────────────────────────────── */
+  .huk-input-mockup {
+    width: 100%; padding: 10px 12px; border: 1px solid #ccc;
+    border-radius: 4px; box-sizing: border-box; font-size: 0.9rem;
+    color: #95a5a6; background: #fff; cursor: default;
+    font-family: inherit; margin: 4px 0 12px;
+  }
+
+  /* ── Pages field mockup (small input + "/ N pages" label) ──────────────── */
+  .huk-pages-field {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 0.9rem; color: #34495e; margin: 4px 0 12px;
+  }
+  .huk-pages-input {
+    width: 80px; padding: 10px; border: 1px solid #ccc;
+    border-radius: 4px; text-align: center; font-size: 0.9rem;
+    color: #2c3e50; background: #fff; cursor: default; font-family: inherit;
+  }
+
+  /* ── Rating select mockup ───────────────────────────────────────────────── */
+  .huk-select-mockup {
+    width: 100%; padding: 10px; border: 1px solid #ccc;
+    border-radius: 4px; box-sizing: border-box; font-size: 0.9rem;
+    color: #2c3e50; background: #fff; cursor: default;
+    font-family: inherit; margin: 4px 0 12px;
+    appearance: none; -webkit-appearance: none;
+  }
+
+  /* ── Step box ───────────────────────────────────────────────────────────── */
   .huk-step-box {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    background: #f8f9fa;
-    border: 1px solid #ecf0f1;
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin: 10px 0;
-    font-size: 0.9rem;
-    color: #34495e;
+    display: flex; align-items: flex-start; gap: 12px;
+    background: #f8f9fa; border: 1px solid #ecf0f1; border-radius: 8px;
+    padding: 13px 15px; margin: 8px 0; font-size: 0.9rem;
+    color: #34495e; line-height: 1.5;
   }
   .huk-step-number {
-    flex-shrink: 0;
-    width: 26px;
-    height: 26px;
-    background: #2c3e50;
-    color: #fff;
-    border-radius: 50%;
-    font-size: 0.75rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 1px;
+    flex-shrink: 0; width: 26px; height: 26px; background: #2c3e50;
+    color: #fff; border-radius: 50%; font-size: 0.75rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
   }
- 
-  /* --- Inline screen mockup container -------------------------------------- */
-  /* A light card that looks like a phone screen section                       */
+
+  /* ── Screen mockup ──────────────────────────────────────────────────────── */
   .huk-screen-mockup {
-    background: #ffffff;
-    border: 1.5px solid #dfe6e9;
-    border-radius: 14px;
-    padding: 16px;
-    margin: 16px 0;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.07);
-    font-size: 0.85rem;
-    color: #2c3e50;
+    background: #fff; border: 1.5px solid #dfe6e9; border-radius: 8px;
+    padding: 14px 16px; margin: 14px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); font-size: 0.85rem; color: #2c3e50;
   }
   .huk-screen-mockup-label {
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #A984BA;
-    margin-bottom: 10px;
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #A984BA; margin-bottom: 10px;
   }
- 
-  /* --- Tip / info blockquote variants ------------------------------------- */
-  /* Re-used the existing blockquote inline style pattern but as classes      */
+
+  /* ── Callout boxes ──────────────────────────────────────────────────────── */
   .huk-tip {
-    border-left: 4px solid #3498db;
-    background: #eaf2f8;
-    padding: 13px 15px;
-    margin: 16px 0;
-    border-radius: 0 8px 8px 0;
-    color: #2c3e50;
-    font-size: 0.9rem;
-    line-height: 1.55;
+    border-left: 4px solid #3498db; background: #eaf2f8;
+    padding: 12px 15px; margin: 14px 0; border-radius: 0 8px 8px 0;
+    color: #2c3e50; font-size: 0.9rem; line-height: 1.55;
   }
   .huk-warn {
-    border-left: 4px solid #e74c3c;
-    background: #fdedec;
-    padding: 13px 15px;
-    margin: 16px 0;
-    border-radius: 0 8px 8px 0;
-    color: #c0392b;
-    font-size: 0.9rem;
-    line-height: 1.55;
+    border-left: 4px solid #e67e22; background: #fef9e7;
+    padding: 12px 15px; margin: 14px 0; border-radius: 0 8px 8px 0;
+    color: #7d5a00; font-size: 0.9rem; line-height: 1.55;
+  }
+  .huk-warn--red {
+    border-left: 4px solid #e74c3c; background: #fdedec;
+    padding: 12px 15px; margin: 14px 0; border-radius: 0 8px 8px 0;
+    color: #c0392b; font-size: 0.9rem; line-height: 1.55;
   }
   .huk-success {
-    border-left: 4px solid #2ecc71;
-    background: #eafaf1;
-    padding: 13px 15px;
-    margin: 16px 0;
-    border-radius: 0 8px 8px 0;
-    color: #1e8449;
-    font-size: 0.9rem;
-    line-height: 1.55;
+    border-left: 4px solid #2ecc71; background: #eafaf1;
+    padding: 12px 15px; margin: 14px 0; border-radius: 0 8px 8px 0;
+    color: #1e8449; font-size: 0.9rem; line-height: 1.55;
   }
+
+  /* ── CP pill ────────────────────────────────────────────────────────────── */
+  .huk-cp-pill {
+    display: inline-block; background: #fef9e7; color: #9a7d0a;
+    border: 1px solid #f1c40f; border-radius: 12px; padding: 2px 9px;
+    font-size: 0.78rem; font-weight: 700; white-space: nowrap;
+  }
+
+  /* ── Event type badges ──────────────────────────────────────────────────── */
+  .huk-evt-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px; font-size: 0.75rem;
+    font-weight: 600; vertical-align: middle; cursor: default; white-space: nowrap;
+  }
+  .huk-evt--virtual { background: #e8f4fd; color: #1a6ca8; }
+  .huk-evt--f2f     { background: #e8f8f5; color: #0e6655; }
+  .huk-evt--buddy   { background: #f4ecf7; color: #6c3483; }
+  .huk-evt--social  { background: #fef9e7; color: #9a7d0a; }
+  .huk-evt--other   { background: #f2f3f4; color: #566573; }
+
+  /* ── Challenge type chips ───────────────────────────────────────────────── */
+  .huk-chal-type {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 600;
+    border: 1px solid #ecf0f1; background: #f8f9fa; color: #2c3e50;
+    vertical-align: middle; cursor: default; white-space: nowrap;
+  }
+
+  /* ── Points table ───────────────────────────────────────────────────────── */
+  .huk-points-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.85rem; }
+  .huk-points-table th { background: #2c3e50; color: #fff; padding: 9px 12px; text-align: left; font-weight: 600; }
+  .huk-points-table td { padding: 8px 12px; border-bottom: 1px solid #ecf0f1; color: #34495e; }
+  .huk-points-table tr:last-child td { border-bottom: none; }
+  .huk-points-table tr:nth-child(even) td { background: #f8f9fa; }
+
+  /* ── Level table (single-column, mobile-safe) ───────────────────────────── */
+  .huk-level-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.82rem; }
+  .huk-level-table th { background: #f8f9fa; color: #2c3e50; padding: 8px 10px; text-align: left; border-bottom: 2px solid #ecf0f1; font-weight: 700; }
+  .huk-level-table td { padding: 7px 10px; border-bottom: 1px solid #f4f6f7; color: #34495e; }
+  .huk-level-table tr:hover td { background: #fafbfc; }
+  .huk-level-table .tier-row td { background: #2c3e50; color: #fff; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.4px; }
+
+  /* ── Related articles footer ────────────────────────────────────────────── */
+  .huk-related {
+    border-top: 1px solid #ecf0f1; margin-top: 28px; padding-top: 16px;
+  }
+  .huk-related-title {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: #95a5a6; margin-bottom: 10px;
+  }
+  .huk-related-link {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px; background: #f8f9fa; border: 1px solid #ecf0f1;
+    border-radius: 8px; margin-bottom: 6px; font-size: 0.88rem;
+    color: #2c3e50; cursor: pointer; transition: background 0.15s;
+  }
+  .huk-related-link:hover { background: #eaf2f8; color: #2980b9; }
+  .huk-related-link::before { content: "→"; color: #A984BA; font-weight: 700; flex-shrink: 0; }
 </style>
- 
+
 <script>
   /**
-   * helpArticlesDB
-   * --------------
-   * The single source of truth for all Help Center articles.
+   * helpArticlesDB — Single source of truth for all Help Center articles.
    *
-   * Each article object shape:
-   *   id       {string}  — Unique kebab-case ID, used by openHelpArticle()
-   *   category {string}  — Must match a category card: "Arka" | "Getting Started" | "Challenges" | "Points & Badges"
-   *   title    {string}  — Displayed in the article list and article header
-   *   tags     {string}  — Comma-separated keywords for Fuse.js fuzzy search
-   *   snippet  {string}  — One-line preview shown in the results list
-   *   content  {string}  — Full HTML article body. Use HUK components for UI elements.
+   * Shape: { id, category, title, tags, snippet, content }
    *
-   * EDITING NOTES:
-   *   - Use template literals (backticks) for multi-line content strings.
-   *   - Escape any backtick inside content with a backslash: \`
-   *   - Inline styles are fine for one-offs; prefer HUK classes for repeated patterns.
+   * ADMIN ARTICLES: Start content with <div class="huk-admin-banner">…</div>
+   * CP VALUES:      Sourced from ActivityTypeDB (Database Definitions.md).
+   *                 Verify before updating. Last checked: March 2026.
+   * SYNTAX SAFETY:  No backticks inside content strings. Use &grave; if needed.
+   *                 Always add a comma after every closing } in the array.
    */
   const helpArticlesDB = [
- 
-    /* ========================================================================
-       CATEGORY: Arka
-       ======================================================================== */
+
+    // ══════════════════════════════════════════════════════════════
+    // CATEGORY: Arka
+    // ══════════════════════════════════════════════════════════════
+
     {
       id: "help-arka-vision",
       category: "Arka",
       title: "The Foundation & Vision",
-      tags: "history, goals, started, 2026, roadmap, future, why, mission",
-      snippet: "Learn why Arka Readers Club was founded and where we're headed.",
+      tags: "history, goals, started, 2026, roadmap, future, why, mission, purpose, founders",
+      snippet: "Why Arka Readers Club exists, our shared goals, and what the app tracks for you.",
       content: `
-        <p>Arka Readers Club was founded to bring readers together. We believe reading is better when shared — the conversations, the discoveries, the occasional arguments about an ending.</p>
+        <p>
+          Arka Readers Club is a community of people who believe reading is better when shared —
+          the discoveries, the debates, the unexpected books that change you. The club was
+          founded in 2025 by a small group of readers who wanted a space that was warmer than
+          Goodreads and more purposeful than a WhatsApp group.
+        </p>
+        <p>
+          This app is the club's shared space: a library we all build, a live feed of each
+          other's reading, a challenge board, and an events calendar — all in one place.
+        </p>
+
         <h3>Our 2026 Blueprint</h3>
         <ul>
-          <li>Hit a combined total of <strong>100,000 pages</strong> read across the club.</li>
-          <li>Host <strong>4 real-world meetups</strong>.</li>
-          <li>Complete <strong>12 Read-Alongs</strong>.</li>
+          <li>📖 Hit a combined total of <strong>100,000 pages</strong> read across the club.</li>
+          <li>🤝 Host <strong>4 real-world meetups</strong>.</li>
+          <li>📚 Complete <strong>12 Read-Alongs</strong>.</li>
         </ul>
+
         <div class="huk-tip">
-          <strong>💡 You're part of this:</strong> Every book you log, every page you record, every review you leave — it all counts toward these shared goals. The Home feed shows club-wide progress in real time.
+          <strong>💡 You're part of this:</strong> Every page you log, every book you finish,
+          every review you leave counts toward these shared goals. Check the Home feed to see
+          the club's live progress.
         </div>
-      `
-    },
- 
-    /* ========================================================================
-       CATEGORY: Getting Started
-       ======================================================================== */
-    {
-      id: "help-profile-setup",
-      category: "Getting Started",
-      title: "Setting Up Your Profile",
-      tags: "profile, picture, bio, avatar, goodreads, goal, languages, myinfo, dp, photo, name",
-      snippet: "Add a picture, set a reading goal, and link your Goodreads.",
-      content: `
-        <p>Your profile is your identity in the club. Head to the <strong>My Info</strong> section from the side drawer to set everything up.</p>
-        <h3>What You Can Set</h3>
+
+        <h3>What the App Tracks for You</h3>
         <ul>
-          <li><strong>Display Name</strong> — How the club sees you.</li>
-          <li><strong>Profile Picture</strong> — Upload a photo from your device.</li>
-          <li><strong>Reading Goal</strong> — How many books you want to finish this year.</li>
-          <li><strong>Favourite Genres</strong> — Helps members find their reading twin.</li>
-          <li><strong>Languages</strong> — The languages you read in.</li>
-          <li><strong>Goodreads Profile URL</strong> — Link your existing reading history.</li>
+          <li>Your personal reading shelf and page-by-page progress</li>
+          <li>Club Points (☀️ CP) earned automatically for every reading action</li>
+          <li>Challenges you join and your progress toward completing them</li>
+          <li>Club events you RSVP to or host</li>
+          <li>Badges awarded for special achievements</li>
         </ul>
+
         <div class="huk-tip">
-          <strong>💡 Quick Tip:</strong> Don't forget to add your favourite genres and the languages you read in! You can search the Member Directory by genre, so this helps you find a reading buddy who loves the same stuff you do.
+          <strong>📅 Goals are reviewed annually.</strong> The 2026 Blueprint above was set in
+          January 2026. New goals for 2027 will be announced on the Home feed.
         </div>
-        <h3>Finding Your Goodreads URL</h3>
-        <p>Open the Goodreads app → Settings → Profile → Profile URL. It should look like <code>https://www.goodreads.com/[username]</code></p>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-start-here')">Start Here — Your First 10 Minutes</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-home-feed')">Understanding the Home Feed</div>
+        </div>
       `
     },
- 
-    /* ===================================================================
-       ARTICLE: Finding & Adding Books  (REFINED v2)
-       =================================================================== */
+
+
+    // ══════════════════════════════════════════════════════════════
+    // CATEGORY: Getting Started
+    // ══════════════════════════════════════════════════════════════
+
+    {
+      id: "help-start-here",
+      category: "Getting Started",
+      title: "Start Here — Your First 10 Minutes ✨",
+      tags: "new member, start, begin, first steps, onboarding, welcome, quick start, setup",
+      snippet: "Brand new to Arka? Do these four things in your first 10 minutes.",
+      content: `
+        <p>
+          Welcome to Arka! This guide gets you set up and contributing in under 10 minutes.
+          Do these four things in order and you will feel right at home.
+        </p>
+
+        <div class="huk-step-box">
+          <div class="huk-step-number">1</div>
+          <div>
+            <strong>Set your Display Name and profile picture.</strong><br>
+            Open the side drawer (☰ top left) → tap <strong>My Profile</strong> → tap
+            <span class="huk-btn huk-btn--outline" style="font-size:0.78rem;">✏️ Edit</span>.
+            Your display name is permanent — choose something you are happy to be known by.
+          </div>
+        </div>
+
+        <div class="huk-step-box">
+          <div class="huk-step-number">2</div>
+          <div>
+            <strong>Add your favourite genres.</strong><br>
+            Still in Edit Profile, add a few genres (e.g. Fiction, Mystery, Sci-Fi).
+            This makes you discoverable in the Members Directory by reading buddies who love
+            the same books.
+          </div>
+        </div>
+
+        <div class="huk-step-box">
+          <div class="huk-step-number">3</div>
+          <div>
+            <strong>Find a book you are reading and add it to your shelf.</strong><br>
+            Tap the <span class="huk-tab-icon">📚</span> Library tab → search for your book →
+            tap it → tap
+            <span class="huk-btn huk-btn--accent" style="font-size:0.78rem;">Add to Shelf</span>.
+            Choose <span class="huk-badge huk-badge--reading">📖 Reading</span> and enter your
+            current page number.
+          </div>
+        </div>
+
+        <div class="huk-step-box">
+          <div class="huk-step-number">4</div>
+          <div>
+            <strong>Check the Home feed.</strong><br>
+            Tap the <span class="huk-tab-icon">🏠</span> Home tab. You will see the club's live
+            activity stream — what everyone is reading, finishing, and reviewing. Tap a member's
+            name to explore their profile.
+          </div>
+        </div>
+
+        <div class="huk-success">
+          <strong>🎉 You're in!</strong> Completing those four steps will already earn you
+          points from the profile update and the shelf action. Check your level on the
+          <span class="huk-tab-icon" style="width:24px;height:24px;font-size:0.9rem;">👤</span>
+          Me tab.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Next Steps</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-profile-basics')">Setting Up Your Profile — Part 1</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-adding-books')">Finding &amp; Adding Books</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-shelving-status')">Shelving — Part 1: Choosing a Status</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-profile-basics",
+      category: "Getting Started",
+      title: "Your Profile — Part 1: Identity & Picture",
+      tags: "profile, picture, photo, display name, full name, bio, about me, avatar, setup, new member, permanent, country",
+      snippet: "Set your display name, upload a photo, and write a bio. Your identity in the club.",
+      content: `
+        <p>
+          Your profile is how the rest of Arka knows you. A complete profile helps other members
+          find their reading twin and connect with you. Open it from the
+          <strong>side drawer</strong> (☰ top left) → <strong>My Profile</strong>.
+        </p>
+
+        <h3>Display Name — Choose Carefully</h3>
+        <p>
+          Your display name appears in everyone's feed every time you log a book, write a review,
+          or complete a challenge. It is your permanent club identity.
+        </p>
+        <div class="huk-warn--red">
+          <strong>⚠️ This cannot be changed without admin help.</strong> Pick something
+          recognisable — your first name, a nickname, or a reader handle you are happy
+          to keep. If you need a change later, send a message to the admin.
+        </div>
+
+        <h3>Full Name — Optional</h3>
+        <p>
+          Appears below your display name on your profile card. Purely for members who want
+          their real name visible alongside their handle.
+        </p>
+
+        <h3>Profile Picture</h3>
+        <div class="huk-step-box">
+          <div class="huk-step-number">1</div>
+          <div>Open <strong>My Profile</strong> from the side drawer.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">2</div>
+          <div>Tap <span class="huk-btn huk-btn--outline" style="font-size:0.78rem;">✏️ Edit</span>
+          to enter edit mode.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">3</div>
+          <div>Tap the avatar circle at the top-centre of the profile card.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">4</div>
+          <div>Choose a photo from your device. The app resizes it to a square crop
+          (300 × 300 px) automatically.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">5</div>
+          <div>Tap <span class="huk-btn huk-btn--accent" style="font-size:0.78rem;">💾 Save Changes</span>.</div>
+        </div>
+        <div class="huk-tip">
+          <strong>💡 Image tips:</strong> Use a clear face photo. JPEG and PNG work best.
+          Very large files (over 5MB) may take a moment to upload — this is normal.
+          The app stores a compressed version so load times stay fast for other members.
+        </div>
+
+        <h3>Short Bio / About Me</h3>
+        <p>
+          Your free-form introduction — what kind of books you love, what brought you to Arka,
+          what you are reading right now. There is no character limit. Write as much or as little
+          as you like. It helps others find their reading twin.
+        </p>
+
+        <h3>Country</h3>
+        <p>
+          Helps the club respect time zones when scheduling events. Entirely optional.
+        </p>
+
+        <div class="huk-success">
+          <strong>✅ Points:</strong> Saving any profile update earns
+          <span class="huk-cp-pill">+25 ☀️ CP</span> (enforced once per day by the system).
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-profile-links')">Profile — Part 2: Goals, Genres &amp; Social Links</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-members-directory')">Finding &amp; Connecting with Members</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-profile-links",
+      category: "Getting Started",
+      title: "Your Profile — Part 2: Reading Goal, Genres & Social Links",
+      tags: "goodreads, linkedin, genres, reading goal, languages, CEFR, socials, profile, preferences, alternate email, gmail",
+      snippet: "Link Goodreads, set a reading goal, add genres and languages — the details that connect you.",
+      content: `
+        <p>
+          These extra details make you discoverable and help other members understand your reading
+          world. Open <strong>My Profile</strong> from the side drawer → tap
+          <span class="huk-btn huk-btn--outline" style="font-size:0.78rem;">✏️ Edit</span>.
+        </p>
+
+        <h3>Reading Goal</h3>
+        <p>
+          How many books do you want to finish this year? Your goal appears on your profile and
+          gives you something personal to track alongside the club's shared goals.
+        </p>
+
+        <h3>Favourite Genres</h3>
+        <p>
+          Enter genres separated by commas — e.g. <em>Fiction, Mystery, Sci-Fi</em>.
+          Members can search the directory by genre, so this is exactly how reading buddies
+          find you. Use genre names you would find on Goodreads for best discoverability.
+        </p>
+
+        <h3>Languages</h3>
+        <p>
+          Add the languages you read in along with your proficiency level. Levels use the
+          CEFR standard: <strong>A1–A2</strong> = beginner, <strong>B1–B2</strong> = intermediate,
+          <strong>C1–C2</strong> = fluent/native. You can add and remove as many languages as
+          you want.
+        </p>
+
+        <h3>Goodreads Profile</h3>
+        <p>Share your Goodreads so members can explore your wider reading history.</p>
+        <p><strong>On mobile (Goodreads app):</strong></p>
+        <div class="huk-step-box">
+          <div class="huk-step-number">1</div>
+          <div>Open the Goodreads app → Settings → Settings → Profile → Profile URL.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">2</div>
+          <div>Copy the URL — it should look like <code>https://www.goodreads.com/[username]</code></div>
+        </div>
+        <p><strong>On desktop:</strong> Go to your Goodreads profile page and copy the URL from your browser address bar.</p>
+
+        <h3>LinkedIn Profile</h3>
+        <p>
+          Optional — share your LinkedIn so members can connect professionally. Go to your
+          LinkedIn profile and copy the URL. It should look like
+          <code>https://www.linkedin.com/in/[username]</code>.
+        </p>
+
+        <h3>Alternate Gmail</h3>
+        <p>
+          If you use two Google accounts (work and personal), add your alternate Gmail here.
+          The app will automatically load your Arka profile when you sign in with either account.
+        </p>
+        <div class="huk-warn">
+          <strong>⚠️ First-time alternate login:</strong> You will need to grant Google Sheets
+          and Drive permissions again for the alternate account the very first time you use it.
+          This is a one-time step.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-profile-basics')">Profile — Part 1: Identity &amp; Picture</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-members-directory')">Finding &amp; Connecting with Members</div>
+        </div>
+      `
+    },
+
     {
       id: "help-adding-books",
       category: "Getting Started",
       title: "Finding & Adding Books 📚",
-      tags: "search, add book, library, cover, genres, filters, new, isbn, sort, discover, duplicate",
-      snippet: "How to search the Arka library, use sort & filters, and contribute new books.",
+      tags: "search, add book, library, cover, genres, sort, discover, isbn, duplicate, new book, isbn-13, edition",
+      snippet: "How to search the Arka library, use sort and filters, and contribute new books.",
       content: `
- 
-        <!-- ── INTRO ─────────────────────────────────────────────────────── -->
         <p>
-          The Arka Library is built by all of us — every member can add books and keep
-          the catalogue growing. Here's how to find what you're looking for and how to
-          add something that's missing.
+          The Arka Library is built by all of us — every member can add books and keep the
+          catalogue growing. Here's how to find what you're looking for, and how to add
+          something that's missing.
         </p>
- 
-        <!-- ── VIDEO ─────────────────────────────────────────────────────── -->
+
         <div class="help-video-portrait">
           <iframe
             src="https://www.youtube.com/embed/de-AUaOHyTM"
-            title="Adding a book to Arka"
+            title="Adding a book to Arka — 60-second walkthrough"
             sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen>
           </iframe>
         </div>
- 
-        <!-- ── SECTION 1: NAVIGATING THE LIBRARY ─────────────────────────── -->
+        <p style="font-size:0.8rem;color:#7f8c8d;text-align:center;margin-top:4px;">
+          ▶ Watch this 60-second walkthrough
+        </p>
+
         <h3>1. Opening the Library</h3>
         <p>
-          Tap the <span class="huk-tab-icon">📚</span> <strong>Library</strong> tab in
-          the bottom navigation bar. The Library opens on the
-          <strong>Discover</strong> tab by default.
+          Tap the <span class="huk-tab-icon">📚</span> <strong>Library</strong> tab in the
+          bottom navigation. Switch to <strong>All Books</strong> to browse and search the
+          full catalogue.
         </p>
- 
-        <div class="huk-screen-mockup">
-          <div class="huk-screen-mockup-label">Library — Discover Tab</div>
-          <div style="display:flex; gap:8px; overflow-x:auto; margin-bottom:12px;">
-            <span class="huk-chip huk-chip--active">Discover</span>
-            <span class="huk-chip">All Books</span>
-            <span class="huk-chip">My Shelf</span>
-          </div>
-          <div style="font-size:0.8rem; color:#7f8c8d;">
-            Genre chips · New Arrivals carousel · Arka Reading · Hidden Gems
-          </div>
-        </div>
- 
-        <p>Switch to <strong>All Books</strong> when you want to search or browse the full catalogue.</p>
- 
-        <!-- ── SECTION 2: SEARCHING & FILTERING ─────────────────────────── -->
-        <h3>2. Searching & Filtering</h3>
-        <p>On the <strong>All Books</strong> tab you'll find a search bar and sort chips.</p>
- 
+
+        <h3>2. Searching & Sorting</h3>
         <div class="huk-screen-mockup">
           <div class="huk-screen-mockup-label">All Books Tab</div>
- 
-          <!-- Sort chips row -->
-          <div style="display:flex; gap:8px; overflow-x:auto; margin-bottom:10px; flex-wrap:nowrap;">
+          <div style="display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:10px;">
             <span class="huk-chip huk-chip--active">Recently Added</span>
             <span class="huk-chip">A – Z</span>
             <span class="huk-chip">Top Rated</span>
             <span class="huk-chip">Most Read</span>
           </div>
- 
-          <!-- Search bar -->
           <div class="huk-search-bar">Search title, author, or genre…</div>
         </div>
- 
-        <p>The <strong>sort chips</strong> let you instantly re-order the entire catalogue:</p>
-        <ul>
-          <li><span class="huk-chip">Recently Added</span> — newest arrivals first (default view).</li>
-          <li><span class="huk-chip">A – Z</span> — alphabetical by title.</li>
-          <li><span class="huk-chip">Top Rated</span> — books with the highest average member rating.</li>
-          <li><span class="huk-chip">Most Read</span> — books the most members have on their shelf.</li>
-        </ul>
- 
-        <p>
-          The <strong>search bar</strong> filters by title, author, <em>and</em> genre at the same time.
-          Typing <em>"fantasy"</em> will surface every fantasy book in the library.
-        </p>
- 
-        <div class="huk-tip">
-          <strong>💡 Genre shortcut:</strong> On the Discover tab, tap any genre chip (e.g.
-          <span class="huk-chip" style="font-size:0.72rem; padding:3px 10px;">Fantasy</span>) to jump
-          straight to All Books pre-filtered by that genre.
-        </div>
- 
-        <!-- ── SECTION 3: THE GOLDEN RULE ────────────────────────────────── -->
+        <p>Sort chips re-order the entire catalogue instantly. The search bar filters by
+        title, author, <em>and</em> genre at the same time — type "fantasy" to see every
+        fantasy book.</p>
+
         <h3>3. The Golden Rule: Search Before You Add 🔍</h3>
         <p>
-          Before adding a book, always search for it first. This keeps the library clean
-          and avoids duplicates. Tap the
-          <span class="huk-btn huk-btn--green">＋ Add Book</span>
-          button at the top of the Library — you'll land on a <strong>Search First</strong>
-          screen automatically.
+          Always search for a book before adding it. Tap
+          <span class="huk-btn huk-btn--accent" style="font-size:0.78rem;">＋ Add Book</span>
+          at the top of the Library — the app takes you to a search screen automatically.
+          If the book is already there, tap <strong>View</strong> to open it.
         </p>
- 
-        <div class="huk-screen-mockup">
-          <div class="huk-screen-mockup-label">Add Book — Step 1: Search First</div>
-          <p style="font-size:0.8rem; color:#7f8c8d; margin:0 0 8px;">
-            We want to avoid duplicates! Search for the book below.
-          </p>
-          <div class="huk-search-bar">Type a book title…</div>
-          <div style="margin-top:10px; padding:10px; border:1px solid #ecf0f1; border-radius:8px; font-size:0.8rem; color:#7f8c8d; text-align:center;">
-            No results yet — start typing to check.
-          </div>
-          <div style="margin-top:10px; text-align:center;">
-            <span class="huk-btn huk-btn--green" style="font-size:0.78rem;">＋ It's not here — Add New Book</span>
-          </div>
+
+        <h3>4. Filling In the Form</h3>
+        <p>
+          If no match is found, tap
+          <span class="huk-btn huk-btn--accent" style="font-size:0.78rem;">＋ It's not here — Add New Book</span>.
+          Required fields: <strong>Title, Author, Genre(s), Page count</strong>.
+          Type a genre and press <kbd>Enter</kbd> or a comma to add it as a tag. You can add
+          multiple genres.
+        </p>
+        <div class="huk-tip">
+          <strong>💡 Different editions:</strong> If the book is already in the library but
+          in a different edition (e.g. UK vs US, hardback vs paperback with different page
+          counts), do not add a duplicate. Use the existing entry and note the edition
+          difference in the blurb field via <strong>Edit Book Info</strong>.
         </div>
- 
+
+        <h3>5. ISBN Shortcut ✨</h3>
         <p>
-          If the book <strong>appears in the results</strong>, tap <strong>View</strong> to open it
-          and shelve it from there — no need to add it again.
-        </p>
-        <p>
-          If the search shows <strong>no match</strong>, the
-          <span class="huk-btn huk-btn--green" style="font-size:0.78rem;">＋ It's not here — Add New Book</span>
-          button will appear. Tap it to proceed to the form.
-        </p>
- 
-        <!-- ── SECTION 4: FILLING THE FORM ───────────────────────────────── -->
-        <h3>4. Filling In the Book Details</h3>
-        <p>The add-book form has two sections: <strong>Required</strong> and <strong>Details (optional)</strong>.</p>
- 
-        <div class="huk-screen-mockup">
-          <div class="huk-screen-mockup-label">Add Book — Step 2: The Form (Required fields)</div>
-          <div style="font-size:0.78rem; color:#7f8c8d; margin-bottom:6px;">Title *</div>
-          <div style="background:#f8f9fa; border:1px solid #ecf0f1; border-radius:8px; padding:8px 12px; font-size:0.82rem; color:#2c3e50; margin-bottom:8px;">The Midnight Library</div>
-          <div style="font-size:0.78rem; color:#7f8c8d; margin-bottom:6px;">Author *</div>
-          <div style="background:#f8f9fa; border:1px solid #ecf0f1; border-radius:8px; padding:8px 12px; font-size:0.82rem; color:#2c3e50; margin-bottom:8px;">Matt Haig</div>
-          <div style="font-size:0.78rem; color:#7f8c8d; margin-bottom:6px;">Genre * <span style="font-size:0.7rem; color:#A984BA;">(type and press Enter or comma)</span></div>
-          <div style="background:#f8f9fa; border:1px solid #ecf0f1; border-radius:8px; padding:8px 12px; font-size:0.82rem; margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap;">
-            <span style="background:#eaf2f8; color:#2980b9; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:600;">Fiction ✕</span>
-            <span style="background:#eaf2f8; color:#2980b9; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:600;">Fantasy ✕</span>
-          </div>
-          <div style="font-size:0.78rem; color:#7f8c8d; margin-bottom:6px;">Pages *</div>
-          <div style="background:#f8f9fa; border:1px solid #ecf0f1; border-radius:8px; padding:8px 12px; font-size:0.82rem; color:#2c3e50;">288</div>
-        </div>
- 
-        <ul>
-          <li><strong>Title, Author, Pages</strong> — plain text fields, required.</li>
-          <li>
-            <strong>Genre</strong> — type a genre and press <kbd>Enter</kbd> or a comma to add it as a tag.
-            You can add multiple genres. Use sources like
-            <a href="https://www.goodreads.com" target="_blank" rel="noopener">Goodreads</a>,
-            <a href="https://openlibrary.org" target="_blank" rel="noopener">Open Library</a>, or
-            Google Books for accurate genre data.
-          </li>
-        </ul>
- 
-        <!-- ── SECTION 5: ISBN AUTOFILL ──────────────────────────────────── -->
-        <h3>5. The ISBN Shortcut ✨</h3>
-        <p>
-          Don't want to type everything manually? Use the <strong>ISBN-13 Search</strong>
-          inside the optional Details section. Enter the 13-digit ISBN from the book's
-          back cover or from any bookstore listing, then tap
+          In the optional Details section, enter the <strong>13-digit ISBN</strong> from the
+          back of the book, then tap
           <span class="huk-btn huk-btn--secondary" style="font-size:0.78rem;">Search</span>.
+          The app auto-fills title, author, pages, published year, blurb, genres, and cover
+          image from Open Library.
         </p>
- 
-        <div class="huk-screen-mockup">
-          <div class="huk-screen-mockup-label">Details Section — ISBN Auto-fill</div>
-          <div style="font-size:0.78rem; color:#7f8c8d; margin-bottom:6px;">ISBN-13 <span style="color:#bdc3c7; font-size:0.7rem;">optional</span></div>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <div style="flex:1; background:#f8f9fa; border:1px solid #ecf0f1; border-radius:8px; padding:8px 12px; font-size:0.82rem; color:#2c3e50;">9780525559474</div>
-            <span class="huk-btn huk-btn--secondary" style="font-size:0.78rem;">Search</span>
-          </div>
-          <div style="margin-top:8px; font-size:0.78rem; color:#27ae60;">✓ Found! Review and confirm the details below.</div>
-        </div>
- 
-        <p>
-          On a successful lookup, the app fills in the <strong>title, author, page count,
-          published year, blurb, genres, and cover image</strong> automatically from
-          Open Library. You can still edit anything and upload your own cover.
-        </p>
- 
-        <div class="huk-tip">
-          <strong>💡 Where to find the ISBN:</strong> It's the barcode number on the back of
-          any physical book, or listed on any bookstore or Goodreads page.
-          Always use the <strong>13-digit</strong> version (starts with 978 or 979).
-        </div>
- 
-        <!-- ── SECTION 6: COVER IMAGE ─────────────────────────────────────── -->
-        <h3>6. Adding a Cover Image</h3>
-        <p>
-          If the ISBN lookup found a cover, it will pre-load in the preview. You can
-          always <strong>upload your own</strong> by tapping
-          <span class="huk-btn huk-btn--secondary" style="font-size:0.78rem;">Choose image from device</span>.
-          The app automatically resizes it to the correct proportions (~240×360 px) before saving.
-        </p>
- 
-        <div class="huk-tip">
-          <strong>No cover?</strong> That's fine — if a book has no cover image, Arka generates
-          a colour-coded auto-cover tile using the book title so it always looks good in the library grid.
-        </div>
- 
-        <!-- ── SECTION 7: SUBMITTING ─────────────────────────────────────── -->
-        <h3>7. Submitting the Book</h3>
-        <p>
-          Once everything looks good, tap
-          <span class="huk-btn huk-btn--green">🚀 Add to Library</span>.
-          The app will check for exact duplicates one final time before saving.
-          If the book is added successfully, you'll see a confirmation and the library
-          will refresh with your new addition at the top.
-        </p>
- 
-        <div class="huk-success">
-          <strong>🎉 Points awarded!</strong> Adding a new book to the Arka Library earns
-          you Club Points. Keep an eye on your Activity Feed for the confirmation.
-        </div>
- 
-        <!-- ── SECTION 8: EDITING BOOK INFO ─────────────────────────────── -->
-        <h3>8. Keeping Book Data Clean ✏️</h3>
-        <p>
-          Spotted a typo, wrong page count, or missing genre? Open the book's detail view
-          and tap the <strong>Edit Book Info</strong> option (three-dot menu or the edit button,
-          depending on your screen). Any member can correct book metadata — it's a shared library
-          and we all keep it tidy.
-        </p>
- 
         <div class="huk-warn">
-          <strong>🧹 Data quality matters:</strong> Use accurate sources (Goodreads, Open Library,
-          Google Books) for page counts, genres, and published years. Wrong metadata affects
-          club statistics like Total Pages Read.
+          <strong>⚠️ ISBN-13 only.</strong> Older books may only show a 10-digit ISBN on
+          the back cover — this will not work. Find the 13-digit version on the book's
+          Goodreads or publisher page (it always starts with 978 or 979).
+        </div>
+
+        <h3>6. Submitting</h3>
+        <p>
+          Tap <span class="huk-btn huk-btn--accent" style="font-size:0.78rem;">🚀 Add to Library</span>.
+          A duplicate check runs one final time. On success, the library refreshes and your
+          book appears at the top.
+        </p>
+        <div class="huk-success">
+          <strong>✅ Points:</strong> Adding a new book earns <span class="huk-cp-pill">+150 ☀️ CP</span>.
+        </div>
+        <div class="huk-warn">
+          <strong>🧹 Keep data clean:</strong> Use Goodreads, Open Library, or Google Books
+          for accurate page counts and genres. Wrong metadata affects the club's shared
+          page statistics. Spotted an error? Open the book and tap
+          <strong>Edit Book Info</strong> — any member can fix it.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-shelving-status')">Shelving — Part 1: Choosing a Status</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-library-discover')">Exploring the Library: Discover Tab</div>
         </div>
       `
-    }, // end help-adding-books
- 
-    /* ========================================================================
-       ARTICLE: Shelving 101
-       ======================================================================== */
+    },
+
     {
-      id: "help-shelving-books",
+      id: "help-shelving-status",
       category: "Getting Started",
-      title: "Shelving 101: Adding a book to your shelf",
-      tags: "shelf, status, to read, reading, finished, dnf, progress, update, pages, log",
-      snippet: "Add books to your personal shelf and track your reading progress.",
+      title: "Shelving — Part 1: Choosing Your Reading Status",
+      tags: "shelf, status, to read, reading, finished, dnf, add to shelf, shelve, tbr, delete, remove",
+      snippet: "The four shelf statuses explained — and how to add any book to your shelf.",
       content: `
-        <p>Once you have found a book in the library, it's time to claim it! Here is how to build your personal shelf and keep everyone updated on your reading journey.</p>
+        <p>
+          Every book you interact with in Arka lives on your personal shelf under one of four
+          statuses. Here's what each one means and how to set it.
+        </p>
+
         <div class="help-video-portrait">
           <iframe
             src="https://www.youtube.com/embed/nE_k6zGPC84"
-            title="Shelving a book"
+            title="Shelving a book in Arka"
             sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen>
           </iframe>
         </div>
-        <h3>1. Adding a Book to Your Shelf</h3>
-        <p>When you click a book from the <strong>All Books</strong> tab or anywhere else and open the book details, you will see Add to Shelf button. Give that a tap.</p>
-        <div class="huk-tip">
-          <strong>Note:</strong> If the book is already in your shelf, the button text can read differently.
+        <p style="font-size:0.8rem;color:#7f8c8d;text-align:center;margin-top:4px;">
+          ▶ Watch this walkthrough
+        </p>
+
+        <h3>How to Add a Book to Your Shelf</h3>
+        <div class="huk-step-box">
+          <div class="huk-step-number">1</div>
+          <div>Find the book in the Library and tap it to open the detail view.</div>
         </div>
-        <h3>2. The Four Shelves</h3>
-        <p>When you want to shelve a book, you have to choose among the following statuses:</p>
-        <ul>
-          <li><span class="huk-badge huk-badge--toread">📌 To Read</span> — Your wishlist or TBR pile. Books you want to tackle next or some lucky day! 🤫</li>
-          <li><span class="huk-badge huk-badge--reading">📖 Reading</span> — A book you are currently reading.</li>
-          <li><span class="huk-badge huk-badge--finished">🏆 Finished</span> — You finished this book. Time to rate and review it!</li>
-          <li><span class="huk-badge huk-badge--dnf">🛑 DNF</span> — Did Not Finish. You decided to park it for now. No judgment!</li>
-        </ul>
-        <h3>3. Logging Pages</h3>
-        <p>When your status is <span class="huk-badge huk-badge--reading">📖 Reading</span> or <span class="huk-badge huk-badge--finished">🏆 Finished</span>, you can log the number of pages you have read. This feeds the club's shared page count on the Home feed.</p>
+        <div class="huk-step-box">
+          <div class="huk-step-number">2</div>
+          <div>Tap <span class="huk-btn huk-btn--accent" style="font-size:0.78rem;">Add to Shelf</span>
+          at the top of the book detail page.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">3</div>
+          <div>A bottom sheet slides up showing the shelf form. Tap a status tile to select it.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">4</div>
+          <div>Fill in any extra details (pages, rating, review) and tap
+          <span class="huk-btn huk-btn--accent" style="font-size:0.78rem;">Save</span>.</div>
+        </div>
+
+        <h3>The Status Tile Picker</h3>
+        <p>This is what the status picker looks like in the app — tap a tile to select it:</p>
+        <div class="huk-screen-mockup">
+          <div class="huk-screen-mockup-label">Shelf Form — Reading Status</div>
+          <div class="huk-shelf-grid">
+            <div class="huk-shelf-tile">
+              <span class="huk-shelf-tile-icon">📌</span>
+              <span>To Read</span>
+            </div>
+            <div class="huk-shelf-tile huk-shelf-tile--active">
+              <span class="huk-shelf-tile-icon">📖</span>
+              <span>Reading</span>
+            </div>
+            <div class="huk-shelf-tile">
+              <span class="huk-shelf-tile-icon">🏆</span>
+              <span>Finished</span>
+            </div>
+            <div class="huk-shelf-tile">
+              <span class="huk-shelf-tile-icon">🛑</span>
+              <span>Did Not Finish</span>
+            </div>
+          </div>
+          <p style="font-size:0.75rem;color:#7f8c8d;margin:8px 0 0;">The purple-highlighted tile is the selected status.</p>
+        </div>
+
+        <h3>The Four Statuses Explained</h3>
+        <p>
+          <span class="huk-badge huk-badge--toread">📌 To Read</span>
+          &nbsp;— Your TBR (To Be Read) wishlist. No pages or rating required.
+          Earns <span class="huk-cp-pill">+10 ☀️ CP</span>.
+        </p>
+        <p>
+          <span class="huk-badge huk-badge--reading">📖 Reading</span>
+          &nbsp;— You're actively reading this right now. Log your current page to show
+          progress in everyone's feed. Earns <span class="huk-cp-pill">+30 ☀️ CP</span>.
+        </p>
+        <p>
+          <span class="huk-badge huk-badge--finished">🏆 Finished</span>
+          &nbsp;— You completed this book. You'll be prompted for your final page count,
+          a star rating, and a review. Please do add them — it helps the whole club
+          discover great books. Earns <span class="huk-cp-pill">+300 ☀️ CP</span>.
+        </p>
+        <p>
+          <span class="huk-badge huk-badge--dnf">🛑 Did Not Finish</span>
+          &nbsp;— You put this one down for now. The book stays on your shelf so you can
+          revisit it later. No judgment! Earns <span class="huk-cp-pill">+10 ☀️ CP</span>.
+        </p>
+
+        <div class="huk-tip">
+          <strong>💡 The normal reading flow:</strong>
+          <span class="huk-badge huk-badge--toread" style="font-size:0.72rem;">📌 To Read</span>
+          →
+          <span class="huk-badge huk-badge--reading" style="font-size:0.72rem;">📖 Reading</span>
+          →
+          <span class="huk-badge huk-badge--finished" style="font-size:0.72rem;">🏆 Finished</span>.
+          The app carries your previous data forward when you progress — you don't start
+          from scratch each time.
+        </div>
+
+        <div class="huk-warn">
+          <strong>Books cannot be deleted from your shelf.</strong> Once shelved, a book
+          stays in your history. If you shelved something by mistake, change its status to
+          DNF — that is the closest to "parking" it out of the way.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-shelving-progress')">Shelving — Part 2: Pages, Ratings &amp; Reviews</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-adding-books')">Finding &amp; Adding Books</div>
+        </div>
       `
     },
- 
-    /* ========================================================================
-       CATEGORY: Challenges
-       ======================================================================== */
+
+    {
+      id: "help-shelving-progress",
+      category: "Getting Started",
+      title: "Shelving — Part 2: Pages, Ratings & Reviews",
+      tags: "pages, log progress, rating, review, star, update shelf, edit read, read again, history, current page, total",
+      snippet: "Log pages read, rate and review finished books, fix past records, and re-read favourites.",
+      content: `
+        <p>
+          Once a book is on your shelf, you keep updating it as you read — logging pages,
+          leaving a rating, and writing a review. Here's everything you need to know.
+        </p>
+
+        <h3>⚠️ How to Enter Pages — Read This First</h3>
+        <div class="huk-warn--red">
+          <strong>Always enter your running total, not today's pages.</strong><br>
+          If you've read 200 pages so far and you read 50 more today, enter
+          <strong>250</strong> — not 50. The app calculates what you read in this
+          session by comparing to your last saved total, and awards points on the
+          difference. Entering a lower number than before awards zero points but
+          still saves your position.
+        </div>
+
+        <div class="huk-screen-mockup">
+          <div class="huk-screen-mockup-label">Shelf Form — Pages Field</div>
+          <div style="font-size:0.78rem;color:#7f8c8d;margin-bottom:6px;">Pages Read</div>
+          <div class="huk-pages-field">
+            <div class="huk-pages-input">250</div>
+            / 312 pages
+          </div>
+          <p style="font-size:0.72rem;color:#95a5a6;margin:0;">
+            Enter your cumulative total pages read so far.
+          </p>
+        </div>
+
+        <div class="huk-success">
+          <strong>Pages CP:</strong> <span class="huk-cp-pill">+4 ☀️ CP per page</span>
+          (calculated on the delta from your last saved total).
+        </div>
+
+        <h3>Star Rating</h3>
+        <p>
+          Ratings are available when status is
+          <span class="huk-badge huk-badge--finished">🏆 Finished</span>.
+          The rating appears as a dropdown in the shelf form:
+        </p>
+        <div class="huk-screen-mockup">
+          <div class="huk-screen-mockup-label">Shelf Form — Rating</div>
+          <div style="font-size:0.78rem;color:#7f8c8d;margin-bottom:6px;">Your Rating</div>
+          <div class="huk-select-mockup">⭐⭐⭐⭐ 4 Stars ▾</div>
+        </div>
+        <p>Your rating appears on the book's detail page and feeds into the library's
+        <strong>Top Rated</strong> sort.</p>
+        <div class="huk-success">
+          <strong>Rating CP:</strong> <span class="huk-cp-pill">+60 ☀️ CP</span>
+          (once per shelf record — the system deduplicates).
+        </div>
+
+        <h3>Written Review</h3>
+        <p>
+          Also only available for Finished books. Write anything — a sentence, a paragraph,
+          your emotional state when you turned the last page. Reviews appear in the
+          <strong>Ratings &amp; Reviews</strong> section of the book's detail page.
+        </p>
+        <div class="huk-success">
+          <strong>Review CP:</strong> <span class="huk-cp-pill">+250 ☀️ CP</span>
+          (once per shelf record — the system deduplicates).
+        </div>
+
+        <div class="huk-tip">
+          <strong>💡 The maximum from a single completed book:</strong>
+          <span class="huk-cp-pill">+300</span> finish +
+          <span class="huk-cp-pill">+60</span> rating +
+          <span class="huk-cp-pill">+250</span> review =
+          <strong>610 ☀️ CP</strong> from a single fully-completed book. Don't skip
+          the rating and review!
+        </div>
+
+        <h3>Edit Read — Correcting a Past Record</h3>
+        <p>
+          Made a mistake on a book you've already shelved? Use <strong>Edit Read</strong>
+          to surgically correct any field — dates, pages, rating, or review — without
+          changing the original date the book was added to your shelf.
+        </p>
+        <p>
+          <strong>When to use Edit Read vs normal update:</strong><br>
+          Use <em>normal Update Shelf</em> when you are actively progressing through a book
+          (e.g. logging today's pages on a Reading book). Use <em>Edit Read</em> when you
+          need to fix historical data on a Finished or DNF record — for example, correcting
+          a wrong page count you entered months ago.
+        </p>
+
+        <h3>Read Again — Re-reading a Favourite</h3>
+        <p>
+          Use <strong>Read Again</strong> from the shelf form to log a brand-new read of a
+          book that is already on your shelf. This creates a fresh shelf record with its own
+          pages, dates, and rating while <strong>preserving your original record in your
+          history</strong>. The original read is never overwritten.
+        </p>
+        <p>
+          A re-read earns full points again — all the same CP for pages, finish, rating,
+          and review apply to the new record.
+        </p>
+        <div class="huk-tip">
+          <strong>💡 Re-reads and challenges:</strong> A Read Again counts as a new finished
+          book for challenge tracking — so if you are on an Annual Book Count challenge,
+          re-reading counts toward your goal.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-shelving-status')">Shelving — Part 1: Choosing a Status</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-points-how')">How to Earn Club Points ☀️</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-book-detail')">The Book Detail Page</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-home-feed",
+      category: "Getting Started",
+      title: "Understanding the Home Feed",
+      tags: "home, feed, activity, sync, announcements, club news, privacy, public, visible, what appears",
+      snippet: "The club's live activity stream — what you see, what others can see, and how to use it.",
+      content: `
+        <p>
+          The Home feed is the first thing you see when you open Arka. It's the club's live
+          activity stream — everything members are reading, finishing, and reviewing shows up here.
+        </p>
+
+        <h3>What Appears in the Feed</h3>
+        <ul>
+          <li>📚 Books members add to the Arka Library</li>
+          <li>📖 Reading status changes (started, finished, DNF)</li>
+          <li>📄 Page progress logs</li>
+          <li>⭐ Ratings and written reviews</li>
+          <li>🏆 Level-ups and reading milestones</li>
+          <li>🎉 Event RSVPs and attendance confirmations</li>
+          <li>🎯 Challenge enrolments and completions</li>
+        </ul>
+
+        <div class="huk-warn">
+          <strong>🔓 Everything you do in the app is visible to all club members.</strong>
+          The books you shelve, the pages you log, the reviews you write — all of these
+          appear in the Home feed and on your public profile. There is no private shelf mode.
+        </div>
+
+        <h3>What Does the Feed Look Like When You're New?</h3>
+        <p>
+          When you first join, the feed shows the rest of the club's activity — so you'll
+          see other members' reading even before you've logged your first book. Once you
+          start shelving and logging, your own activity cards will appear alongside theirs.
+        </p>
+
+        <h3>Announcements Banner</h3>
+        <p>
+          Pinned announcements from the admin appear at the top of the feed inside a yellow
+          card. They stay visible until an admin removes them. Non-pinned notices can be
+          dismissed by tapping the <strong>✕</strong> button — they reappear the next time
+          you reload the app.
+        </p>
+
+        <h3>The Sync Button</h3>
+        <p>
+          The feed does not auto-refresh while you are reading it. Tap the
+          <strong>Sync</strong> button at the top of the Home view to fetch the latest
+          activity from the server.
+        </p>
+
+        <div class="huk-tip">
+          <strong>💡 Feed grouping:</strong> The app groups related activity into single
+          cards. If you finish a book and rate it on the same day, one combined card appears
+          — not two. This keeps the feed clean and readable.
+        </div>
+
+        <h3>Tapping Feed Cards</h3>
+        <p>
+          Tap a <strong>book cover</strong> on any feed card to open that book's detail page.
+          Tap a <strong>member's name or avatar</strong> to open their profile.
+        </p>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-shelving-status')">Shelving — Part 1: Choosing a Status</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-members-directory')">Finding &amp; Connecting with Members</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-feedback",
+      category: "Getting Started",
+      title: "Submitting Feedback & Bug Reports 💡",
+      tags: "feedback, bug, report, feature, suggestion, error, broken, help, contact, improve",
+      snippet: "How to report a bug or suggest a feature — and earn CP for doing it.",
+      content: `
+        <p>
+          See something broken or have an idea to make Arka better? The in-app feedback form
+          sends it straight to the admin and earns you Club Points. Every genuine report
+          helps improve the app for everyone.
+        </p>
+
+        <h3>How to Submit Feedback</h3>
+        <div class="huk-step-box">
+          <div class="huk-step-number">1</div>
+          <div>Open the side drawer (☰ top left) → tap <strong>Send Feedback</strong>.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">2</div>
+          <div>Choose a category: <strong>🐞 Report a Bug</strong> or
+          <strong>💡 Feature Suggestion</strong>.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">3</div>
+          <div>Choose the area of the app where you noticed the issue.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">4</div>
+          <div>Write a clear description of what happened or what you'd like to see.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">5</div>
+          <div>Tap <span class="huk-btn huk-btn--blue" style="font-size:0.78rem;">Send Feedback</span>.</div>
+        </div>
+
+        <div class="huk-success">
+          <strong>✅ Points:</strong> Each feedback submission earns
+          <span class="huk-cp-pill">+150 ☀️ CP</span> — one of the highest single-action
+          rewards in the app.
+        </div>
+
+        <h3>Writing a Good Bug Report</h3>
+        <p>A helpful bug report answers three questions:</p>
+        <ul>
+          <li><strong>What were you trying to do?</strong> (e.g. "I was trying to log pages for a book")</li>
+          <li><strong>What happened instead?</strong> (e.g. "The page count didn't update")</li>
+          <li><strong>What device / browser are you on?</strong> (e.g. "iPhone 15, Safari")</li>
+        </ul>
+
+        <h3>What Happens After You Submit?</h3>
+        <p>
+          Your report is saved directly to the admin's feedback tracker. The admin reviews
+          all open reports and prioritises fixes. There is currently no in-app notification
+          when a bug is resolved, but fixes are announced in the Home feed.
+        </p>
+
+        <div class="huk-tip">
+          <strong>💡 Also check the FAQs first:</strong> Common issues like "my points didn't
+          update" or "my level didn't change" are explained in the Help &amp; FAQs section.
+          The issue might already have a known answer.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-troubleshooting')">Troubleshooting Common Issues</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-faq')">Frequently Asked Questions</div>
+        </div>
+      `
+    },
+
+
+    // ══════════════════════════════════════════════════════════════
+    // CATEGORY: Library
+    // ══════════════════════════════════════════════════════════════
+
+    {
+      id: "help-library-discover",
+      category: "Library",
+      title: "Exploring the Library: Discover Tab",
+      tags: "discover, new arrivals, trending, arka reading, hidden gems, genre chips, carousel",
+      snippet: "Genre shortcuts, curated carousels, and the best way to find your next book.",
+      content: `
+        <p>
+          When you open the <span class="huk-tab-icon">📚</span> Library tab, you land on
+          <strong>Discover</strong> — the curated view. It surfaces the most relevant books
+          without you having to scroll through everything.
+        </p>
+
+        <h3>Genre Quick-Filter Chips</h3>
+        <p>
+          A scrollable row of genre chips appears at the top of Discover. These are built
+          automatically from the most popular genres in the library. Tap any chip to jump
+          straight to <strong>All Books</strong> pre-filtered by that genre.
+        </p>
+        <div class="huk-screen-mockup">
+          <div class="huk-screen-mockup-label">Discover — Genre Chips (scroll sideways)</div>
+          <div style="display:flex;gap:8px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;">
+            <span class="huk-chip">Fiction</span>
+            <span class="huk-chip">Mystery</span>
+            <span class="huk-chip">Sci-Fi</span>
+            <span class="huk-chip">Fantasy</span>
+            <span class="huk-chip">Biography</span>
+          </div>
+        </div>
+
+        <h3>✨ New Arrivals</h3>
+        <p>
+          A horizontal carousel of the 5 most recently added books. Shows who added each
+          book and when. Great for spotting what's new before the rest of the club shelves it.
+        </p>
+
+        <h3>🔥 Arka Reading</h3>
+        <p>
+          Books that the most members are <em>currently</em> reading right now. Updates as
+          members change their shelf status. Tap the fire icon and it glows gold — that's
+          the club's reading energy!
+        </p>
+
+        <h3>💎 Hidden Gems</h3>
+        <p>
+          Books with a high average member rating (4.0 stars or above) but fewer than
+          4 total readers. These are the underappreciated reads waiting to be discovered.
+        </p>
+
+        <div class="huk-tip">
+          <strong>💡 Tip:</strong> Tap any book cover in the carousels to go straight to
+          its detail page where you can shelve it, read reviews, and see who else is reading it.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-book-detail')">The Book Detail Page</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-adding-books')">Finding &amp; Adding Books</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-book-detail",
+      category: "Library",
+      title: "The Book Detail Page — Everything in One Place",
+      tags: "book detail, reviews, ratings, shelf action, who is reading, book posts, notes, quotes, edit book, fan cast, like, log progress",
+      snippet: "A complete guide to the book detail page — shelving, reviews, posts, and editing book info.",
+      content: `
+        <p>
+          Tap any book in the library, the feed, or a member's shelf to open its detail page.
+          This is the book's home in Arka — stats, reviews, community posts, and your personal
+          shelf action, all in one place.
+        </p>
+
+        <h3>The Header</h3>
+        <p>
+          Shows the book cover (or a colour-coded auto-cover tile if no image is available),
+          title, author, genre, page count, and the date it was added to Arka. If enough
+          members have rated it, the average star rating appears here too.
+        </p>
+
+        <h3>Shelf Action Buttons</h3>
+        <p>The button at the top of the page changes based on your current relationship with
+        the book:</p>
+        <ul>
+          <li><span class="huk-btn huk-btn--accent" style="font-size:0.75rem;">Add to Shelf</span>
+          — not on your shelf yet. Tap to shelve it.</li>
+          <li><span class="huk-btn huk-btn--accent" style="font-size:0.75rem;">📖 Log progress</span>
+          — you are currently reading this. Tap to update your page count.</li>
+          <li><span class="huk-btn huk-btn--outline" style="font-size:0.75rem;">✏️ Update shelf</span>
+          — tap to change status, rating, or review.</li>
+          <li><span class="huk-btn huk-btn--outline" style="font-size:0.75rem;">🔄 Read Again</span>
+          — shown alongside Edit Read when you've finished a book.</li>
+        </ul>
+
+        <h3>Who's Reading This?</h3>
+        <p>
+          A row of member avatars shows everyone who has this book on their shelf and what
+          status they are at. Tap an avatar to visit that member's profile.
+        </p>
+
+        <h3>Ratings &amp; Reviews</h3>
+        <p>
+          All member reviews appear here, sorted newest first. Each card shows the member's
+          name, star rating, written review, and time since it was posted.
+        </p>
+
+        <h3>Book Posts — Quick Community Thoughts</h3>
+        <p>
+          Book Posts are short reactions any member can leave on a book's page — separate from
+          the full Ratings &amp; Reviews section. Three types are available:
+        </p>
+        <ul>
+          <li>📌 <strong>General Note</strong> — any observation or thought while reading.</li>
+          <li>🏷️ <strong>Quote I Loved</strong> — a favourite line from the book.</li>
+          <li>🎬 <strong>Fan Cast</strong> — who you'd cast in the movie adaptation.</li>
+        </ul>
+        <p>
+          Tap the post button at the bottom of the detail page to add yours. You can also
+          like other members' posts. Posting earns
+          <span class="huk-cp-pill">+50 ☀️ CP</span> per post.
+        </p>
+
+        <h3>Editing Book Info</h3>
+        <p>
+          Spotted a typo or wrong page count? Tap the <strong>⋮</strong> three-dot menu
+          in the top-right corner of the header and choose <strong>Edit Book Info</strong>.
+          This opens the same form used to add books — fix what's wrong and save. Any member
+          can edit book metadata.
+        </p>
+        <div class="huk-success">
+          <strong>Edit CP:</strong> <span class="huk-cp-pill">+100 ☀️ CP</span>
+          (limited to once per book per 30 days to keep the catalogue clean).
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-shelving-progress')">Shelving — Part 2: Pages, Ratings &amp; Reviews</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-library-discover')">Exploring the Library: Discover Tab</div>
+        </div>
+      `
+    },
+
+
+    // ══════════════════════════════════════════════════════════════
+    // CATEGORY: My Dashboard
+    // ══════════════════════════════════════════════════════════════
+
+    {
+      id: "help-reading-dashboard",
+      category: "My Dashboard",
+      title: "Your Reading Dashboard — Heatmap, Streak & Charts",
+      tags: "me tab, heatmap, streak, reading pulse, ghost chart, pages, stats, dashboard, calendar, weekly, log progress quick",
+      snippet: "What the heatmap, streak counter, Reading Pulse chart, and Ghost chart all mean.",
+      content: `
+        <p>
+          Tap the <span class="huk-tab-icon">👤</span> <strong>Me</strong> tab to open your
+          personal reading dashboard. The stats here update every time you log pages.
+        </p>
+
+        <h3>Quick-Log Button</h3>
+        <p>
+          At the top of the Me tab there is a quick
+          <span class="huk-btn huk-btn--accent" style="font-size:0.75rem;">📖 Log progress</span>
+          shortcut. Tap it to log pages for any book currently on your
+          <span class="huk-badge huk-badge--reading">📖 Reading</span> shelf without going
+          through the full library flow.
+        </p>
+
+        <h3>52-Week Heatmap</h3>
+        <p>
+          A grid of 52 columns — one per week of the current year — where each cell is
+          coloured based on how many pages you logged that week. Darker green = more pages.
+          Empty cell = nothing logged that week. This gives you an instant visual of your
+          reading consistency across the year.
+        </p>
+
+        <h3>Reading Streak</h3>
+        <p>
+          Your current streak counts consecutive weeks where you logged at least some pages.
+          The app also shows your <strong>all-time best streak</strong> so you have a personal
+          record to beat.
+        </p>
+        <div class="huk-tip">
+          <strong>💡 Streak tip:</strong> A week counts as active if you logged any pages
+          at any point during that 7-day window. Log something — even a handful of pages —
+          every week to keep your streak alive.
+        </div>
+
+        <h3>Lifetime Stats Pills</h3>
+        <p>
+          Total pages read, total books finished, and current-year figures. These are
+          recalculated every night automatically and reflect your complete reading history
+          including any backdated entries.
+        </p>
+
+        <h3>📈 Reading Pulse Chart</h3>
+        <p>
+          A line chart showing your weekly page count, with a separate line for each year
+          you have been active. Compare this year's pace against previous years at the same
+          point in time. Brand new members will see a single line that builds as they log.
+        </p>
+
+        <h3>👻 Ghost Chart</h3>
+        <p>
+          A ghost line overlaid on the Pulse chart showing your reading pace from your
+          personal best year. It helps you see at a glance whether you are ahead or behind
+          your all-time record. If you are in your first year, there is no ghost yet —
+          this year becomes your baseline.
+        </p>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-genre-dna')">Genre DNA &amp; Over the Years</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-full-shelf')">Your Full Shelf</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-points-how')">How to Earn Club Points ☀️</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-genre-dna",
+      category: "My Dashboard",
+      title: "Genre DNA & Over the Years",
+      tags: "genre DNA, word cloud, over the years, bar chart, yearly stats, reading history, genres, finished books",
+      snippet: "Your Genre DNA cloud and Over the Years chart — what they show and how to read them.",
+      content: `
+        <p>
+          Swipe the carousel cards on your Me tab to find two charts about your longer-term
+          reading patterns. Both update automatically as you finish more books.
+        </p>
+
+        <h3>📖 Genre DNA</h3>
+        <p>
+          A word cloud built from the genres of every book you have marked as
+          <span class="huk-badge huk-badge--finished">🏆 Finished</span>.
+          Larger text = more books in that genre. It gives you an honest picture of what
+          you <em>actually</em> read, versus what you might think you read.
+        </p>
+        <div class="huk-tip">
+          <strong>💡 Why only Finished books?</strong> Books on your To Read list reflect
+          intention, not reality. Genre DNA is about what you have genuinely completed.
+          If the cloud looks thin, finish more books and it will grow!
+        </div>
+        <p>
+          <strong>Actionable insight:</strong> If your Genre DNA is dominated by Thriller
+          but you want to read more Literary Fiction, check the Discover tab and filter
+          by the Literary Fiction chip to find unread titles the club loves.
+        </p>
+
+        <h3>📅 Over the Years</h3>
+        <p>
+          A bar chart showing how many books you finished in each calendar year since you
+          joined Arka. Tap any bar to see the exact count for that year.
+        </p>
+        <p>
+          Brand new members will see only the current year's bar, which grows as you finish
+          books throughout the year.
+        </p>
+
+        <div class="huk-warn">
+          <strong>Not seeing data?</strong> Both charts only include books with a
+          <span class="huk-badge huk-badge--finished">🏆 Finished</span> status.
+          Books still in Reading or To Read do not appear. Mark them Finished when you're done!
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-reading-dashboard')">Reading Dashboard — Heatmap &amp; Streak</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-shelving-progress')">Shelving — Part 2: Pages, Ratings &amp; Reviews</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-full-shelf",
+      category: "My Dashboard",
+      title: "Your Full Shelf — Browsing All Your Books",
+      tags: "full shelf, my shelf, browse, filter, reading list, all books, shelf view, sorted, others shelf",
+      snippet: "How to open your full shelf, what you'll find there, and how to view another member's shelf.",
+      content: `
+        <p>
+          The shelf tiles on your Me tab show counts. To see the actual books behind those
+          numbers, tap any tile to open the <strong>Full Shelf</strong> view.
+        </p>
+
+        <h3>Shelf Tiles on the Me Tab</h3>
+        <div class="huk-screen-mockup">
+          <div class="huk-screen-mockup-label">Me Tab — Shelf Summary Tiles (tap any to open)</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+            <div style="background:linear-gradient(145deg,#fff,#f9f5fb);border:1px solid #dcd0e5;border-radius:10px;padding:10px 8px;text-align:center;">
+              <div style="font-size:18px;font-weight:700;color:#8e44ad;">3</div>
+              <div style="font-size:9px;color:#7f8c8d;margin-top:2px;">reading</div>
+            </div>
+            <div style="background:white;border:1px dashed #bdc3c7;border-radius:10px;padding:10px 8px;text-align:center;">
+              <div style="font-size:18px;font-weight:700;color:#34495e;">12</div>
+              <div style="font-size:9px;color:#7f8c8d;margin-top:2px;">to read</div>
+            </div>
+            <div style="background:linear-gradient(145deg,#fff,#fffcf5);border:1px solid #f1e4c3;border-radius:10px;padding:10px 8px;text-align:center;">
+              <div style="font-size:18px;font-weight:700;color:#e67e22;">47</div>
+              <div style="font-size:9px;color:#7f8c8d;margin-top:2px;">finished</div>
+            </div>
+            <div style="background:white;border:0.5px solid #ecf0f1;border-radius:10px;padding:10px 8px;text-align:center;">
+              <div style="font-size:18px;font-weight:700;color:#95a5a6;">5</div>
+              <div style="font-size:9px;color:#7f8c8d;margin-top:2px;">dnf</div>
+            </div>
+          </div>
+        </div>
+        <p>Tap any tile to jump straight to the full list for that status.</p>
+
+        <h3>What's Inside the Full Shelf View</h3>
+        <p>
+          A scrollable list of all books in the selected status, showing cover, title, author,
+          pages read, and date added. Books are sorted newest-added first.
+        </p>
+        <p>
+          There is no search within your full shelf — use the Library's All Books tab with
+          a search if you need to find a specific book quickly.
+        </p>
+        <p>
+          Tap any book to open its detail page, where you can update your shelf record,
+          add a review, or log a reading progress update.
+        </p>
+
+        <h3>Viewing Another Member's Shelf</h3>
+        <p>
+          You can view any member's shelf from their profile page. Tap
+          <span class="huk-tab-icon" style="width:24px;height:24px;font-size:0.9rem;">👥</span>
+          Members → tap a member card → their shelf tiles and recent activity appear on
+          their profile. Tap any of their tiles to browse their books by status.
+        </p>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-reading-dashboard')">Reading Dashboard — Heatmap &amp; Streak</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-members-directory')">Finding &amp; Connecting with Members</div>
+        </div>
+      `
+    },
+
+
+    // ══════════════════════════════════════════════════════════════
+    // CATEGORY: Challenges
+    // ══════════════════════════════════════════════════════════════
+
     {
       id: "help-challenges-overview",
       category: "Challenges",
       title: "What Are Challenges?",
-      tags: "challenge, quest, task, complete, join, weekly, monthly",
-      snippet: "Challenges are themed reading quests that earn you bonus Club Points.",
+      tags: "challenges, quest, types, habit streak, bingo, buddy read, alphabet, around the world, annual, book count, page count, country",
+      snippet: "Seven challenge types explained — find the right quest for your reading style.",
       content: `
-        <p>Challenges are themed reading quests set by the Arka team. They run for a fixed period and reward you with bonus Club Points for completing specific reading goals.</p>
-        <h3>How to Join</h3>
-        <p>Open the <strong>Challenges</strong> tab from the bottom navigation bar. Tap any active challenge to see its rules and tap <strong>Join Challenge</strong>.</p>
-        <h3>How to Complete</h3>
-        <p>Each challenge has specific completion criteria — these are listed clearly on the challenge detail screen. Most challenges track your shelf activity automatically, so just keep logging your reading.</p>
+        <p>
+          Challenges are structured reading quests set by the club. They run for a fixed
+          period and award Club Points for joining, completing, and winning. Find them in
+          the <strong>Challenges</strong> section from the side drawer.
+        </p>
+
+        <h3>The Seven Challenge Types</h3>
+
+        <p><span class="huk-chal-type">📅 Habit Streak</span>
+        — Log pages consistently to build a streak. Win condition: reach a 365-day streak.
+        Finisher condition: hit the total days goal. Missed days may or may not reset your
+        streak depending on the challenge settings.</p>
+
+        <p><span class="huk-chal-type">🎲 Bingo Grid</span>
+        — A grid of reading prompts (3×3, 4×4, or 5×5). Complete each prompt by linking a
+        book you've finished. Win by completing a line or all cells, depending on the
+        challenge config. See the <em>Book Bingo Guide</em> for a full walkthrough.</p>
+
+        <p><span class="huk-chal-type">📖 Buddy Read</span>
+        — Read a specific book alongside other members before a set deadline. Log your pages
+        to track progress toward the book's total page count.</p>
+
+        <p><span class="huk-chal-type">🌍 Around the World</span>
+        — Read books from a target number of different countries. The country is determined
+        by the <strong>author's nationality</strong>, not the setting of the story.</p>
+
+        <p><span class="huk-chal-type">🔤 Alphabet</span>
+        — Read books whose <strong>titles</strong> start with each letter of the alphabet
+        (the title's first significant word, ignoring "The", "A", "An").</p>
+
+        <p><span class="huk-chal-type">📚 Annual Book Count</span>
+        — Finish a target number of books within the challenge period.</p>
+
+        <p><span class="huk-chal-type">📄 Annual Page Count</span>
+        — Read a target total number of pages within the challenge period.</p>
+
         <div class="huk-tip">
-          <strong>💡 Tip:</strong> Check the Challenges tab regularly — new challenges appear throughout the year and some are time-limited.
+          <strong>💡 Challenge points vary per challenge.</strong> Each challenge has its
+          own enrol / finish / win CP values set by the admin who created it. Always check
+          the challenge detail page for the exact amounts before you join.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-challenge-join')">Joining &amp; Completing a Challenge</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-book-bingo')">Book Bingo — A Complete Guide</div>
         </div>
       `
     },
- 
-    /* ========================================================================
-       CATEGORY: Points & Badges
-       ======================================================================== */
+
     {
-      id: "help-points-overview",
-      category: "Points & Badges",
-      title: "Club Points & Levels Explained",
-      tags: "points, CP, levels, badges, rank, leaderboard, earn, page turner, bookworm",
-      snippet: "How Club Points are earned, how levels work, and what the badges mean.",
+      id: "help-challenge-join",
+      category: "Challenges",
+      title: "Joining & Completing a Challenge",
+      tags: "join challenge, enroll, progress, drop challenge, complete, winner, finisher, tracking, leaderboard, end date, expire",
+      snippet: "How to enrol, track your progress, complete a challenge, and what happens if you drop out.",
       content: `
-        <p>Club Points (CP) are Arka's way of recognising your contribution to the club. You earn them by reading, reviewing, adding books, joining challenges, and more.</p>
-        <h3>How You Earn Points</h3>
+        <p>
+          Ready to take on a challenge? Here's everything from joining to completing —
+          and what to expect if the deadline passes.
+        </p>
+
+        <h3>Joining a Challenge</h3>
+        <div class="huk-step-box">
+          <div class="huk-step-number">1</div>
+          <div>Open the <strong>Challenges</strong> section from the side drawer.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">2</div>
+          <div>Browse <strong>Active</strong> challenges and tap the one you want.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">3</div>
+          <div>Read the rules on the detail page. Check the enrol / finish / win CP amounts.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">4</div>
+          <div>Tap <span class="huk-btn huk-btn--accent" style="font-size:0.78rem;">✅ Join Challenge</span>.
+          The challenge appears in your <strong>My Challenges</strong> card on the Me tab.</div>
+        </div>
+
+        <div class="huk-success">
+          <strong>Joining CP:</strong> Set per-challenge by the admin. The default when creating
+          is 100 ☀️, but check the challenge detail page for the actual amount.
+        </div>
+
+        <h3>Tracking Progress</h3>
+        <p>
+          Progress is tracked automatically based on your shelf activity for most challenge
+          types. For Bingo Grid challenges, you link books to cells manually. Your progress
+          bar appears on both the challenge detail page and the My Challenges card on the
+          Me tab.
+        </p>
+        <p>
+          You can see how other enrolled members are doing on the challenge's detail page —
+          the enrolled member list shows everyone currently active.
+        </p>
+
+        <h3>Completing a Challenge</h3>
+        <p>
+          When you meet the criteria, the app automatically upgrades your status:
+        </p>
         <ul>
-          <li>📖 Logging pages read</li>
-          <li>🏆 Finishing a book</li>
-          <li>⭐ Leaving a rating or review</li>
-          <li>📚 Adding a new book to the library</li>
-          <li>🎯 Completing a challenge</li>
-          <li>💬 Submitting feedback</li>
+          <li>🥇 <strong>Winner</strong> — met the top win condition.</li>
+          <li>🎖️ <strong>Finisher</strong> — met the completion condition (below Winner).</li>
         </ul>
-        <h3>Levels</h3>
-        <p>Your level is calculated from your total CP. Levels are cumulative — you never lose progress. Once you pass the threshold for the next level, you advance automatically.</p>
+        <p>A toast notification confirms the achievement and your CP are awarded instantly.</p>
+
+        <h3>What Happens When a Challenge Ends?</h3>
+        <p>
+          When a challenge's end date passes, active enrollments are moved to a completed
+          or archived state. If you were still in <strong>Active</strong> status when it
+          ended (did not reach Finisher or Winner), no finish or win CP are awarded — only
+          the enrol CP you received when you joined.
+        </p>
+
+        <h3>Dropping a Challenge</h3>
+        <div class="huk-warn--red">
+          <strong>⚠️ You cannot re-join a challenge after dropping it.</strong>
+          Think carefully before using the Drop option — your progress is permanently lost.
+        </div>
+        <p>
+          Open the challenge detail and tap <strong>Drop Challenge</strong> if you are certain.
+          You keep any CP already earned from logging pages or shelf actions, but you will
+          not receive finish or win points.
+        </p>
+
+        <h3>My Challenges Card</h3>
+        <p>
+          Your enrolled challenges appear as compact cards on the Me tab with a progress bar,
+          percentage complete, and a one-line status summary. Tap any card to go to that
+          challenge's detail page.
+        </p>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-challenges-overview')">What Are Challenges?</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-book-bingo')">Book Bingo — A Complete Guide</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-points-how')">How to Earn Club Points ☀️</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-book-bingo",
+      category: "Challenges",
+      title: "Book Bingo — A Complete Guide",
+      tags: "bingo, bingo grid, cells, prompts, link book, mark complete, lines, free cell, win, finisher, change book",
+      snippet: "How the Bingo Grid challenge works, how to mark cells, win conditions, and strategy tips.",
+      content: `
+        <p>
+          Book Bingo is one of Arka's most popular challenge formats. You get a grid of
+          reading prompts — your job is to find a book that fits each prompt, read it,
+          and mark the cell complete.
+        </p>
+
+        <h3>The Grid</h3>
+        <p>
+          Bingo grids come in three sizes: <strong>3×3</strong> (9 cells),
+          <strong>4×4</strong> (16 cells), or <strong>5×5</strong> (25 cells). Each cell
+          shows a reading prompt — for example: "A book with a one-word title" or
+          "A book set in another country."
+        </p>
+        <p>
+          The <strong>centre cell</strong> on odd-sized grids (3×3, 5×5) is always a
+          <strong>FREE cell</strong> — it counts as complete automatically. You cannot
+          tap it to change it.
+        </p>
+
+        <h3>Cell Colours at a Glance</h3>
+        <ul>
+          <li>🟣 <strong>Purple</strong> — FREE cell (auto-complete).</li>
+          <li>🟢 <strong>Green</strong> — Completed cell with a linked book.</li>
+          <li>⬜ <strong>Grey</strong> — Empty, waiting for your book.</li>
+        </ul>
+
+        <h3>Completing a Cell</h3>
+        <div class="huk-step-box">
+          <div class="huk-step-number">1</div>
+          <div>Tap any empty (grey) cell on the grid.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">2</div>
+          <div>A bottom sheet slides up showing the prompt and a book search field.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">3</div>
+          <div>Type the book title and select it from the Arka Library dropdown.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">4</div>
+          <div>Tap <span class="huk-btn huk-btn--accent" style="font-size:0.78rem;">✓ Mark as completed</span>.
+          The cell turns green.</div>
+        </div>
+
+        <div class="huk-warn--red">
+          <strong>⚠️ The book must already be in the Arka Library.</strong>
+          If it is not there yet, add it first (see the Finding &amp; Adding Books guide),
+          then come back to mark the cell.
+        </div>
+
+        <div class="huk-warn">
+          <strong>⚠️ Cell links cannot be changed once saved.</strong> Choose your book
+          carefully before marking a cell complete — the link is permanent.
+        </div>
+
+        <h3>Win &amp; Finish Conditions</h3>
+        <p>
+          Each Bingo challenge has two conditions set by the admin:
+        </p>
+        <ul>
+          <li><strong>Finisher condition</strong> — e.g. complete any single line (row,
+          column, or diagonal); or complete half the total cells.</li>
+          <li><strong>Winner condition</strong> — e.g. complete all cells; or any line.</li>
+        </ul>
+        <p>
+          The app checks these automatically every time you mark a cell. A toast message
+          congratulates you and your status updates instantly when you hit a condition. Check
+          the challenge detail page header to see the exact conditions for your current Bingo.
+        </p>
+
         <div class="huk-tip">
-          <strong>Example:</strong> If you have 250 points you are at Page Turner II, and you need to reach 417 to advance to Page Turner III. The moment you exceed it, you automatically advance to the next level.
+          <strong>💡 Strategy:</strong> The FREE centre cell is part of four lines on a
+          3×3 grid (row, column, and both diagonals). Plan your first completions to pass
+          through the centre — it is your biggest multiplier.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-challenge-join')">Joining &amp; Completing a Challenge</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-adding-books')">Finding &amp; Adding Books</div>
+        </div>
+      `
+    },
+
+
+    // ══════════════════════════════════════════════════════════════
+    // CATEGORY: Events & Club Life
+    // ══════════════════════════════════════════════════════════════
+
+    {
+      id: "help-events-rsvp",
+      category: "Events & Club Life",
+      title: "Club Events — Browse, RSVP & Past Events",
+      tags: "events, RSVP, upcoming, past, virtual meeting, in-person, book buddy read, social, attend, calendar, timezone, attendance confirmation, CP",
+      snippet: "Find upcoming events, RSVP, understand attendance confirmation, and browse past events.",
+      content: `
+        <p>
+          Arka runs virtual meetings, in-person meetups, buddy reads, and social events. Find
+          them all in <strong>Events &amp; Notices</strong> from the side drawer.
+        </p>
+
+        <h3>Event Types</h3>
+        <p>
+          <span class="huk-evt-badge huk-evt--virtual">📹 Virtual Meeting</span>
+          &nbsp;— Online club meetings. A meeting link is included.
+          <span class="huk-admin-tag">🔐 Admin — creation only</span>
+        </p>
+        <p>
+          <span class="huk-evt-badge huk-evt--f2f">🤝 In-Person Meeting</span>
+          &nbsp;— Real-world meetups.
+          <span class="huk-admin-tag">🔐 Admin — creation only</span>
+        </p>
+        <p>
+          <span class="huk-evt-badge huk-evt--buddy">📖 Book Buddy Read</span>
+          &nbsp;— A member-organised read-along. Any member can create.
+        </p>
+        <p>
+          <span class="huk-evt-badge huk-evt--social">🎉 Social</span>
+          &nbsp;— Informal hangouts. Any member can create.
+        </p>
+        <p>
+          <span class="huk-evt-badge huk-evt--other">📌 Other</span>
+          &nbsp;— Anything else. Any member can create.
+        </p>
+
+        <h3>Browsing Upcoming Events</h3>
+        <p>
+          Open <strong>Events &amp; Notices → Upcoming</strong>. Events are listed in date order.
+          Tap any event card to open the full detail page with description, date, time, host,
+          and meeting link.
+        </p>
+        <div class="huk-warn">
+          <strong>⚠️ Timezone:</strong> All event times are shown in the timezone set by
+          the event creator. Check the event description or ask the admin/host for your
+          local time conversion — especially for virtual events with international members.
+        </div>
+
+        <h3>RSVPing to an Event</h3>
+        <div class="huk-step-box">
+          <div class="huk-step-number">1</div>
+          <div>Open an upcoming event's detail page.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">2</div>
+          <div>Tap your response:
+            <span class="huk-btn huk-btn--accent" style="font-size:0.72rem;">✅ Yes</span>
+            &nbsp;<span class="huk-btn huk-btn--secondary" style="font-size:0.72rem;">🤔 Maybe</span>
+            &nbsp;<span class="huk-btn huk-btn--secondary" style="font-size:0.72rem;">❌ No</span>
+          </div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">3</div>
+          <div>Your RSVP appears in the event's attendee list. You can change it any time
+          before the event.</div>
+        </div>
+        <div class="huk-success">
+          <strong>RSVP CP:</strong> <span class="huk-cp-pill">+5 ☀️</span> for a Yes or
+          Maybe RSVP. No CP for No responses.
+        </div>
+
+        <h3>RSVP vs. Attendance Confirmation — An Important Distinction</h3>
+        <div class="huk-warn">
+          <strong>RSVPing does not automatically earn attendance CP.</strong>
+          Attendance CP is awarded separately by the admin <em>after</em> the event, once
+          they confirm who actually attended. You do not need to do anything — when the admin
+          confirms your attendance, the points appear in your feed automatically.
+        </div>
+
+        <h3>Attendance CP by Event Type</h3>
+        <table class="huk-points-table">
+          <thead><tr><th>Event Type</th><th>Attending</th><th>Hosting</th></tr></thead>
+          <tbody>
+            <tr><td>📹 Virtual Meeting</td><td><span class="huk-cp-pill">+300 ☀️</span></td><td><span class="huk-cp-pill">+600 ☀️</span></td></tr>
+            <tr><td>🤝 In-Person Meeting</td><td><span class="huk-cp-pill">+500 ☀️</span></td><td><span class="huk-cp-pill">+800 ☀️</span></td></tr>
+            <tr><td>📖 Buddy Read / 🎉 Social / 📌 Other</td><td><span class="huk-cp-pill">+50 ☀️</span></td><td><span class="huk-cp-pill">+100 ☀️</span></td></tr>
+          </tbody>
+        </table>
+
+        <h3>Past Events</h3>
+        <p>
+          Open the <strong>Past</strong> tab to browse completed events. Past events often
+          include attached materials — photos, PDFs, presentations — uploaded by the host
+          or admin after the event. Tap any asset to open it.
+        </p>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-events-create')">Creating a Club Event</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-events-create",
+      category: "Events & Club Life",
+      title: "Creating a Club Event",
+      tags: "create event, host, new event, book buddy read, social event, meeting link, event form, pin, cancel, assets, upload",
+      snippet: "Members can create Buddy Reads, Socials, and Other events. Here's how.",
+      content: `
+        <p>
+          Want to organise something? Members can create
+          <span class="huk-evt-badge huk-evt--buddy">📖 Book Buddy Read</span>,
+          <span class="huk-evt-badge huk-evt--social">🎉 Social</span>, and
+          <span class="huk-evt-badge huk-evt--other">📌 Other</span> events directly from the app.
+        </p>
+
+        <h3>How to Create an Event</h3>
+        <div class="huk-step-box">
+          <div class="huk-step-number">1</div>
+          <div>Open <strong>Events &amp; Notices → Upcoming</strong>.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">2</div>
+          <div>Tap the <span class="huk-btn huk-btn--accent" style="font-size:0.78rem;">＋</span>
+          floating button at the bottom of the screen.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">3</div>
+          <div>Choose an event type. You will only see the types you are permitted to create.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">4</div>
+          <div>Fill in the title, description, start date, start time, and optionally an
+          end date and a meeting link (e.g. Zoom or Google Meet URL).</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">5</div>
+          <div>Tap <span class="huk-btn huk-btn--accent" style="font-size:0.78rem;">💾 Save Event</span>.</div>
+        </div>
+        <div class="huk-success">
+          <strong>Create CP:</strong> <span class="huk-cp-pill">+10 ☀️</span> for creating
+          any event.
+        </div>
+
+        <div class="huk-warn">
+          <strong>⚠️ Virtual Meeting and In-Person Meeting</strong> event types can only be
+          created by Admins. These event types will not appear in your type selector.
+        </div>
+
+        <h3>Editing &amp; Cancelling Your Event</h3>
+        <p>
+          The event creator, the designated host, and admins can all edit or cancel an event
+          after creation. Open the event detail page and use the edit or cancel option from
+          the action menu at the top of the page.
+        </p>
+
+        <h3>Adding Materials After the Event</h3>
+        <p>
+          After the event, the creator or admin can attach photos, PDFs, presentations, or
+          documents to the event page so members can access them later. Open the event detail →
+          tap <strong>Add Asset</strong> → choose a file from your device.
+        </p>
+        <div class="huk-tip">
+          <strong>💡 Supported asset types:</strong> Photo 🖼️ · PDF 📄 · Presentation 📊 ·
+          Document 📝 · Other 📎
+        </div>
+
+        <h3>Pinning an Event <span class="huk-admin-tag">🔐 Admin Only</span></h3>
+        <p>
+          Admins can pin an event to keep it at the top of the Upcoming list. This is done
+          via the pin toggle in the event edit form.
+        </p>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-events-rsvp')">Club Events — Browse &amp; RSVP</div>
+        </div>
+      `
+    },
+
+
+    // ══════════════════════════════════════════════════════════════
+    // CATEGORY: Points & Badges
+    // ══════════════════════════════════════════════════════════════
+
+    {
+      id: "help-points-how",
+      category: "Points & Badges",
+      title: "How to Earn Club Points ☀️",
+      tags: "club points, CP, earn, actions, reading, library, review, rating, profile, feedback, milestone, RSVP, event, challenge, post, discussion, all actions",
+      snippet: "Every action that earns Club Points — the complete reference table from the database.",
+      content: `
+        <p>
+          Club Points (☀️ CP) are awarded automatically — no claiming or button-pressing
+          required. All values below are sourced directly from ActivityTypeDB.
+          <em>Last verified: March 2026.</em>
+        </p>
+
+        <h3>Reading &amp; Shelf Actions</h3>
+        <table class="huk-points-table">
+          <thead><tr><th>Action</th><th>CP Earned</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Log pages read</td><td><span class="huk-cp-pill">+4 per page ☀️</span></td><td>Points = page delta × 4. No points if new count is lower (correction).</td></tr>
+            <tr><td>Start reading (set to Reading)</td><td><span class="huk-cp-pill">+30 ☀️</span></td><td>Per shelf record</td></tr>
+            <tr><td>Finish a book</td><td><span class="huk-cp-pill">+300 ☀️</span></td><td>Per shelf record</td></tr>
+            <tr><td>Add to To Read</td><td><span class="huk-cp-pill">+10 ☀️</span></td><td>Per shelf record</td></tr>
+            <tr><td>Mark as DNF</td><td><span class="huk-cp-pill">+10 ☀️</span></td><td>Per shelf record</td></tr>
+            <tr><td>Rate a finished book</td><td><span class="huk-cp-pill">+60 ☀️</span></td><td>Once per shelf record. System deduplicates.</td></tr>
+            <tr><td>Write a review</td><td><span class="huk-cp-pill">+250 ☀️</span></td><td>Once per shelf record. System deduplicates.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Library Contributions</h3>
+        <table class="huk-points-table">
+          <thead><tr><th>Action</th><th>CP Earned</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Add a new book to the library</td><td><span class="huk-cp-pill">+150 ☀️</span></td><td>Per new book. Duplicate check runs before award.</td></tr>
+            <tr><td>Update book metadata</td><td><span class="huk-cp-pill">+100 ☀️</span></td><td>Once per book per 30 days (system cooldown).</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Community</h3>
+        <table class="huk-points-table">
+          <thead><tr><th>Action</th><th>CP Earned</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Post a book discussion</td><td><span class="huk-cp-pill">+50 ☀️</span></td><td>General Note, Quote I Loved, or Fan Cast</td></tr>
+            <tr><td>Update your profile</td><td><span class="huk-cp-pill">+25 ☀️</span></td><td>Once per day (system enforces daily limit)</td></tr>
+            <tr><td>Submit feedback (bug / feature)</td><td><span class="huk-cp-pill">+150 ☀️</span></td><td>Per submission via the in-app feedback form</td></tr>
+            <tr><td>Join the club (registration)</td><td><span class="huk-cp-pill">+1 ☀️</span></td><td>One-time welcome bonus</td></tr>
+            <tr><td>Share to WhatsApp</td><td><span class="huk-cp-pill">+5 ☀️</span></td><td>Via the in-app share button when available</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Events</h3>
+        <table class="huk-points-table">
+          <thead><tr><th>Action</th><th>CP Earned</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Create an event</td><td><span class="huk-cp-pill">+10 ☀️</span></td><td>Any event type you are permitted to create</td></tr>
+            <tr><td>RSVP Yes or Maybe</td><td><span class="huk-cp-pill">+5 ☀️</span></td><td>No CP for RSVP No</td></tr>
+            <tr><td>Attend a Virtual Meeting</td><td><span class="huk-cp-pill">+300 ☀️</span></td><td>Admin confirms after the event</td></tr>
+            <tr><td>Host a Virtual Meeting</td><td><span class="huk-cp-pill">+600 ☀️</span></td><td>Admin confirms after the event</td></tr>
+            <tr><td>Attend an In-Person Meeting</td><td><span class="huk-cp-pill">+500 ☀️</span></td><td>Admin confirms after the event</td></tr>
+            <tr><td>Host an In-Person Meeting</td><td><span class="huk-cp-pill">+800 ☀️</span></td><td>Admin confirms after the event</td></tr>
+            <tr><td>Attend Buddy Read / Social / Other</td><td><span class="huk-cp-pill">+50 ☀️</span></td><td>Admin confirms after the event</td></tr>
+            <tr><td>Host Buddy Read / Social / Other</td><td><span class="huk-cp-pill">+100 ☀️</span></td><td>Admin confirms after the event</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Challenges</h3>
+        <table class="huk-points-table">
+          <thead><tr><th>Action</th><th>CP Earned</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Enrol in a challenge</td><td><span class="huk-cp-pill">varies ☀️</span></td><td>Set per-challenge by admin. Default: 100 ☀️</td></tr>
+            <tr><td>Finish a challenge</td><td><span class="huk-cp-pill">varies ☀️</span></td><td>Set per-challenge by admin. Default: 500 ☀️</td></tr>
+            <tr><td>Win a challenge</td><td><span class="huk-cp-pill">varies ☀️</span></td><td>Set per-challenge by admin. Default: 1,500 ☀️</td></tr>
+          </tbody>
+        </table>
+        <div class="huk-tip">
+          <strong>💡 Challenge points:</strong> Each challenge has its own custom CP values.
+          Always check the challenge detail page before joining to see the exact amounts.
+        </div>
+
+        <h3>Page Milestones — One-Time Bonus CP</h3>
+        <p>Hit these lifetime page totals and the system awards a one-time bonus automatically:</p>
+        <table class="huk-points-table">
+          <thead><tr><th>Pages Milestone</th><th>Bonus</th><th>Pages Milestone</th><th>Bonus</th></tr></thead>
+          <tbody>
+            <tr><td>1,000 pages</td><td><span class="huk-cp-pill">+100 ☀️</span></td><td>100,000 pages</td><td><span class="huk-cp-pill">+10,000 ☀️</span></td></tr>
+            <tr><td>5,000 pages</td><td><span class="huk-cp-pill">+500 ☀️</span></td><td>250,000 pages</td><td><span class="huk-cp-pill">+25,000 ☀️</span></td></tr>
+            <tr><td>10,000 pages</td><td><span class="huk-cp-pill">+1,000 ☀️</span></td><td>500,000 pages</td><td><span class="huk-cp-pill">+50,000 ☀️</span></td></tr>
+            <tr><td>25,000 pages</td><td><span class="huk-cp-pill">+2,500 ☀️</span></td><td>750,000 pages</td><td><span class="huk-cp-pill">+75,000 ☀️</span></td></tr>
+            <tr><td>50,000 pages</td><td><span class="huk-cp-pill">+5,000 ☀️</span></td><td>1,000,000 pages</td><td><span class="huk-cp-pill">+100,000 ☀️</span></td></tr>
+          </tbody>
+        </table>
+
+        <h3>Book Milestones — One-Time Bonus CP</h3>
+        <table class="huk-points-table">
+          <thead><tr><th>Books Finished</th><th>Bonus</th><th>Books Finished</th><th>Bonus</th></tr></thead>
+          <tbody>
+            <tr><td>10 books</td><td><span class="huk-cp-pill">+300 ☀️</span></td><td>500 books</td><td><span class="huk-cp-pill">+10,000 ☀️</span></td></tr>
+            <tr><td>25 books</td><td><span class="huk-cp-pill">+750 ☀️</span></td><td>750 books</td><td><span class="huk-cp-pill">+20,000 ☀️</span></td></tr>
+            <tr><td>50 books</td><td><span class="huk-cp-pill">+1,500 ☀️</span></td><td>1,000 books</td><td><span class="huk-cp-pill">+50,000 ☀️</span></td></tr>
+            <tr><td>100 books</td><td><span class="huk-cp-pill">+3,000 ☀️</span></td><td>2,500 books</td><td><span class="huk-cp-pill">+100,000 ☀️</span></td></tr>
+            <tr><td>200 books</td><td><span class="huk-cp-pill">+6,000 ☀️</span></td><td>5,000 books</td><td><span class="huk-cp-pill">+250,000 ☀️</span></td></tr>
+          </tbody>
+        </table>
+
+        <div class="huk-warn">
+          <strong>🛡️ Fair play:</strong> The system audits all point entries every night.
+          Duplicate ratings/reviews, multiple status changes on the same book in one day,
+          daily profile update spam, and any CP above the authorised amount are all
+          automatically corrected. Points can go down if a violation is found.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-reader-levels')">Reader Levels — All 100 Levels</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-badges')">Badges — Special Recognition</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-faq')">Frequently Asked Questions</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-reader-levels",
+      category: "Points & Badges",
+      title: "Reader Levels — All 100 Levels",
+      tags: "level, rank, tier, page turner, bookworm, scholar, bibliophile, scribe, sage, luminary, maven, virtuoso, oracle, points, upgrade, progress, how many points, thresholds",
+      snippet: "All 100 levels with exact CP thresholds — find yours and see what's next.",
+      content: `
+        <p>
+          Your Reader Level updates the moment you earn enough CP to advance — no waiting.
+          Levels are <strong>cumulative</strong>: you never lose progress. A level-up card
+          appears in the club's Home feed when you advance.
+        </p>
+        <p>
+          Find your current level on the <strong>Me tab</strong> — it is shown below your
+          name on your profile header and on the level progress bar.
+        </p>
+
+        <div class="huk-tip">
+          <strong>💡 Fastest path to level up:</strong> Finish a book and write a review
+          in the same session —
+          <span class="huk-cp-pill">+300</span> finish +
+          <span class="huk-cp-pill">+60</span> rating +
+          <span class="huk-cp-pill">+250</span> review =
+          <strong>610 ☀️ CP</strong> from a single fully-completed book.
+        </div>
+
+        <h3>The 10 Tiers</h3>
+        <table class="huk-points-table">
+          <thead><tr><th>#</th><th>Tier</th><th>Enter tier at</th><th>Clear tier at</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>📄 Page Turner</td><td>1 ☀️</td><td>3,000 ☀️</td></tr>
+            <tr><td>2</td><td>📖 Bookworm</td><td>3,001 ☀️</td><td>14,000 ☀️</td></tr>
+            <tr><td>3</td><td>🎓 Scholar</td><td>14,001 ☀️</td><td>39,000 ☀️</td></tr>
+            <tr><td>4</td><td>📚 Bibliophile</td><td>39,001 ☀️</td><td>84,000 ☀️</td></tr>
+            <tr><td>5</td><td>✍️ Scribe</td><td>84,001 ☀️</td><td>155,000 ☀️</td></tr>
+            <tr><td>6</td><td>🌿 Sage</td><td>155,001 ☀️</td><td>258,000 ☀️</td></tr>
+            <tr><td>7</td><td>✨ Luminary</td><td>258,001 ☀️</td><td>399,000 ☀️</td></tr>
+            <tr><td>8</td><td>🏛️ Maven</td><td>399,001 ☀️</td><td>584,000 ☀️</td></tr>
+            <tr><td>9</td><td>🎼 Virtuoso</td><td>584,001 ☀️</td><td>819,000 ☀️</td></tr>
+            <tr><td>10</td><td>🔮 Oracle</td><td>819,001 ☀️</td><td>1,110,000 ☀️</td></tr>
+          </tbody>
+        </table>
+
+        <h3>All 100 Levels — Exact Thresholds</h3>
+        <p>The <strong>Max ☀️</strong> column shows the maximum CP for that level. Once you
+        exceed it, you advance to the next level instantly.</p>
+
+        <table class="huk-level-table">
+          <thead><tr><th>#</th><th>Level Name</th><th style="text-align:right;">Max ☀️</th></tr></thead>
+          <tbody>
+            <tr class="tier-row"><td colspan="3">📄 Page Turner Tier</td></tr>
+            <tr><td>1</td><td>Page Turner I</td><td style="text-align:right;">111</td></tr>
+            <tr><td>2</td><td>Page Turner II</td><td style="text-align:right;">248</td></tr>
+            <tr><td>3</td><td>Page Turner III</td><td style="text-align:right;">417</td></tr>
+            <tr><td>4</td><td>Page Turner IV</td><td style="text-align:right;">624</td></tr>
+            <tr><td>5</td><td>Page Turner V</td><td style="text-align:right;">875</td></tr>
+            <tr><td>6</td><td>Page Turner VI</td><td style="text-align:right;">1,176</td></tr>
+            <tr><td>7</td><td>Page Turner VII</td><td style="text-align:right;">1,533</td></tr>
+            <tr><td>8</td><td>Page Turner VIII</td><td style="text-align:right;">1,952</td></tr>
+            <tr><td>9</td><td>Page Turner IX</td><td style="text-align:right;">2,439</td></tr>
+            <tr><td>10</td><td>Page Turner X</td><td style="text-align:right;">3,000</td></tr>
+            <tr class="tier-row"><td colspan="3">📖 Bookworm Tier</td></tr>
+            <tr><td>11</td><td>Bookworm I</td><td style="text-align:right;">3,641</td></tr>
+            <tr><td>12</td><td>Bookworm II</td><td style="text-align:right;">4,368</td></tr>
+            <tr><td>13</td><td>Bookworm III</td><td style="text-align:right;">5,187</td></tr>
+            <tr><td>14</td><td>Bookworm IV</td><td style="text-align:right;">6,104</td></tr>
+            <tr><td>15</td><td>Bookworm V</td><td style="text-align:right;">7,125</td></tr>
+            <tr><td>16</td><td>Bookworm VI</td><td style="text-align:right;">8,256</td></tr>
+            <tr><td>17</td><td>Bookworm VII</td><td style="text-align:right;">9,503</td></tr>
+            <tr><td>18</td><td>Bookworm VIII</td><td style="text-align:right;">10,872</td></tr>
+            <tr><td>19</td><td>Bookworm IX</td><td style="text-align:right;">12,369</td></tr>
+            <tr><td>20</td><td>Bookworm X</td><td style="text-align:right;">14,000</td></tr>
+            <tr class="tier-row"><td colspan="3">🎓 Scholar Tier</td></tr>
+            <tr><td>21</td><td>Scholar I</td><td style="text-align:right;">15,771</td></tr>
+            <tr><td>22</td><td>Scholar II</td><td style="text-align:right;">17,688</td></tr>
+            <tr><td>23</td><td>Scholar III</td><td style="text-align:right;">19,757</td></tr>
+            <tr><td>24</td><td>Scholar IV</td><td style="text-align:right;">21,984</td></tr>
+            <tr><td>25</td><td>Scholar V</td><td style="text-align:right;">24,375</td></tr>
+            <tr><td>26</td><td>Scholar VI</td><td style="text-align:right;">26,936</td></tr>
+            <tr><td>27</td><td>Scholar VII</td><td style="text-align:right;">29,673</td></tr>
+            <tr><td>28</td><td>Scholar VIII</td><td style="text-align:right;">32,592</td></tr>
+            <tr><td>29</td><td>Scholar IX</td><td style="text-align:right;">35,699</td></tr>
+            <tr><td>30</td><td>Scholar X</td><td style="text-align:right;">39,000</td></tr>
+            <tr class="tier-row"><td colspan="3">📚 Bibliophile Tier</td></tr>
+            <tr><td>31</td><td>Bibliophile I</td><td style="text-align:right;">42,501</td></tr>
+            <tr><td>32</td><td>Bibliophile II</td><td style="text-align:right;">46,208</td></tr>
+            <tr><td>33</td><td>Bibliophile III</td><td style="text-align:right;">50,127</td></tr>
+            <tr><td>34</td><td>Bibliophile IV</td><td style="text-align:right;">54,264</td></tr>
+            <tr><td>35</td><td>Bibliophile V</td><td style="text-align:right;">58,625</td></tr>
+            <tr><td>36</td><td>Bibliophile VI</td><td style="text-align:right;">63,216</td></tr>
+            <tr><td>37</td><td>Bibliophile VII</td><td style="text-align:right;">68,043</td></tr>
+            <tr><td>38</td><td>Bibliophile VIII</td><td style="text-align:right;">73,112</td></tr>
+            <tr><td>39</td><td>Bibliophile IX</td><td style="text-align:right;">78,429</td></tr>
+            <tr><td>40</td><td>Bibliophile X</td><td style="text-align:right;">84,000</td></tr>
+            <tr class="tier-row"><td colspan="3">✍️ Scribe Tier</td></tr>
+            <tr><td>41</td><td>Scribe I</td><td style="text-align:right;">89,831</td></tr>
+            <tr><td>42</td><td>Scribe II</td><td style="text-align:right;">95,928</td></tr>
+            <tr><td>43</td><td>Scribe III</td><td style="text-align:right;">102,297</td></tr>
+            <tr><td>44</td><td>Scribe IV</td><td style="text-align:right;">108,944</td></tr>
+            <tr><td>45</td><td>Scribe V</td><td style="text-align:right;">115,875</td></tr>
+            <tr><td>46</td><td>Scribe VI</td><td style="text-align:right;">123,096</td></tr>
+            <tr><td>47</td><td>Scribe VII</td><td style="text-align:right;">130,613</td></tr>
+            <tr><td>48</td><td>Scribe VIII</td><td style="text-align:right;">138,432</td></tr>
+            <tr><td>49</td><td>Scribe IX</td><td style="text-align:right;">146,559</td></tr>
+            <tr><td>50</td><td>Scribe X</td><td style="text-align:right;">155,000</td></tr>
+            <tr class="tier-row"><td colspan="3">🌿 Sage Tier</td></tr>
+            <tr><td>51</td><td>Sage I</td><td style="text-align:right;">163,761</td></tr>
+            <tr><td>52</td><td>Sage II</td><td style="text-align:right;">172,848</td></tr>
+            <tr><td>53</td><td>Sage III</td><td style="text-align:right;">182,267</td></tr>
+            <tr><td>54</td><td>Sage IV</td><td style="text-align:right;">192,024</td></tr>
+            <tr><td>55</td><td>Sage V</td><td style="text-align:right;">202,125</td></tr>
+            <tr><td>56</td><td>Sage VI</td><td style="text-align:right;">212,576</td></tr>
+            <tr><td>57</td><td>Sage VII</td><td style="text-align:right;">223,383</td></tr>
+            <tr><td>58</td><td>Sage VIII</td><td style="text-align:right;">234,552</td></tr>
+            <tr><td>59</td><td>Sage IX</td><td style="text-align:right;">246,089</td></tr>
+            <tr><td>60</td><td>Sage X</td><td style="text-align:right;">258,000</td></tr>
+            <tr class="tier-row"><td colspan="3">✨ Luminary Tier</td></tr>
+            <tr><td>61</td><td>Luminary I</td><td style="text-align:right;">270,291</td></tr>
+            <tr><td>62</td><td>Luminary II</td><td style="text-align:right;">282,968</td></tr>
+            <tr><td>63</td><td>Luminary III</td><td style="text-align:right;">296,037</td></tr>
+            <tr><td>64</td><td>Luminary IV</td><td style="text-align:right;">309,504</td></tr>
+            <tr><td>65</td><td>Luminary V</td><td style="text-align:right;">323,375</td></tr>
+            <tr><td>66</td><td>Luminary VI</td><td style="text-align:right;">337,656</td></tr>
+            <tr><td>67</td><td>Luminary VII</td><td style="text-align:right;">352,353</td></tr>
+            <tr><td>68</td><td>Luminary VIII</td><td style="text-align:right;">367,472</td></tr>
+            <tr><td>69</td><td>Luminary IX</td><td style="text-align:right;">383,019</td></tr>
+            <tr><td>70</td><td>Luminary X</td><td style="text-align:right;">399,000</td></tr>
+            <tr class="tier-row"><td colspan="3">🏛️ Maven Tier</td></tr>
+            <tr><td>71</td><td>Maven I</td><td style="text-align:right;">415,421</td></tr>
+            <tr><td>72</td><td>Maven II</td><td style="text-align:right;">432,288</td></tr>
+            <tr><td>73</td><td>Maven III</td><td style="text-align:right;">449,607</td></tr>
+            <tr><td>74</td><td>Maven IV</td><td style="text-align:right;">467,384</td></tr>
+            <tr><td>75</td><td>Maven V</td><td style="text-align:right;">485,625</td></tr>
+            <tr><td>76</td><td>Maven VI</td><td style="text-align:right;">504,336</td></tr>
+            <tr><td>77</td><td>Maven VII</td><td style="text-align:right;">523,523</td></tr>
+            <tr><td>78</td><td>Maven VIII</td><td style="text-align:right;">543,192</td></tr>
+            <tr><td>79</td><td>Maven IX</td><td style="text-align:right;">563,349</td></tr>
+            <tr><td>80</td><td>Maven X</td><td style="text-align:right;">584,000</td></tr>
+            <tr class="tier-row"><td colspan="3">🎼 Virtuoso Tier</td></tr>
+            <tr><td>81</td><td>Virtuoso I</td><td style="text-align:right;">605,151</td></tr>
+            <tr><td>82</td><td>Virtuoso II</td><td style="text-align:right;">626,808</td></tr>
+            <tr><td>83</td><td>Virtuoso III</td><td style="text-align:right;">648,977</td></tr>
+            <tr><td>84</td><td>Virtuoso IV</td><td style="text-align:right;">671,664</td></tr>
+            <tr><td>85</td><td>Virtuoso V</td><td style="text-align:right;">694,875</td></tr>
+            <tr><td>86</td><td>Virtuoso VI</td><td style="text-align:right;">718,616</td></tr>
+            <tr><td>87</td><td>Virtuoso VII</td><td style="text-align:right;">742,893</td></tr>
+            <tr><td>88</td><td>Virtuoso VIII</td><td style="text-align:right;">767,712</td></tr>
+            <tr><td>89</td><td>Virtuoso IX</td><td style="text-align:right;">793,079</td></tr>
+            <tr><td>90</td><td>Virtuoso X</td><td style="text-align:right;">819,000</td></tr>
+            <tr class="tier-row"><td colspan="3">🔮 Oracle Tier</td></tr>
+            <tr><td>91</td><td>Oracle I</td><td style="text-align:right;">845,481</td></tr>
+            <tr><td>92</td><td>Oracle II</td><td style="text-align:right;">872,528</td></tr>
+            <tr><td>93</td><td>Oracle III</td><td style="text-align:right;">900,147</td></tr>
+            <tr><td>94</td><td>Oracle IV</td><td style="text-align:right;">928,344</td></tr>
+            <tr><td>95</td><td>Oracle V</td><td style="text-align:right;">957,125</td></tr>
+            <tr><td>96</td><td>Oracle VI</td><td style="text-align:right;">986,496</td></tr>
+            <tr><td>97</td><td>Oracle VII</td><td style="text-align:right;">1,016,463</td></tr>
+            <tr><td>98</td><td>Oracle VIII</td><td style="text-align:right;">1,047,032</td></tr>
+            <tr><td>99</td><td>Oracle IX</td><td style="text-align:right;">1,078,209</td></tr>
+            <tr><td>100</td><td>Oracle X</td><td style="text-align:right;">1,110,000</td></tr>
+          </tbody>
+        </table>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-points-how')">How to Earn Club Points ☀️</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-badges')">Badges — Special Recognition</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-badges",
+      category: "Points & Badges",
+      title: "Badges — Special Recognition",
+      tags: "badges, awards, recognition, badge gallery, earn badge, special, admin award, revoke",
+      snippet: "What badges are, how to view them, and how they are awarded.",
+      content: `
+        <p>
+          Badges are special one-time recognitions for achievements that go beyond everyday
+          point-earning — things like completing a full challenge series, contributing
+          significantly to the library, or other notable club moments.
+        </p>
+
+        <h3>Viewing Your Badges</h3>
+        <p>
+          Open the <strong>Badge Gallery</strong> from the side drawer. Your earned badges
+          appear at the top in full colour. Badges you have not yet earned appear below
+          in greyscale — so you can always see what is possible.
+        </p>
+        <p>
+          A summary bar at the top shows <strong>X / total</strong> badges earned.
+        </p>
+
+        <h3>Badges on Your Profile</h3>
+        <p>
+          Earned badges appear as a horizontal strip on your profile card, visible both to
+          you and to other members when they view your profile. Tap any badge to read its
+          name and description.
+        </p>
+
+        <h3>How Badges Are Awarded <span class="huk-admin-tag">🔐 Admin Only</span></h3>
+        <p>
+          Badges are awarded manually by admins from the Badge Gallery admin panel. An admin
+          can award any badge to any member, with an optional note explaining the reason.
+        </p>
+        <div class="huk-tip">
+          <strong>💡 No automated triggers (yet).</strong> Most badges are given at admin
+          discretion for notable contributions. If you believe you have earned one, drop a
+          message to the admin — they may not have noticed!
+        </div>
+        <div class="huk-warn">
+          <strong>No in-app notification.</strong> When a badge is awarded, it silently
+          appears on your profile after the next time you load the app. Check your Badge
+          Gallery from time to time.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-points-how')">How to Earn Club Points ☀️</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-reader-levels')">Reader Levels — All 100 Levels</div>
+        </div>
+      `
+    },
+
+
+    // ══════════════════════════════════════════════════════════════
+    // CATEGORY: Members
+    // ══════════════════════════════════════════════════════════════
+
+    {
+      id: "help-members-directory",
+      category: "Members",
+      title: "Finding & Connecting with Members",
+      tags: "members, directory, search, genre, country, profile, reading buddy, connect, Goodreads, LinkedIn, privacy, visible",
+      snippet: "Search the member directory, find reading buddies by genre, and explore member profiles.",
+      content: `
+        <p>
+          The <span class="huk-tab-icon">👥</span> <strong>Members</strong> tab is Arka's
+          reader directory. Find fellow readers by name, country, or shared genre, and see
+          exactly what they are reading.
+        </p>
+
+        <h3>Searching for Members</h3>
+        <div class="huk-search-bar">Search by name, country, or genre…</div>
+        <p>
+          The search bar filters by <strong>display name</strong>, <strong>country</strong>,
+          and <strong>favourite genres</strong> simultaneously. Type "mystery" to find
+          everyone who reads mystery. Type "India" to find members in India.
+        </p>
+        <div class="huk-tip">
+          <strong>💡 Reading buddy tip:</strong> Search by a genre you love, then browse
+          those members' Finished shelves to discover books you might have missed.
+        </div>
+
+        <h3>What You Can See on a Member's Profile</h3>
+        <p>Tap any member card to open their full profile. You can see:</p>
+        <ul>
+          <li>Display name, reader level, and lifetime stats (pages · books)</li>
+          <li>Bio, reading goal, favourite genres, and languages</li>
+          <li>Goodreads and LinkedIn links (only if the member has shared them)</li>
+          <li>Earned badges strip</li>
+          <li>Shelf tiles (To Read, Reading, Finished, DNF counts) — tap any to browse</li>
+          <li>Recent activity feed</li>
+        </ul>
+
+        <div class="huk-warn">
+          <strong>🔓 Member profiles are visible to all Arka members</strong> who have
+          signed in with an authorised Google account. Profiles are not visible to the
+          general public or to anyone without app access.
+        </div>
+
+        <h3>Connecting Outside Arka</h3>
+        <p>
+          If a member has shared their Goodreads or LinkedIn, tap the link on their profile
+          to connect outside the app. These links only appear when the member has chosen to
+          share them.
+        </p>
+
+        <div class="huk-tip">
+          <strong>💡 Be discoverable yourself:</strong> The more you fill in on your own
+          profile — genres, languages, bio — the easier it is for others to find and
+          connect with you.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-profile-basics')">Profile — Part 1: Identity &amp; Picture</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-profile-links')">Profile — Part 2: Goals, Genres &amp; Social Links</div>
+        </div>
+      `
+    },
+
+
+    // ══════════════════════════════════════════════════════════════
+    // CATEGORY: Help & FAQs
+    // ══════════════════════════════════════════════════════════════
+
+    {
+      id: "help-troubleshooting",
+      category: "Help & FAQs",
+      title: "Troubleshooting Common Issues",
+      tags: "broken, not working, error, blank, loading, points, level, feed, empty, missing, stuck, refresh, reload",
+      snippet: "The five most common issues members run into — and how to fix them.",
+      content: `
+        <p>
+          If something is not working as expected, try the steps below before submitting
+          a bug report. Most issues are solved by a simple refresh.
+        </p>
+
+        <h3>Issue 1 — The App Won't Load / Shows a Blank Screen</h3>
+        <div class="huk-step-box">
+          <div class="huk-step-number">1</div>
+          <div>Hard-refresh the page: <strong>Ctrl + Shift + R</strong> on desktop,
+          or close and reopen on mobile.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">2</div>
+          <div>Check your internet connection — the app requires a live connection to
+          Google's servers on every load.</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">3</div>
+          <div>Make sure you are signed into the correct Google account (the one you
+          registered with, or your linked alternate Gmail).</div>
+        </div>
+        <div class="huk-step-box">
+          <div class="huk-step-number">4</div>
+          <div>If it still fails, check whether Google Apps Script is experiencing
+          an outage at <strong>status.google.com</strong>.</div>
+        </div>
+
+        <h3>Issue 2 — My Points Didn't Update After I Logged Pages</h3>
+        <p>
+          Points are awarded immediately when you save a shelf update or log progress.
+          If they look wrong:
+        </p>
+        <ul>
+          <li>Your Club Points total on the Me tab is recalculated every night
+          automatically. The live number may differ slightly from the nightly total —
+          this resolves on its own by morning.</li>
+          <li>If you entered a page count <em>lower</em> than your previous saved total,
+          zero points are awarded (this is a correction, not a new reading session).
+          See the Shelving — Part 2 article for how pages are calculated.</li>
+        </ul>
+
+        <h3>Issue 3 — My Level Didn't Change Even Though I Have Enough Points</h3>
+        <p>
+          Level names on your profile update from the nightly sync, even though points
+          are awarded in real time. If you just crossed a threshold, your level name may
+          show correctly after the next page reload. If it still seems wrong after 24 hours,
+          submit a bug report.
+        </p>
+
+        <h3>Issue 4 — The Home Feed Is Empty</h3>
+        <p>
+          The feed does not auto-refresh. Tap the <strong>Sync</strong> button at the top
+          of the Home view to fetch the latest activity. If the feed is still empty after
+          syncing, the club may genuinely have no new activity in the last period —
+          or you may be the first person to open the app today!
+        </p>
+
+        <h3>Issue 5 — My Challenge Progress Is Missing</h3>
+        <p>
+          Progress for most challenges is calculated from your shelf activity. If a book
+          you finished is not counting toward your challenge:
+        </p>
+        <ul>
+          <li>Confirm the book is marked as <span class="huk-badge huk-badge--finished">🏆 Finished</span>
+          on your shelf (not still Reading).</li>
+          <li>For Bingo Grid challenges, you must manually link a book to each cell —
+          finishing the book on your shelf does not automatically complete a cell.</li>
+          <li>For Buddy Read challenges, log your pages — progress is tracked by page
+          count, not by Finished status.</li>
+        </ul>
+
+        <div class="huk-tip">
+          <strong>Still stuck?</strong> Use the feedback form (side drawer → Send Feedback)
+          to report the issue. Describe exactly what you were doing and what you expected
+          to happen. That earns you <span class="huk-cp-pill">+150 ☀️ CP</span> too.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-faq')">Frequently Asked Questions</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-feedback')">Submitting Feedback &amp; Bug Reports</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-shelving-progress')">Shelving — Part 2: Pages, Ratings &amp; Reviews</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-faq",
+      category: "Help & FAQs",
+      title: "Frequently Asked Questions",
+      tags: "FAQ, questions, display name, delete, account, shelf, private, points down, correction, challenge, end, expire, duplicate",
+      snippet: "The questions members ask most often — answered directly.",
+      content: `
+        <h3>Can I change my display name?</h3>
+        <p>
+          Not without admin help. Display names are permanent to keep the feed and
+          community consistent. If you genuinely need a change, message the admin with
+          your current name and desired new name.
+        </p>
+
+        <h3>Can I delete my account or remove myself from the app?</h3>
+        <p>
+          There is no self-service account deletion currently. Contact the admin to
+          have your profile removed from the system.
+        </p>
+
+        <h3>Can I make my shelf private?</h3>
+        <p>
+          No. All shelf activity is visible to all club members — that is by design.
+          The shared feed is what makes the club feel alive. There is no private mode.
+        </p>
+
+        <h3>Can I delete a book from my shelf?</h3>
+        <p>
+          No. Once a book is on your shelf, it stays in your reading history. If you
+          shelved something by mistake, change the status to
+          <span class="huk-badge huk-badge--dnf">🛑 DNF</span> to move it out of your
+          active Reading list.
+        </p>
+
+        <h3>Why did my points go down?</h3>
+        <p>
+          The system runs a nightly audit and automatically corrects violations such as:
+          duplicate ratings or reviews on the same book, multiple reading-status changes
+          on the same book in one day (only the last one counts), and profile update
+          spamming beyond the once-per-day limit. A correction appears as a negative entry
+          in the Activity Log. This is not a bug — it is the fair play system working
+          as intended.
+        </p>
+
+        <h3>Why does the app show different CP totals at different times?</h3>
+        <p>
+          Points are awarded immediately when you take an action. However, the nightly
+          audit may add or subtract points based on rule checks. Your profile total on
+          the Me tab reflects the nightly-verified number — the two may differ by a small
+          amount during the day but reconcile each night.
+        </p>
+
+        <h3>What happens to my challenge if I don't finish before the end date?</h3>
+        <p>
+          When a challenge's end date passes, active enrollments close. If you were still
+          in Active status (did not reach Finisher or Winner), you keep your enrol CP but
+          do not receive finish or win points. Your progress is preserved in the archive
+          for your own reference.
+        </p>
+
+        <h3>Can I re-join a challenge I dropped?</h3>
+        <p>
+          No. Once you drop a challenge, you cannot re-join it. This is permanent.
+        </p>
+
+        <h3>What does "Read Again" do — does it delete my original record?</h3>
+        <p>
+          No. Read Again creates a brand-new shelf record while preserving your original
+          one in your history. Both records are kept, and you earn full points again for
+          the new read.
+        </p>
+
+        <h3>Can two members add the same book?</h3>
+        <p>
+          The app blocks exact duplicate titles during the add-book flow. However, slightly
+          different spellings or editions can slip through. If you spot a duplicate, use
+          Edit Book Info on the older entry to merge the information, then contact the admin
+          to remove the duplicate.
+        </p>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-troubleshooting')">Troubleshooting Common Issues</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-points-how')">How to Earn Club Points ☀️</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-feedback')">Submitting Feedback &amp; Bug Reports</div>
         </div>
       `
     }
- 
+
   ]; // end helpArticlesDB
 </script>
