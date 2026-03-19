@@ -314,6 +314,29 @@
   .huk-level-table tr:hover td { background: #fafbfc; }
   .huk-level-table .tier-row td { background: #2c3e50; color: #fff; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.4px; }
 
+  /* ── Three-dot menu icon (⋮ — top-right action menus in the app) ────────── */
+  .huk-menu-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; background: #f4f6f7;
+    border-radius: 6px; border: 1px solid #dfe6e9;
+    vertical-align: middle; cursor: default;
+    font-weight: 900; color: #2c3e50; font-size: 1.1rem; letter-spacing: -2px;
+  }
+
+  /* ── Featured article badge (Start Here / pinned articles) ─────────────── */
+  .huk-featured-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #fef9e7; border: 1px solid #f1c40f; border-radius: 6px;
+    padding: 3px 10px; font-size: 0.72rem; font-weight: 700;
+    color: #9a7d0a; white-space: nowrap; margin-bottom: 14px;
+  }
+
+  /* ── Last-updated annotation (CP/level articles) ─────────────────────────── */
+  .huk-last-updated {
+    font-size: 0.7rem; color: #95a5a6; font-style: italic;
+    margin-bottom: 14px; display: block;
+  }
+
   /* ── Related articles footer ────────────────────────────────────────────── */
   .huk-related {
     border-top: 1px solid #ecf0f1; margin-top: 28px; padding-top: 16px;
@@ -354,19 +377,63 @@
       id: "help-arka-vision",
       category: "Arka",
       title: "The Foundation & Vision",
-      tags: "history, goals, started, 2026, roadmap, future, why, mission, purpose, founders",
-      snippet: "Why Arka Readers Club exists, our shared goals, and what the app tracks for you.",
+      tags: "history, goals, started, 2026, roadmap, future, why, mission, purpose, founders, origin, name, sun, sanskrit, whatsapp, app, blueprint, pages, meetups, read along",
+      snippet: "Why Arka Readers Club exists, how it began, what the name means, and where we are headed.",
       content: `
+        <div class="huk-featured-badge">📖 Arka Story</div>
+
+        <h3>How Arka Began</h3>
         <p>
-          Arka Readers Club is a community of people who believe reading is better when shared —
-          the discoveries, the debates, the unexpected books that change you. The club was
-          founded in 2025 by a small group of readers who wanted a space that was warmer than
-          Goodreads and more purposeful than a WhatsApp group.
+          Arka Readers Club was born from a simple, shared frustration: a group of friends
+          who loved reading but kept letting life get in the way. Sound familiar?
         </p>
         <p>
-          This app is the club's shared space: a library we all build, a live feed of each
-          other's reading, a challenge board, and an events calendar — all in one place.
+          It started — as most good things do — in a WhatsApp group. Book recommendations
+          flew around, reading goals were declared with great enthusiasm, and then quietly
+          forgotten. What was missing was accountability, structure, and a way to actually
+          <em>see</em> each other reading. So the club was born.
         </p>
+        <p>
+          This app is the next step in that journey. It is the club's shared space: a
+          library we all build together, a live feed of each other's reading lives, a
+          challenge board that keeps things interesting, and an events calendar that
+          brings us together in person. Everything in one place, built specifically for
+          Arka and how we actually read.
+        </p>
+
+        <h3>What Does "Arka" Mean?</h3>
+        <div class="huk-tip">
+          <strong>☀️ Arka</strong> is the Sanskrit word for <strong>sun</strong>. Reading,
+          like sunlight, nourishes quietly and steadily — you do not always notice it
+          working, but over time it changes everything. The ☀️ in your Club Points total
+          is a direct nod to this. Every point you earn is a small ray of sun.
+        </div>
+
+        <h3>Our Values</h3>
+        <ul>
+          <li>
+            <strong>Built by readers, for readers.</strong>
+            Every feature in this app started as a request from an actual club member
+            through the feedback form. If something is missing, tell us.
+          </li>
+          <li>
+            <strong>Progress over perfection.</strong>
+            The club celebrates every book — short or long, literary or pulp, fiction
+            or non-fiction. DNF (Did Not Finish) is a completely valid status.
+            No judgment, ever.
+          </li>
+          <li>
+            <strong>Real-world connection first.</strong>
+            The app supports, but does not replace, the meetups, the WhatsApp conversations,
+            and the friendships that make this club real. Points and levels are fun;
+            the people are the point.
+          </li>
+          <li>
+            <strong>Transparent and fair.</strong>
+            Every point value is published in the Help center. The audit engine that runs
+            every night is documented. There are no hidden rules.
+          </li>
+        </ul>
 
         <h3>Our 2026 Blueprint</h3>
         <ul>
@@ -376,9 +443,9 @@
         </ul>
 
         <div class="huk-tip">
-          <strong>💡 You're part of this:</strong> Every page you log, every book you finish,
+          <strong>💡 You are part of this:</strong> Every page you log, every book you finish,
           every review you leave counts toward these shared goals. Check the Home feed to see
-          the club's live progress.
+          the club's live progress against each milestone.
         </div>
 
         <h3>What the App Tracks for You</h3>
@@ -388,17 +455,20 @@
           <li>Challenges you join and your progress toward completing them</li>
           <li>Club events you RSVP to or host</li>
           <li>Badges awarded for special achievements</li>
+          <li>The club's collective stats — total pages read, books finished, members active</li>
         </ul>
 
         <div class="huk-tip">
-          <strong>📅 Goals are reviewed annually.</strong> The 2026 Blueprint above was set in
-          January 2026. New goals for 2027 will be announced on the Home feed.
+          <strong>📅 Goals are reviewed annually.</strong>
+          The 2026 Blueprint was set at the start of this year.
+          New goals for 2027 will be announced on the Home feed in January 2027.
         </div>
 
         <div class="huk-related">
           <div class="huk-related-title">Related Articles</div>
           <div class="huk-related-link" onclick="openHelpArticle('help-start-here')">Start Here — Your First 10 Minutes</div>
           <div class="huk-related-link" onclick="openHelpArticle('help-home-feed')">Understanding the Home Feed</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-points-how')">How to Earn Club Points ☀️</div>
         </div>
       `
     },
@@ -415,6 +485,7 @@
       tags: "new member, start, begin, first steps, onboarding, welcome, quick start, setup",
       snippet: "Brand new to Arka? Do these four things in your first 10 minutes.",
       content: `
+        <div class="huk-featured-badge">✨ Start here if you are new!</div>
         <p>
           Welcome to Arka! This guide gets you set up and contributing in under 10 minutes.
           Do these four things in order and you will feel right at home.
@@ -463,14 +534,14 @@
         </div>
 
         <div class="huk-success">
-          <strong>🎉 You're in!</strong> Completing those four steps will already earn you
-          points from the profile update and the shelf action. Check your level on the
+          <strong>🎉 You're in!</strong> Those four steps will already earn you
+          points — from the profile update and the shelf action. Check your level on the
           <span class="huk-tab-icon" style="width:24px;height:24px;font-size:0.9rem;">👤</span>
           Me tab.
         </div>
 
         <div class="huk-related">
-          <div class="huk-related-title">Next Steps</div>
+          <div class="huk-related-title">Related Articles</div>
           <div class="huk-related-link" onclick="openHelpArticle('help-profile-basics')">Setting Up Your Profile — Part 1</div>
           <div class="huk-related-link" onclick="openHelpArticle('help-adding-books')">Finding &amp; Adding Books</div>
           <div class="huk-related-link" onclick="openHelpArticle('help-shelving-status')">Shelving — Part 1: Choosing a Status</div>
@@ -1252,8 +1323,8 @@
 
         <h3>Editing Book Info</h3>
         <p>
-          Spotted a typo or wrong page count? Tap the <strong>⋮</strong> three-dot menu
-          in the top-right corner of the header and choose <strong>Edit Book Info</strong>.
+          Spotted a typo or wrong page count? Tap the <span class="huk-menu-icon">⋮</span> three-dot menu
+          in the top-right corner of the page header and choose <strong>Edit Book Info</strong>.
           This opens the same form used to add books — fix what's wrong and save. Any member
           can edit book metadata.
         </p>
@@ -1287,13 +1358,15 @@
           personal reading dashboard. The stats here update every time you log pages.
         </p>
 
-        <h3>Quick-Log Button</h3>
+        <h3>Logging Pages from the Me Tab</h3>
         <p>
-          At the top of the Me tab there is a quick
-          <span class="huk-btn huk-btn--accent" style="font-size:0.75rem;">📖 Log progress</span>
-          shortcut. Tap it to log pages for any book currently on your
-          <span class="huk-badge huk-badge--reading">📖 Reading</span> shelf without going
-          through the full library flow.
+          On each book card in your Reading shelf carousel on the Me tab, you will see a small
+          purple progress icon
+          <span style="display:inline-flex;align-items:center;justify-content:center;
+                       width:26px;height:26px;background:#7a5b9e;border-radius:6px;
+                       font-size:0.8rem;vertical-align:middle;">📊</span>
+          in the bottom-right corner of the cover. Tap it to log pages directly from the
+          Me tab without going through the full Library flow.
         </p>
 
         <h3>52-Week Heatmap</h3>
@@ -1502,8 +1575,10 @@
         to track progress toward the book's total page count.</p>
 
         <p><span class="huk-chal-type">🌍 Around the World</span>
-        — Read books from a target number of different countries. The country is determined
-        by the <strong>author's nationality</strong>, not the setting of the story.</p>
+        — Read books from a target number of different countries. The country is typically
+        determined by the <strong>author's nationality</strong> or country of origin — check
+        the specific challenge description for exact rules, as each challenge may define this
+        differently.</p>
 
         <p><span class="huk-chal-type">🔤 Alphabet</span>
         — Read books whose <strong>titles</strong> start with each letter of the alphabet
@@ -1912,10 +1987,10 @@
       tags: "club points, CP, earn, actions, reading, library, review, rating, profile, feedback, milestone, RSVP, event, challenge, post, discussion, all actions",
       snippet: "Every action that earns Club Points — the complete reference table from the database.",
       content: `
+        <span class="huk-last-updated">CP values last verified against ActivityTypeDB: March 2026 (App v44). Update this date whenever values change.</span>
         <p>
           Club Points (☀️ CP) are awarded automatically — no claiming or button-pressing
           required. All values below are sourced directly from ActivityTypeDB.
-          <em>Last verified: March 2026.</em>
         </p>
 
         <h3>Reading &amp; Shelf Actions</h3>
@@ -2030,6 +2105,7 @@
       tags: "level, rank, tier, page turner, bookworm, scholar, bibliophile, scribe, sage, luminary, maven, virtuoso, oracle, points, upgrade, progress, how many points, thresholds",
       snippet: "All 100 levels with exact CP thresholds — find yours and see what's next.",
       content: `
+        <span class="huk-last-updated">Level thresholds last verified against ClubPointLevelDB: March 2026. Update this date if levels change.</span>
         <p>
           Your Reader Level updates the moment you earn enough CP to advance — no waiting.
           Levels are <strong>cumulative</strong>: you never lose progress. A level-up card
@@ -2249,6 +2325,85 @@
     },
 
 
+    {
+      id: "help-notices-announcements",
+      category: "Events & Club Life",
+      title: "Notices & Club Announcements",
+      tags: "notices, announcements, pinned, club news, admin, banner, dismiss, expiry, archived, home feed",
+      snippet: "Where to find club-wide notices, what pinned announcements mean, and why dismissed ones come back.",
+      content: `
+        <p>
+          The admin uses Notices to share club-wide updates — meeting reminders, rule changes,
+          challenge launches, and any news that every member should see. There are two places
+          you encounter them: the <strong>Home feed banner</strong> and the
+          <strong>Notices tab</strong> inside Events &amp; Notices.
+        </p>
+
+        <h3>Home Feed Banner</h3>
+        <p>
+          Active announcements appear in a yellow card at the top of the Home feed, above
+          the activity stream. They look like this:
+        </p>
+        <div class="huk-screen-mockup">
+          <div class="huk-screen-mockup-label">Home Feed — Announcement Banner</div>
+          <div style="background:#fffdf5;border-left:4px solid #f59f00;border-radius:0 10px 10px 0;
+                      padding:12px 14px;position:relative;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <span style="font-size:0.7rem;font-weight:700;color:#854F0B;text-transform:uppercase;">
+                📣 Club Notice
+              </span>
+              <span style="font-size:0.65rem;background:#f59f00;color:white;
+                           padding:1px 6px;border-radius:8px;font-weight:600;">📌 Pinned</span>
+            </div>
+            <div style="font-size:0.9rem;font-weight:700;color:#2c3e50;">
+              Virtual Meeting — April Picks
+            </div>
+            <div style="font-size:0.82rem;color:#34495e;margin-top:4px;">
+              Join us this Saturday at 11am IST to discuss our April reads.
+            </div>
+          </div>
+        </div>
+
+        <h3>Pinned vs Non-Pinned Announcements</h3>
+        <p>
+          <strong>📌 Pinned announcements</strong> stay at the top of the Home feed until an
+          admin removes or unpins them. You cannot dismiss them — they are considered critical
+          information for all members.
+        </p>
+        <p>
+          <strong>Non-pinned announcements</strong> show a <strong>✕</strong> dismiss button.
+          Tap it to hide the card for the rest of your current session. The announcement will
+          reappear the next time you open the app — this is by design, so important notices
+          are not permanently lost just because you dismissed them once.
+        </p>
+
+        <h3>The Notices Tab</h3>
+        <p>
+          Open the side drawer → <strong>Events &amp; Notices</strong> → tap the
+          <strong>Notices</strong> tab. This shows the full history of all active club
+          announcements in one place, including ones that may have scrolled off the Home feed.
+        </p>
+        <div class="huk-tip">
+          <strong>💡 Missed something?</strong> If a notice disappeared from your Home feed
+          because it expired or you dismissed it, check the Notices tab — active announcements
+          are always visible there.
+        </div>
+
+        <h3>Who Creates Announcements <span class="huk-admin-tag">🔐 Admin Only</span></h3>
+        <p>
+          Only admins can publish club-wide announcements. Admins can set an expiry date
+          on a notice — once expired, it is automatically archived and removed from both
+          the Home feed and the Notices tab.
+        </p>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-home-feed')">Understanding the Home Feed</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-events-rsvp')">Club Events — Browse &amp; RSVP</div>
+        </div>
+      `
+    },
+
     // ══════════════════════════════════════════════════════════════
     // CATEGORY: Members
     // ══════════════════════════════════════════════════════════════
@@ -2352,7 +2507,7 @@
         <div class="huk-step-box">
           <div class="huk-step-number">4</div>
           <div>If it still fails, check whether Google Apps Script is experiencing
-          an outage at <strong>status.google.com</strong>.</div>
+          an outage at <strong>workspace.google.com/status</strong> — the official Google Workspace status page that covers Apps Script.</div>
         </div>
 
         <h3>Issue 2 — My Points Didn't Update After I Logged Pages</h3>
@@ -2421,6 +2576,11 @@
       tags: "FAQ, questions, display name, delete, account, shelf, private, points down, correction, challenge, end, expire, duplicate",
       snippet: "The questions members ask most often — answered directly.",
       content: `
+        <p>
+          Quick answers to the questions Arka members ask most often. If your question
+          is not here, use the feedback form (side drawer → Send Feedback) to ask the admin.
+        </p>
+
         <h3>Can I change my display name?</h3>
         <p>
           Not without admin help. Display names are permanent to keep the feed and
@@ -2499,6 +2659,84 @@
           <div class="huk-related-link" onclick="openHelpArticle('help-troubleshooting')">Troubleshooting Common Issues</div>
           <div class="huk-related-link" onclick="openHelpArticle('help-points-how')">How to Earn Club Points ☀️</div>
           <div class="huk-related-link" onclick="openHelpArticle('help-feedback')">Submitting Feedback &amp; Bug Reports</div>
+        </div>
+      `
+    },
+
+    {
+      id: "help-whats-new",
+      category: "Help & FAQs",
+      title: "What's New in Arka",
+      tags: "new features, updates, changelog, release notes, version, latest, app updates, what changed",
+      snippet: "Recent additions and improvements to the Arka app — what changed and when.",
+      content: `
+        <span class="huk-last-updated">Last updated: March 2026 (App v44). Update this article whenever new features ship.</span>
+
+        <p>
+          Arka is a living app — features are added regularly based on member feedback.
+          This page tracks the most significant recent additions. Older updates are
+          archived here for reference.
+        </p>
+
+        <h3>v44 — March 2026</h3>
+        <ul>
+          <li>
+            <strong>Page-by-page progress logging</strong> — Log reading progress directly
+            from the book detail page and from shelf cards on the Me tab, without going
+            through the full Library flow.
+          </li>
+          <li>
+            <strong>User notes on page logs</strong> — Add a personal note to each page
+            log session (e.g. "finished chapter 12"). Notes appear in your feed entry.
+          </li>
+          <li>
+            <strong>Book Bingo challenge type</strong> — 3×3, 4×4, and 5×5 reading prompt
+            grids with configurable win and finisher conditions.
+          </li>
+          <li>
+            <strong>Book Posts (General Note, Quote I Loved, Fan Cast)</strong> — Leave
+            quick reactions on any book's detail page.
+          </li>
+          <li>
+            <strong>Event RSVP system</strong> — Respond Yes / Maybe / No to club events
+            directly from the app.
+          </li>
+          <li>
+            <strong>Book detail view — Log Progress CTA</strong> — When you are reading
+            a book, the detail page now shows a prominent Log progress button as the
+            primary action instead of the generic shelf button.
+          </li>
+        </ul>
+
+        <h3>Earlier Updates</h3>
+        <ul>
+          <li><strong>Challenges system</strong> — Seven challenge types including Habit Streak,
+          Buddy Read, Alphabet, and Around the World.</li>
+          <li><strong>Events &amp; Notices</strong> — Club event calendar with RSVP,
+          attendance confirmation, and asset uploads.</li>
+          <li><strong>Badge Gallery</strong> — Special recognition awards for notable
+          achievements, awarded by admins.</li>
+          <li><strong>ISBN-13 auto-fill</strong> — Automatically populate book details from
+          Open Library when adding a new book.</li>
+          <li><strong>Library sort chips</strong> — Sort All Books by Recently Added, A–Z,
+          Top Rated, or Most Read.</li>
+          <li><strong>Genre DNA chart</strong> — Word cloud of genres from your finished books.</li>
+          <li><strong>Reading Pulse &amp; Ghost chart</strong> — Multi-year weekly page
+          count comparison with personal-best overlay.</li>
+          <li><strong>Concurrent wave loading</strong> — App data loads in four parallel
+          waves so the Me tab renders immediately while background data continues loading.</li>
+        </ul>
+
+        <div class="huk-tip">
+          <strong>💡 Want something added?</strong> Every feature above was requested by
+          a member through the feedback form. Submit a feature suggestion and earn
+          <span class="huk-cp-pill">+150 ☀️ CP</span>.
+        </div>
+
+        <div class="huk-related">
+          <div class="huk-related-title">Related Articles</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-feedback')">Submitting Feedback &amp; Bug Reports</div>
+          <div class="huk-related-link" onclick="openHelpArticle('help-troubleshooting')">Troubleshooting Common Issues</div>
         </div>
       `
     }
